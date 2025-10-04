@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { CodeGenerationAgent } from './agents/CodeGenerationAgent.js';
+import { ProjectIntelligenceAgent } from './agents/ProjectIntelligenceAgent.js';
 import { logger } from './utils/logger.js';
 import { validateEnvironment } from './utils/validation.js';
 
@@ -23,6 +24,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Initialize the code generation agent
 const codeAgent = new CodeGenerationAgent();
+
+// Initialize the project intelligence agent
+const intelligenceAgent = new ProjectIntelligenceAgent();
 
 // Routes
 app.get('/health', (req, res) => {
@@ -107,6 +111,105 @@ app.post('/generate/full-stack', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error generating full-stack code:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Project Intelligence Endpoints
+app.post('/intelligence/initialize', async (req, res) => {
+  try {
+    const { projectPath, businessContext } = req.body;
+    
+    logger.info('Initializing project intelligence', { projectPath });
+    
+    const result = await intelligenceAgent.initializeProject(projectPath, businessContext);
+    
+    res.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error initializing project intelligence:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.post('/intelligence/generate', async (req, res) => {
+  try {
+    const { intent, requirements, targetFiles, businessGoal, changeType } = req.body;
+    
+    logger.info('Generating intelligent code', { intent, changeType });
+    
+    const result = await intelligenceAgent.generateIntelligentCode({
+      intent,
+      requirements,
+      targetFiles: targetFiles || [],
+      businessGoal,
+      changeType: changeType || 'feature'
+    });
+    
+    res.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error generating intelligent code:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.post('/intelligence/analyze', async (req, res) => {
+  try {
+    const { filePaths, improvementGoals } = req.body;
+    
+    logger.info('Analyzing code for improvements', { filePaths });
+    
+    const result = await intelligenceAgent.analyzeAndImprove(filePaths, improvementGoals);
+    
+    res.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error analyzing code:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.post('/intelligence/question', async (req, res) => {
+  try {
+    const { question, context } = req.body;
+    
+    logger.info('Answering project question', { question });
+    
+    const result = await intelligenceAgent.answerProjectQuestion(question, context);
+    
+    res.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error answering project question:', error);
     res.status(500).json({
       success: false,
       error: error.message,
