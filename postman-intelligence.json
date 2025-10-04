@@ -1,0 +1,259 @@
+{
+  "info": {
+    "name": "LangChain Intelligence Agent",
+    "description": "Advanced LangChain.js Project Intelligence Agent with Google GenAI - Production Grade AI System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "🧠 Initialize Project Intelligence",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"projectPath\": \"C:/Users/YourName/Desktop/your-project\",\n  \"businessContext\": {\n    \"rules\": [\n      {\n        \"name\": \"Authentication Required\",\n        \"description\": \"All user-facing APIs must require authentication\",\n        \"category\": \"security\",\n        \"priority\": \"high\",\n        \"appliesTo\": [\"api\", \"endpoints\"]\n      },\n      {\n        \"name\": \"Data Validation\",\n        \"description\": \"All input data must be validated using Joi schemas\",\n        \"category\": \"data\",\n        \"priority\": \"high\",\n        \"appliesTo\": [\"api\", \"forms\"]\n      }\n    ],\n    \"domains\": [\n      {\n        \"name\": \"User Management\",\n        \"description\": \"Handles user registration, authentication, and profile management\",\n        \"properties\": [\"userId\", \"email\", \"profile\"],\n        \"businessValue\": \"Core user experience and security\"\n      }\n    ],\n    \"workflows\": [\n      {\n        \"name\": \"User Registration\",\n        \"description\": \"Complete user onboarding process\",\n        \"steps\": [\"validate email\", \"create user\", \"send verification\", \"activate account\"],\n        \"stakeholders\": [\"users\", \"support team\"]\n      }\n    ]\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/intelligence/initialize",
+          "host": ["{{baseUrl}}"],
+          "path": ["intelligence", "initialize"]
+        }
+      }
+    },
+    {
+      "name": "🎯 Generate Intelligent Code - User Profile Feature",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"intent\": \"Add user profile management feature\",\n  \"requirements\": \"Create a complete user profile system with update capabilities, validation, and audit logging. Include profile image upload, personal information management, and privacy settings.\",\n  \"targetFiles\": [\"src/api/users.js\", \"src/components/UserProfile.jsx\"],\n  \"businessGoal\": \"Improve user experience and data accuracy\",\n  \"changeType\": \"feature\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/intelligence/generate",
+          "host": ["{{baseUrl}}"],
+          "path": ["intelligence", "generate"]
+        }
+      }
+    },
+    {
+      "name": "🔒 Generate Intelligent Code - Authentication System",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"intent\": \"Add JWT authentication to product and order APIs\",\n  \"requirements\": \"Implement secure JWT-based authentication that follows our security standards and integrates with existing user management. Include refresh token mechanism and role-based access control.\",\n  \"targetFiles\": [\"src/api/products.js\", \"src/api/orders.js\", \"src/middleware/auth.js\"],\n  \"businessGoal\": \"Secure customer data and enable personalized shopping\",\n  \"changeType\": \"security-enhancement\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/intelligence/generate",
+          "host": ["{{baseUrl}}"],
+          "path": ["intelligence", "generate"]
+        }
+      }
+    },
+    {
+      "name": "⚡ Generate Intelligent Code - Performance Optimization",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"intent\": \"Optimize slow database queries in user dashboard\",\n  \"requirements\": \"Improve query performance while maintaining data accuracy and implementing proper caching. Add database indexing strategies and query optimization.\",\n  \"targetFiles\": [\"src/services/dashboardService.js\", \"src/models/User.js\"],\n  \"businessGoal\": \"Reduce page load time from 3s to under 1s\",\n  \"changeType\": \"optimization\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/intelligence/generate",
+          "host": ["{{baseUrl}}"],
+          "path": ["intelligence", "generate"]
+        }
+      }
+    },
+    {
+      "name": "💳 Generate Intelligent Code - Billing System",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"intent\": \"Implement subscription billing system\",\n  \"requirements\": \"Add complete subscription management with multiple plans, billing cycles, and payment processing integration. Include invoice generation, payment retries, and subscription lifecycle management.\",\n  \"targetFiles\": [\"src/api/subscriptions.js\", \"src/models/Subscription.js\", \"src/services/billingService.js\"],\n  \"businessGoal\": \"Enable recurring revenue model\",\n  \"changeType\": \"feature\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/intelligence/generate",
+          "host": ["{{baseUrl}}"],
+          "path": ["intelligence", "generate"]
+        }
+      }
+    },
+    {
+      "name": "🔍 Analyze Code for Improvements",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"filePaths\": [\"src/api/auth.js\", \"src/services/userService.js\", \"src/models/User.js\"],\n  \"improvementGoals\": [\"security\", \"performance\", \"maintainability\", \"scalability\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/intelligence/analyze",
+          "host": ["{{baseUrl}}"],
+          "path": ["intelligence", "analyze"]
+        }
+      }
+    },
+    {
+      "name": "❓ Ask About Caching Strategy",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"question\": \"How should I implement caching for the user API to improve performance while maintaining data consistency?\",\n  \"context\": {\n    \"currentLoad\": \"high\",\n    \"dataUpdates\": \"frequent\",\n    \"userBase\": \"growing\",\n    \"infrastructure\": \"AWS\",\n    \"database\": \"PostgreSQL\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/intelligence/question",
+          "host": ["{{baseUrl}}"],
+          "path": ["intelligence", "question"]
+        }
+      }
+    },
+    {
+      "name": "❓ Ask About Architecture Design",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"question\": \"How should I structure the microservices for our payment system to ensure PCI compliance and high availability?\",\n  \"context\": {\n    \"requirements\": [\"high availability\", \"PCI compliance\", \"scalability\", \"fault tolerance\"],\n    \"currentArchitecture\": \"monolith\",\n    \"teamSize\": \"5 developers\",\n    \"expectedVolume\": \"10000 transactions/day\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/intelligence/question",
+          "host": ["{{baseUrl}}"],
+          "path": ["intelligence", "question"]
+        }
+      }
+    },
+    {
+      "name": "❓ Ask About GDPR Compliance",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"question\": \"Will this change comply with our GDPR data handling requirements? What additional measures should I implement?\",\n  \"context\": {\n    \"changeType\": \"data-processing\",\n    \"affectedData\": [\"user profiles\", \"activity logs\", \"payment information\"],\n    \"dataRetention\": \"2 years\",\n    \"userConsent\": \"explicit opt-in\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/intelligence/question",
+          "host": ["{{baseUrl}}"],
+          "path": ["intelligence", "question"]
+        }
+      }
+    },
+    {
+      "name": "🔧 Generate Next.js Component (Legacy)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Create a responsive user profile card component with avatar, name, email, and bio\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/nextjs",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "nextjs"]
+        }
+      }
+    },
+    {
+      "name": "⚙️ Generate Express.js API (Legacy)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Create a RESTful API for user management with CRUD operations\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/express",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "express"]
+        }
+      }
+    }
+  ]
+}

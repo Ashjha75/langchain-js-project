@@ -1,0 +1,218 @@
+{
+  "info": {
+    "name": "LangChain Code Generator",
+    "description": "Advanced LangChain.js Code Generation Agent with Google GenAI",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Next.js Component - Basic",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Create a responsive user profile card component with avatar, name, email, and bio\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/nextjs",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "nextjs"]
+        }
+      }
+    },
+    {
+      "name": "Generate Next.js Component - Advanced",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Create a modern dashboard component with charts, user statistics, and recent activity feed using Tailwind CSS\",\n  \"style\": \"modern\",\n  \"features\": [\"responsive\", \"dark-mode\", \"animations\"],\n  \"complexity\": \"advanced\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/nextjs",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "nextjs"]
+        }
+      }
+    },
+    {
+      "name": "Generate Express.js API - Basic",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Create a RESTful API for user management with CRUD operations\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/express",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "express"]
+        }
+      }
+    },
+    {
+      "name": "Generate Express.js API - Advanced",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Build a social media API with posts, comments, likes, and user relationships\",\n  \"database\": \"mongodb\",\n  \"authentication\": \"jwt\",\n  \"features\": [\"pagination\", \"validation\", \"error-handling\", \"rate-limiting\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/express",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "express"]
+        }
+      }
+    },
+    {
+      "name": "Generate Full-Stack App",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Build a complete todo application with Next.js frontend and Express.js backend\",\n  \"frontend\": \"nextjs\",\n  \"backend\": \"express\",\n  \"database\": \"mongodb\",\n  \"features\": [\"authentication\", \"real-time-updates\", \"responsive-design\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/full-stack",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "full-stack"]
+        }
+      }
+    },
+    {
+      "name": "Generate Login Form",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Create a modern login form with email and password fields, validation, and a submit button with loading states\",\n  \"style\": \"modern\",\n  \"framework\": \"tailwindcss\",\n  \"features\": [\"validation\", \"loading-states\", \"error-handling\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/nextjs",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "nextjs"]
+        }
+      }
+    },
+    {
+      "name": "Generate E-commerce Product Card",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Create an e-commerce product card with image, title, price, rating, and add to cart button\",\n  \"style\": \"modern\",\n  \"features\": [\"hover-effects\", \"responsive\", \"animations\"],\n  \"complexity\": \"intermediate\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/nextjs",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "nextjs"]
+        }
+      }
+    },
+    {
+      "name": "Generate Authentication API",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Create a complete authentication API with register, login, logout, and password reset endpoints\",\n  \"authentication\": \"jwt\",\n  \"database\": \"mongodb\",\n  \"features\": [\"email-verification\", \"rate-limiting\", \"password-hashing\", \"input-validation\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/express",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "express"]
+        }
+      }
+    },
+    {
+      "name": "Generate Blog API",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"requirements\": \"Build a blog API with posts, categories, tags, and comments functionality\",\n  \"database\": \"mongodb\",\n  \"features\": [\"pagination\", \"search\", \"filtering\", \"authentication\", \"file-upload\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/generate/express",
+          "host": ["{{baseUrl}}"],
+          "path": ["generate", "express"]
+        }
+      }
+    }
+  ]
+}
