@@ -3,6 +3,7 @@ import { VectorStore } from '@langchain/core/vectorstores';
 import { Document } from '@langchain/core/documents';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
+import { NeonVectorStore } from './NeonVectorStore.js';
 import { logger } from './logger.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -15,11 +16,19 @@ export class UniversalContextManager {
     this.temporalContext = []; // Time-based context evolution
     this.businessKnowledge = new Map(); // Business domain knowledge
     
-    // Vector store for semantic search
-    this.embeddings = new OpenAIEmbeddings({
-      openAIApiKey: process.env.OPENAI_API_KEY,
-    });
-    this.vectorStore = new MemoryVectorStore(this.embeddings);
+    // Use Neon vector store if configured, otherwise fallback to memory store
+    this.useNeon = process.env.VECTOR_STORE_TYPE === 'neon' && process.env.NEON_DATABASE_URL;
+    
+    if (this.useNeon) {
+      this.vectorStore = new NeonVectorStore();
+      logger.info('🐘 Using Neon PostgreSQL for vector storage');
+    } else {
+      this.embeddings = new OpenAIEmbeddings({
+        openAIApiKey: process.env.OPENAI_API_KEY,
+      });
+      this.vectorStore = new MemoryVectorStore(this.embeddings);
+      logger.info('🧠 Using in-memory vector storage');
+    }
     
     // Initialize memory layers
     this.initializeMemoryLayers();
@@ -28,15 +37,16 @@ export class UniversalContextManager {
   initializeMemoryLayers() {
     // Different types of memory for different purposes
     this.memoryLayers.set('codebase', new Map()); // Static codebase knowledge
-    this.memoryLayers.set('patterns', new Map()); // Code patterns and practices
-    this.memoryLayers.set('business', new Map()); // Business rules and concepts
-    this.memoryLayers.set('generation', new Map()); // Generation history and learnings
-    this.memoryLayers.set('user_preferences', new Map()); // User coding preferences
-    this.memoryLayers.set('project_config', new Map()); // Project-specific configurations
+    this.memoryLayers.set('patterns', new Map()); // Code patterns and conventions
+    this.memoryLayers.set('business', new Map()); // Business rules and requirements
+    this.memoryLayers.set('generation', new Map()); // Generation history and preferences
+    this.memoryLayers.set('user', new Map()); // User preferences and feedback
+
+    logger.info('🧠 Initialized memory layers for universal context management');
   }
 
   /**
-   * Store comprehensive context for any code project
+   * Store comprehensive context for a project
    */
   async storeContext(projectId, contextData) {
     try {
@@ -94,32 +104,32 @@ export class UniversalContextManager {
 
     // Patterns layer - coding patterns and conventions
     if (contextData.patterns) {
-      this.memoryLayers.get('patterns').set(projectId, {
-        codingStyle: contextData.patterns.codingStyle,
-        architecturalPatterns: contextData.patterns.architectural,
-        designPatterns: contextData.patterns.design,
-        namingConventions: contextData.patterns.naming
-      });
+      this.memoryLayers.get('patterns').set(projectId, contextData.patterns);
     }
 
-    // Business layer - domain knowledge
+    // Business layer - domain knowledge and requirements
     if (contextData.businessContext) {
-      this.memoryLayers.get('business').set(projectId, {
-        domain: contextData.businessContext.domain,
-        rules: contextData.businessContext.rules,
-        constraints: contextData.businessContext.constraints,
-        stakeholders: contextData.businessContext.stakeholders,
-        workflows: contextData.businessContext.workflows
-      });
+      this.memoryLayers.get('business').set(projectId, contextData.businessContext);
     }
 
-    // User preferences layer
+    // Generation layer - past generation results and preferences
+    if (contextData.generationHistory) {
+      this.memoryLayers.get('generation').set(projectId, contextData.generationHistory);
+    }
+
+    // User layer - user preferences and feedback
     if (contextData.userPreferences) {
-      this.memoryLayers.get('user_preferences').set(projectId, {
-        codeStyle: contextData.userPreferences.codeStyle,
-        frameworks: contextData.userPreferences.preferredFrameworks,
-        tools: contextData.userPreferences.preferredTools,
-        conventions: contextData.userPreferences.conventions
+      this.memoryLayers.get('user').set(projectId, contextData.userPreferences);
+    }
+
+    // Store in Neon if available
+    if (this.useNeon) {
+      await this.vectorStore.storeContext(projectId, 'memory_layers', {
+        codebase: this.memoryLayers.get('codebase').get(projectId),
+        patterns: this.memoryLayers.get('patterns').get(projectId),
+        business: this.memoryLayers.get('business').get(projectId),
+        generation: this.memoryLayers.get('generation').get(projectId),
+        user: this.memoryLayers.get('user').get(projectId)
       });
     }
   }
@@ -169,35 +179,82 @@ export class UniversalContextManager {
               projectId,
               type: 'example',
               pattern: example.pattern,
-              category: example.category,
-              quality: example.quality || 'good'
+              technology: example.technology,
+              complexity: example.complexity
             }
           }));
         }
       }
 
+      // Add structured analysis data as searchable content
+      if (contextData.codebaseAnalysis) {
+        const analysis = contextData.codebaseAnalysis;
+        documents.push(new Document({
+          pageContent: `Project Technologies: ${analysis.technologies?.join(', ')}
+Project Frameworks: ${analysis.frameworks?.join(', ')}
+Business Domain: ${analysis.businessDomain}
+Architecture Pattern: ${analysis.architecturePattern}
+File Structure: ${JSON.stringify(analysis.fileStructure, null, 2)}`,
+          metadata: {
+            projectId,
+            type: 'analysis',
+            subtype: 'technologies'
+          }
+        }));
+      }
+
+      // Store documents in vector store
       if (documents.length > 0) {
-        await this.vectorStore.addDocuments(documents);
-        logger.info(`🔍 Indexed ${documents.length} documents for semantic search`);
+        if (this.useNeon) {
+          // Use Neon vector store
+          await this.vectorStore.addDocuments(documents, projectId, 'context');
+          
+          // Also store structured context data in Neon
+          if (contextData.codebaseAnalysis) {
+            await this.vectorStore.storeContext(projectId, 'codebase_analysis', contextData.codebaseAnalysis);
+          }
+          
+          if (contextData.businessContext) {
+            await this.vectorStore.storeContext(projectId, 'business_context', contextData.businessContext);
+          }
+          
+          if (contextData.patterns) {
+            await this.vectorStore.storeContext(projectId, 'patterns', contextData.patterns);
+          }
+        } else {
+          // Use memory vector store
+          await this.vectorStore.addDocuments(documents);
+        }
+        
+        logger.info(`🔍 Indexed ${documents.length} documents in vector store for project: ${projectId}`);
       }
 
     } catch (error) {
       logger.error('Error indexing in vector store:', error);
+      // Don't throw error - indexing failure shouldn't break context storage
     }
   }
 
   updateRelationshipGraph(projectId, contextData) {
-    // Build relationships between different code elements
+    // Build graph of code relationships (imports, dependencies, etc.)
     const relationships = new Map();
 
     if (contextData.codebaseAnalysis?.dependencies) {
-      for (const [file, deps] of Object.entries(contextData.codebaseAnalysis.dependencies)) {
-        relationships.set(file, {
-          dependsOn: deps,
-          usedBy: [],
-          relatedTo: []
-        });
+      relationships.set('dependencies', contextData.codebaseAnalysis.dependencies);
+    }
+
+    if (contextData.codeFiles) {
+      const fileRelations = new Map();
+      
+      for (const file of contextData.codeFiles) {
+        // Extract imports and exports
+        const imports = this.extractImports(file.content, file.language);
+        const exports = this.extractExports(file.content, file.language);
+        
+        fileRelations.set(file.path, { imports, exports });
       }
+      
+      relationships.set('fileRelations', fileRelations);
     }
 
     this.relationshipGraph.set(projectId, relationships);
@@ -208,21 +265,29 @@ export class UniversalContextManager {
     const temporalEntry = {
       projectId,
       timestamp: new Date().toISOString(),
-      changes: contextData.changes || [],
-      evolution: contextData.evolution || 'initial',
-      confidence: contextData.confidence || 1.0
+      contextSnapshot: JSON.stringify(contextData),
+      changeType: 'update',
+      metadata: {
+        filesCount: contextData.codeFiles?.length || 0,
+        technologies: contextData.codebaseAnalysis?.technologies || [],
+        complexity: contextData.codebaseAnalysis?.complexity || 'unknown'
+      }
     };
 
     this.temporalContext.push(temporalEntry);
 
-    // Keep only recent history (last 1000 entries)
-    if (this.temporalContext.length > 1000) {
-      this.temporalContext = this.temporalContext.slice(-1000);
+    // Keep only last 50 entries per project to manage memory
+    const projectEntries = this.temporalContext.filter(entry => entry.projectId === projectId);
+    if (projectEntries.length > 50) {
+      this.temporalContext = this.temporalContext.filter(entry => 
+        entry.projectId !== projectId || 
+        projectEntries.slice(-50).includes(entry)
+      );
     }
   }
 
   /**
-   * Retrieve comprehensive context for code generation
+   * Get context for code generation with intelligent filtering
    */
   async getContextForGeneration(projectId, requirement, options = {}) {
     try {
@@ -230,84 +295,91 @@ export class UniversalContextManager {
         includeCodebase = true,
         includePatterns = true,
         includeBusiness = true,
-        includeHistory = true,
-        maxRelevantDocs = 10
+        includeHistory = false,
+        maxTokens = 50000
       } = options;
 
       const context = {
         projectId,
         requirement,
         timestamp: new Date().toISOString(),
-        layers: {}
+        metadata: {}
       };
 
-      // Get main context
-      const mainContext = this.contextStore.get(projectId);
-      if (mainContext) {
-        context.main = mainContext;
-        // Update access count
-        mainContext.metadata.accessCount++;
-      }
-
-      // Get memory layers
-      if (includeCodebase) {
-        context.layers.codebase = this.memoryLayers.get('codebase').get(projectId);
-      }
-      
-      if (includePatterns) {
-        context.layers.patterns = this.memoryLayers.get('patterns').get(projectId);
-      }
-      
-      if (includeBusiness) {
-        context.layers.business = this.memoryLayers.get('business').get(projectId);
+      // Get stored context
+      const storedContext = this.contextStore.get(projectId);
+      if (storedContext) {
+        storedContext.metadata.accessCount += 1;
       }
 
       // Get relevant semantic context
-      const relevantDocs = await this.getRelevantContext(projectId, requirement, maxRelevantDocs);
-      context.relevant = relevantDocs;
+      const relevantDocs = await this.getRelevantContext(projectId, requirement);
+      context.relevantCode = relevantDocs;
 
-      // Get historical context
-      if (includeHistory) {
-        context.history = this.getHistoricalContext(projectId);
+      // Get memory layer data
+      if (includeCodebase && this.memoryLayers.get('codebase').has(projectId)) {
+        context.codebaseContext = this.memoryLayers.get('codebase').get(projectId);
       }
 
-      // Get relationships
-      context.relationships = this.relationshipGraph.get(projectId);
+      if (includePatterns && this.memoryLayers.get('patterns').has(projectId)) {
+        context.patterns = this.memoryLayers.get('patterns').get(projectId);
+      }
 
-      // Calculate context quality
-      context.quality = this.calculateContextQuality(context);
+      if (includeBusiness && this.memoryLayers.get('business').has(projectId)) {
+        context.businessContext = this.memoryLayers.get('business').get(projectId);
+      }
 
-      logger.info(`📖 Retrieved context for ${projectId}: quality ${context.quality.score}/10`);
-      return context;
+      if (includeHistory && this.memoryLayers.get('generation').has(projectId)) {
+        context.generationHistory = this.memoryLayers.get('generation').get(projectId);
+      }
+
+      // Get relationship context
+      if (this.relationshipGraph.has(projectId)) {
+        context.relationships = this.relationshipGraph.get(projectId);
+      }
+
+      // Get temporal context if requested
+      if (includeHistory) {
+        context.historicalContext = this.getHistoricalContext(projectId);
+      }
+
+      // Optimize context size
+      const optimizedContext = this.optimizeContextSize(context, maxTokens);
+
+      logger.info(`🎯 Retrieved context for generation: ${projectId}`, {
+        requirement,
+        contextSize: JSON.stringify(optimizedContext).length
+      });
+
+      return optimizedContext;
 
     } catch (error) {
-      logger.error('Error retrieving context:', error);
-      throw error;
+      logger.error('Error getting context for generation:', error);
+      return {
+        projectId,
+        requirement,
+        error: error.message,
+        fallbackContext: this.getFallbackContext(projectId)
+      };
     }
   }
 
   async getRelevantContext(projectId, requirement, maxDocs = 10) {
     try {
-      // Search for relevant documents
-      const allDocs = await this.vectorStore.similaritySearch(requirement, maxDocs * 2);
-      
-      // Filter by project ID
-      const projectDocs = allDocs.filter(doc => doc.metadata.projectId === projectId);
-      
-      // Sort by relevance and type priority
-      const sortedDocs = projectDocs
-        .sort((a, b) => {
-          const typeScore = {
-            'business': 3,
-            'example': 2,
-            'code': 1
-          };
-          return (typeScore[b.metadata.type] || 0) - (typeScore[a.metadata.type] || 0);
-        })
-        .slice(0, maxDocs);
-
-      return sortedDocs;
-
+      if (this.useNeon) {
+        // Use Neon similarity search
+        return await this.vectorStore.similaritySearch(requirement, projectId, {
+          k: maxDocs,
+          threshold: 0.7,
+          includeMetadata: true
+        });
+      } else {
+        // Use memory vector store
+        const results = await this.vectorStore.similaritySearch(requirement, maxDocs);
+        return results.filter(doc => 
+          doc.metadata?.projectId === projectId || !doc.metadata?.projectId
+        );
+      }
     } catch (error) {
       logger.error('Error getting relevant context:', error);
       return [];
@@ -317,251 +389,156 @@ export class UniversalContextManager {
   getHistoricalContext(projectId, limit = 10) {
     return this.temporalContext
       .filter(entry => entry.projectId === projectId)
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-      .slice(0, limit);
+      .slice(-limit)
+      .map(entry => ({
+        timestamp: entry.timestamp,
+        changeType: entry.changeType,
+        metadata: entry.metadata
+      }));
   }
 
-  calculateContextQuality(context) {
-    let score = 0;
-    let maxScore = 10;
-    const details = {};
+  optimizeContextSize(context, maxTokens) {
+    const contextStr = JSON.stringify(context);
+    const currentSize = contextStr.length;
 
-    // Main context availability (2 points)
-    if (context.main) {
-      score += 2;
-      details.mainContext = 'Available';
-    } else {
-      details.mainContext = 'Missing';
+    if (currentSize <= maxTokens) {
+      return context;
     }
 
-    // Memory layers (3 points)
-    const layerCount = Object.keys(context.layers).length;
-    const layerScore = Math.min(3, layerCount);
-    score += layerScore;
-    details.memoryLayers = `${layerCount}/3 layers`;
+    // Prioritize different types of context
+    const optimized = {
+      projectId: context.projectId,
+      requirement: context.requirement,
+      timestamp: context.timestamp
+    };
 
-    // Relevant documents (2 points)
-    const relevantScore = Math.min(2, context.relevant?.length / 5 * 2);
-    score += relevantScore;
-    details.relevantDocs = `${context.relevant?.length || 0} documents`;
+    const remainingTokens = maxTokens - JSON.stringify(optimized).length;
+    let usedTokens = 0;
 
-    // Historical context (1 point)
-    if (context.history?.length > 0) {
-      score += 1;
-      details.historicalContext = 'Available';
-    } else {
-      details.historicalContext = 'Limited';
+    // Priority order: relevantCode > patterns > codebaseContext > businessContext
+    const priorities = [
+      'relevantCode',
+      'patterns', 
+      'codebaseContext',
+      'businessContext',
+      'relationships',
+      'generationHistory',
+      'historicalContext'
+    ];
+
+    for (const key of priorities) {
+      if (context[key] && usedTokens < remainingTokens) {
+        const itemSize = JSON.stringify(context[key]).length;
+        if (usedTokens + itemSize <= remainingTokens) {
+          optimized[key] = context[key];
+          usedTokens += itemSize;
+        } else {
+          // Truncate if needed
+          if (Array.isArray(context[key])) {
+            const maxItems = Math.floor((remainingTokens - usedTokens) / (itemSize / context[key].length));
+            if (maxItems > 0) {
+              optimized[key] = context[key].slice(0, maxItems);
+            }
+          }
+          break;
+        }
+      }
     }
 
-    // Relationships (2 points)
-    if (context.relationships?.size > 0) {
-      score += 2;
-      details.relationships = 'Available';
-    } else {
-      details.relationships = 'Missing';
-    }
+    logger.info(`📐 Optimized context size: ${currentSize} → ${JSON.stringify(optimized).length} tokens`);
+    return optimized;
+  }
 
+  getFallbackContext(projectId) {
     return {
-      score: Math.round(score * 10) / 10,
-      maxScore,
-      percentage: Math.round((score / maxScore) * 100),
-      details
+      projectId,
+      codebaseContext: this.memoryLayers.get('codebase').get(projectId),
+      patterns: this.memoryLayers.get('patterns').get(projectId),
+      businessContext: this.memoryLayers.get('business').get(projectId)
     };
   }
 
   /**
-   * Learn and update context from new information
+   * Update context based on feedback
    */
   async updateContextFromFeedback(projectId, feedback) {
     try {
-      const context = this.contextStore.get(projectId);
-      if (!context) {
-        logger.warn(`No context found for project: ${projectId}`);
-        return;
-      }
+      const { quality, usefulness, improvements, newPatterns } = feedback;
 
-      // Update confidence based on feedback
-      if (feedback.success) {
-        context.metadata.confidence = Math.min(1.0, context.metadata.confidence + 0.1);
-      } else {
-        context.metadata.confidence = Math.max(0.1, context.metadata.confidence - 0.1);
-      }
-
-      // Learn new patterns from successful generations
-      if (feedback.success && feedback.generatedCode) {
-        await this.learnFromSuccessfulGeneration(projectId, feedback);
-      }
-
-      // Update business rules if feedback indicates rule violations
-      if (feedback.businessViolations) {
-        await this.updateBusinessRules(projectId, feedback.businessViolations);
-      }
-
-      // Track temporal evolution
-      this.trackTemporalContext(projectId, {
-        changes: ['feedback-update'],
-        evolution: 'learning',
-        confidence: context.metadata.confidence,
-        feedback: feedback.summary
+      // Update generation preferences
+      const currentGenContext = this.memoryLayers.get('generation').get(projectId) || {};
+      currentGenContext.feedback = currentGenContext.feedback || [];
+      currentGenContext.feedback.push({
+        timestamp: new Date().toISOString(),
+        quality,
+        usefulness,
+        improvements
       });
 
-      context.metadata.lastUpdated = new Date().toISOString();
-      
-      logger.info(`🧠 Updated context for ${projectId} based on feedback`);
+      this.memoryLayers.get('generation').set(projectId, currentGenContext);
+
+      // Add new patterns if provided
+      if (newPatterns) {
+        const currentPatterns = this.memoryLayers.get('patterns').get(projectId) || {};
+        Object.assign(currentPatterns, newPatterns);
+        this.memoryLayers.get('patterns').set(projectId, currentPatterns);
+      }
+
+      // Store in Neon if available
+      if (this.useNeon) {
+        await this.vectorStore.storeContext(projectId, 'feedback', feedback);
+      }
+
+      logger.info(`💡 Updated context from feedback for project: ${projectId}`);
 
     } catch (error) {
       logger.error('Error updating context from feedback:', error);
+      throw error;
     }
   }
 
-  async learnFromSuccessfulGeneration(projectId, feedback) {
-    // Extract patterns from successful code generation
-    const patterns = this.extractPatternsFromCode(feedback.generatedCode);
-    
-    // Update patterns memory layer
-    const existingPatterns = this.memoryLayers.get('patterns').get(projectId) || {};
-    const updatedPatterns = this.mergePatterns(existingPatterns, patterns);
-    
-    this.memoryLayers.get('patterns').set(projectId, updatedPatterns);
-
-    // Add successful example to vector store
-    await this.vectorStore.addDocuments([new Document({
-      pageContent: feedback.generatedCode,
-      metadata: {
-        projectId,
-        type: 'successful_example',
-        requirement: feedback.requirement,
-        quality: 'high',
-        timestamp: new Date().toISOString()
-      }
-    })]);
-  }
-
-  extractPatternsFromCode(code) {
-    // Simple pattern extraction - can be enhanced with AST analysis
+  extractImports(content, language) {
+    // Simple regex-based import extraction
+    const imports = [];
     const patterns = {
-      imports: [],
-      functions: [],
-      classes: [],
-      styles: []
+      javascript: /import\s+.*?\s+from\s+['"`]([^'"`]+)['"`]/g,
+      python: /from\s+([^\s]+)\s+import|import\s+([^\s]+)/g,
+      java: /import\s+([^;]+);/g
     };
 
-    // Extract import patterns
-    const importMatches = code.match(/import .+ from .+/g) || [];
-    patterns.imports = importMatches;
-
-    // Extract function patterns
-    const functionMatches = code.match(/function \w+|const \w+ = |=>/g) || [];
-    patterns.functions = functionMatches;
-
-    // Extract class patterns
-    const classMatches = code.match(/class \w+/g) || [];
-    patterns.classes = classMatches;
-
-    return patterns;
-  }
-
-  mergePatterns(existing, newPatterns) {
-    const merged = { ...existing };
-    
-    for (const [key, value] of Object.entries(newPatterns)) {
-      if (Array.isArray(value)) {
-        merged[key] = [...(merged[key] || []), ...value];
-        // Remove duplicates
-        merged[key] = [...new Set(merged[key])];
-      } else {
-        merged[key] = value;
+    const pattern = patterns[language];
+    if (pattern) {
+      let match;
+      while ((match = pattern.exec(content)) !== null) {
+        imports.push(match[1] || match[2]);
       }
     }
-    
-    return merged;
+
+    return imports;
   }
 
-  async updateBusinessRules(projectId, violations) {
-    const businessLayer = this.memoryLayers.get('business').get(projectId) || {};
-    
-    // Add new rules based on violations
-    for (const violation of violations) {
-      const ruleId = `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      businessLayer.rules = businessLayer.rules || {};
-      businessLayer.rules[ruleId] = {
-        description: violation.rule,
-        severity: violation.severity || 'medium',
-        category: violation.category || 'general',
-        learnedFrom: 'violation',
-        timestamp: new Date().toISOString()
-      };
+  extractExports(content, language) {
+    // Simple regex-based export extraction
+    const exports = [];
+    const patterns = {
+      javascript: /export\s+(?:default\s+)?(?:class|function|const|let|var)\s+([^\s(]+)/g,
+      python: /def\s+([^\s(]+)|class\s+([^\s(:]+)/g,
+      java: /public\s+(?:class|interface)\s+([^\s{]+)/g
+    };
+
+    const pattern = patterns[language];
+    if (pattern) {
+      let match;
+      while ((match = pattern.exec(content)) !== null) {
+        exports.push(match[1] || match[2]);
+      }
     }
-    
-    this.memoryLayers.get('business').set(projectId, businessLayer);
+
+    return exports;
   }
 
   /**
-   * Export context for backup or sharing
-   */
-  async exportContext(projectId) {
-    try {
-      const context = {
-        main: this.contextStore.get(projectId),
-        layers: {},
-        relationships: this.relationshipGraph.get(projectId),
-        history: this.getHistoricalContext(projectId, 50),
-        exportedAt: new Date().toISOString()
-      };
-
-      // Export all memory layers
-      for (const [layerName, layer] of this.memoryLayers.entries()) {
-        context.layers[layerName] = layer.get(projectId);
-      }
-
-      return context;
-
-    } catch (error) {
-      logger.error('Error exporting context:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Import context from backup
-   */
-  async importContext(projectId, contextData) {
-    try {
-      // Import main context
-      if (contextData.main) {
-        this.contextStore.set(projectId, contextData.main);
-      }
-
-      // Import memory layers
-      if (contextData.layers) {
-        for (const [layerName, layerData] of Object.entries(contextData.layers)) {
-          if (layerData && this.memoryLayers.has(layerName)) {
-            this.memoryLayers.get(layerName).set(projectId, layerData);
-          }
-        }
-      }
-
-      // Import relationships
-      if (contextData.relationships) {
-        this.relationshipGraph.set(projectId, contextData.relationships);
-      }
-
-      // Import history
-      if (contextData.history) {
-        this.temporalContext.push(...contextData.history);
-      }
-
-      logger.info(`📥 Imported context for project: ${projectId}`);
-      return { success: true };
-
-    } catch (error) {
-      logger.error('Error importing context:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get context statistics and health
+   * Get statistics about stored context
    */
   getContextStats() {
     return {
@@ -571,12 +548,44 @@ export class UniversalContextManager {
         patterns: this.memoryLayers.get('patterns').size,
         business: this.memoryLayers.get('business').size,
         generation: this.memoryLayers.get('generation').size,
-        userPreferences: this.memoryLayers.get('user_preferences').size,
-        projectConfig: this.memoryLayers.get('project_config').size
+        user: this.memoryLayers.get('user').size
       },
       relationships: this.relationshipGraph.size,
       temporalEntries: this.temporalContext.length,
-      vectorStoreSize: this.vectorStore?.vectorStore?.size || 0
+      storageType: this.useNeon ? 'neon' : 'memory'
     };
+  }
+
+  /**
+   * Clear all context for a project
+   */
+  async clearProjectContext(projectId) {
+    try {
+      // Clear from main store
+      this.contextStore.delete(projectId);
+
+      // Clear from memory layers
+      for (const layer of this.memoryLayers.values()) {
+        layer.delete(projectId);
+      }
+
+      // Clear from relationship graph
+      this.relationshipGraph.delete(projectId);
+
+      // Clear from temporal context
+      this.temporalContext = this.temporalContext.filter(entry => entry.projectId !== projectId);
+
+      // Clear from Neon if available
+      if (this.useNeon) {
+        await this.vectorStore.deleteProject(projectId);
+      }
+
+      logger.info(`🗑️ Cleared all context for project: ${projectId}`);
+      return { success: true };
+
+    } catch (error) {
+      logger.error('Error clearing project context:', error);
+      throw error;
+    }
   }
 }

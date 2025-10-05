@@ -7,7 +7,24 @@ const envSchema = Joi.object({
   PORT: Joi.number().port().default(3000),
   GOOGLE_API_KEY: Joi.string().required(),
   GOOGLE_MODEL_NAME: Joi.string().default('gemini-1.5-flash'),
-  LOG_LEVEL: Joi.string().valid('error', 'warn', 'info', 'debug').default('info')
+  LOG_LEVEL: Joi.string().valid('error', 'warn', 'info', 'debug').default('info'),
+  
+  // Vector store configuration
+  VECTOR_STORE_TYPE: Joi.string().valid('memory', 'neon').default('memory'),
+  
+  // Neon configuration (optional)
+  NEON_DATABASE_URL: Joi.when('VECTOR_STORE_TYPE', {
+    is: 'neon',
+    then: Joi.string().required(),
+    otherwise: Joi.string().optional()
+  }),
+  NEON_API_KEY: Joi.string().optional(),
+  NEON_PROJECT_ID: Joi.string().optional(),
+  NEON_VECTOR_TABLE: Joi.string().default('langchain_vectors'),
+  NEON_CONTEXT_TABLE: Joi.string().default('langchain_context'),
+  
+  // OpenAI configuration (for embeddings)
+  OPENAI_API_KEY: Joi.string().optional()
 });
 
 export function validateEnvironment() {
