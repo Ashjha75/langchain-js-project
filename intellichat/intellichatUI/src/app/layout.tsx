@@ -133,23 +133,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
       className={`dark ${inter.variable} ${jetbrainsMono.variable} ${poppins.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        {/* Preload critical resources */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        
-        {/* DNS prefetch for external domains */}
-        <link rel="dns-prefetch" href="https://api.intellichat.pro" />
-        
-        {/* Critical CSS variables */}
-        <style>{`
-          :root {
-            --font-inter: ${inter.style.fontFamily};
-            --font-jetbrains-mono: ${jetbrainsMono.style.fontFamily};
-            --font-poppins: ${poppins.style.fontFamily};
-          }
-        `}</style>
-      </head>
       <body
         className="min-h-screen bg-background font-sans antialiased"
         suppressHydrationWarning

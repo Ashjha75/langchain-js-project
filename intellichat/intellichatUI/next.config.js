@@ -3,7 +3,20 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['sharp'],
     optimizePackageImports: ['lucide-react', '@heroicons/react'],
+    // Next.js 15 specific optimizations
+    optimizeCss: true,
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
+  
+  // React 19 configuration
+  reactStrictMode: true,
   
   // Performance optimizations
   compiler: {
