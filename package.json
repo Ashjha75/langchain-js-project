@@ -1,20 +1,42 @@
 {
-  "name": "langchain-js-project",
+  "name": "langchain-js-code-agent",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Advanced LangChain.js agent for generating Next.js + Express.js code using Google GenAI",
+  "main": "src/index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest",
+    "build": "docker build -t langchain-code-agent .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env langchain-code-agent",
+    "docker:dev": "docker-compose up --build",
+    "lint": "eslint src/",
+    "format": "prettier --write src/"
   },
+  "keywords": [
+    "langchain",
+    "google-genai",
+    "nextjs",
+    "expressjs",
+    "code-generation",
+    "ai-agent"
+  ],
+  "author": "Ashish Jha",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ashjha75/langchain-js-project.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "bugs": {
     "url": "https://github.com/Ashjha75/langchain-js-project/issues"
   },
   "homepage": "https://github.com/Ashjha75/langchain-js-project#readme",
-  "description": ""
+  "dependencies": {
+    "@tavily/core": "^0.5.12",
+    "dotenv": "^17.2.3",
+    "groq-sdk": "^0.33.0",
+    "nodemon": "^3.1.10",
+    "readline": "^1.3.0"
+  }
 }
