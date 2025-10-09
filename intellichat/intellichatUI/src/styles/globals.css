@@ -1,0 +1,467 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* Color System - Dark Theme (Default) */
+    
+    /* Base colors */
+    --background: 221 39% 11%;           /* #0d1117 */
+    --foreground: 213 31% 91%;           /* #f0f6fc */
+    
+    /* Card colors */
+    --card: 220 26% 14%;                 /* #161b22 */
+    --card-foreground: 213 31% 91%;      /* #f0f6fc */
+    
+    /* Popover colors */
+    --popover: 220 23% 18%;              /* #21262d */
+    --popover-foreground: 213 31% 91%;   /* #f0f6fc */
+    
+    /* Primary colors */
+    --primary: 137 72% 32%;              /* #238636 */
+    --primary-foreground: 0 0% 100%;     /* #ffffff */
+    
+    /* Secondary colors */
+    --secondary: 220 23% 18%;            /* #21262d */
+    --secondary-foreground: 213 31% 91%; /* #f0f6fc */
+    
+    /* Muted colors */
+    --muted: 217 19% 27%;                /* #2d333b */
+    --muted-foreground: 218 11% 65%;     /* #7c8590 */
+    
+    /* Accent colors */
+    --accent: 212 92% 45%;               /* #1f6feb */
+    --accent-foreground: 0 0% 100%;      /* #ffffff */
+    
+    /* Destructive colors */
+    --destructive: 0 66% 70%;            /* #f85149 */
+    --destructive-foreground: 0 0% 100%; /* #ffffff */
+    
+    /* Border colors */
+    --border: 215 28% 17%;               /* #30363d */
+    --input: 215 28% 17%;                /* #30363d */
+    
+    /* Ring color for focus states */
+    --ring: 212 92% 45%;                 /* #1f6feb */
+    
+    /* Radius */
+    --radius: 0.75rem;
+    
+    /* Chat-specific colors */
+    --chat-user: 217 19% 27%;            /* #2d333b */
+    --chat-assistant: 220 23% 18%;       /* #21262d */
+    --chat-system: 220 26% 14%;          /* #1c2128 */
+    --chat-tool: 212 92% 45%;            /* #1f6feb */
+    --chat-error: 0 66% 70%;             /* #f85149 */
+    --chat-loading: 217 19% 27%;         /* #292e36 */
+    
+    /* Sidebar colors */
+    --sidebar-background: 220 26% 14%;   /* #161b22 */
+    --sidebar-foreground: 213 31% 91%;   /* #f0f6fc */
+    --sidebar-primary: 220 23% 18%;      /* #21262d */
+    --sidebar-primary-foreground: 213 31% 91%; /* #f0f6fc */
+    --sidebar-accent: 217 19% 27%;       /* #2d333b */
+    --sidebar-accent-foreground: 213 31% 91%; /* #f0f6fc */
+    --sidebar-border: 215 28% 17%;       /* #30363d */
+    --sidebar-ring: 212 92% 45%;         /* #1f6feb */
+    
+    /* Status colors */
+    --success: 137 72% 32%;              /* #238636 */
+    --warning: 41 95% 45%;               /* #d29922 */
+    --error: 0 66% 70%;                  /* #f85149 */
+    --info: 212 92% 45%;                 /* #1f6feb */
+    
+    /* Interactive states */
+    --hover: 217 19% 27%;                /* #292e36 */
+    --active: 213 27% 84%;               /* #58a6ff */
+    --focus: 212 92% 45%;                /* #1f6feb */
+    --disabled: 220 9% 46%;              /* #5a6166 */
+    
+    /* Animation variables */
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 350ms;
+    
+    /* Spacing variables */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    
+    /* Typography variables */
+    --font-inter: 'Inter', system-ui, sans-serif;
+    --font-jetbrains-mono: 'JetBrains Mono', 'Consolas', monospace;
+    --font-cal-sans: 'Cal Sans', 'Inter', system-ui, sans-serif;
+  }
+  
+  /* Light theme overrides */
+  .light {
+    --background: 0 0% 100%;             /* #ffffff */
+    --foreground: 222.2 84% 4.9%;        /* #09090b */
+    --card: 0 0% 100%;                   /* #ffffff */
+    --card-foreground: 222.2 84% 4.9%;   /* #09090b */
+    --popover: 0 0% 100%;                /* #ffffff */
+    --popover-foreground: 222.2 84% 4.9%; /* #09090b */
+    --primary: 137 72% 32%;              /* #238636 */
+    --primary-foreground: 0 0% 100%;     /* #ffffff */
+    --secondary: 210 40% 96%;            /* #f1f5f9 */
+    --secondary-foreground: 222.2 84% 4.9%; /* #09090b */
+    --muted: 210 40% 96%;                /* #f1f5f9 */
+    --muted-foreground: 215.4 16.3% 46.9%; /* #64748b */
+    --accent: 210 40% 96%;               /* #f1f5f9 */
+    --accent-foreground: 222.2 84% 4.9%; /* #09090b */
+    --destructive: 0 84.2% 60.2%;        /* #ef4444 */
+    --destructive-foreground: 0 0% 100%; /* #ffffff */
+    --border: 214.3 31.8% 91.4%;         /* #e2e8f0 */
+    --input: 214.3 31.8% 91.4%;          /* #e2e8f0 */
+    --ring: 137 72% 32%;                 /* #238636 */
+  }
+  
+  /* Base styles */
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  /* Focus styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+  
+  /* Selection styles */
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+  
+  /* Scrollbar styles */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-border/80;
+  }
+  
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+}
+
+@layer components {
+  /* Chat message styles */
+  .message-user {
+    @apply bg-chat-user text-foreground rounded-user-message;
+  }
+  
+  .message-assistant {
+    @apply bg-chat-assistant text-foreground rounded-assistant-message;
+  }
+  
+  .message-system {
+    @apply bg-chat-system text-muted-foreground rounded-lg text-sm;
+  }
+  
+  .message-tool {
+    @apply bg-chat-tool text-white rounded-lg;
+  }
+  
+  .message-error {
+    @apply bg-destructive/10 text-destructive border border-destructive/20 rounded-lg;
+  }
+  
+  /* Typing indicator */
+  .typing-indicator {
+    @apply flex items-center space-x-1;
+  }
+  
+  .typing-dot {
+    @apply w-2 h-2 bg-muted-foreground rounded-full animate-pulse;
+    animation-delay: var(--delay, 0ms);
+  }
+  
+  .typing-dot:nth-child(2) {
+    --delay: 200ms;
+  }
+  
+  .typing-dot:nth-child(3) {
+    --delay: 400ms;
+  }
+  
+  /* Loading skeleton */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+  
+  .skeleton-text {
+    @apply h-4 bg-muted rounded;
+  }
+  
+  .skeleton-avatar {
+    @apply w-8 h-8 bg-muted rounded-full;
+  }
+  
+  /* Shimmer effect */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+  
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-background/80 backdrop-blur-md border border-border/50;
+  }
+  
+  /* Elevated surface */
+  .surface-elevated {
+    @apply bg-card border border-border shadow-elevated;
+  }
+  
+  /* Interactive elements */
+  .interactive {
+    @apply transition-colors duration-200 ease-in-out;
+  }
+  
+  .interactive:hover {
+    @apply bg-hover;
+  }
+  
+  .interactive:active {
+    @apply bg-active/10;
+  }
+  
+  /* Custom button variants */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-secondary;
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent text-foreground hover:bg-muted hover:text-foreground focus:ring-muted;
+  }
+  
+  .btn-destructive {
+    @apply bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive;
+  }
+  
+  /* Sidebar styles */
+  .sidebar {
+    @apply bg-sidebar-background text-sidebar-foreground border-r border-sidebar-border;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200;
+  }
+  
+  .sidebar-item:hover {
+    @apply bg-sidebar-accent text-sidebar-accent-foreground;
+  }
+  
+  .sidebar-item[data-active="true"] {
+    @apply bg-sidebar-primary text-sidebar-primary-foreground;
+  }
+  
+  /* Code highlighting */
+  .code-block {
+    @apply bg-muted rounded-lg p-4 overflow-x-auto;
+  }
+  
+  .code-block pre {
+    @apply bg-transparent p-0 m-0;
+  }
+  
+  .code-block code {
+    @apply font-mono text-sm;
+  }
+  
+  /* Markdown styles */
+  .markdown h1 {
+    @apply text-2xl font-bold mt-6 mb-4 first:mt-0;
+  }
+  
+  .markdown h2 {
+    @apply text-xl font-semibold mt-5 mb-3;
+  }
+  
+  .markdown h3 {
+    @apply text-lg font-medium mt-4 mb-2;
+  }
+  
+  .markdown p {
+    @apply mb-3 leading-relaxed;
+  }
+  
+  .markdown ul {
+    @apply list-disc list-inside mb-3 space-y-1;
+  }
+  
+  .markdown ol {
+    @apply list-decimal list-inside mb-3 space-y-1;
+  }
+  
+  .markdown blockquote {
+    @apply border-l-4 border-border pl-4 italic text-muted-foreground;
+  }
+  
+  .markdown code {
+    @apply bg-muted px-2 py-1 rounded font-mono text-sm;
+  }
+  
+  .markdown pre {
+    @apply bg-muted rounded-lg p-4 overflow-x-auto mb-4;
+  }
+  
+  .markdown pre code {
+    @apply bg-transparent p-0;
+  }
+}
+
+@layer utilities {
+  /* Text utilities */
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Layout utilities */
+  .center {
+    @apply flex items-center justify-center;
+  }
+  
+  .center-x {
+    @apply flex justify-center;
+  }
+  
+  .center-y {
+    @apply flex items-center;
+  }
+  
+  /* Responsive utilities */
+  .mobile-only {
+    @apply block sm:hidden;
+  }
+  
+  .desktop-only {
+    @apply hidden sm:block;
+  }
+  
+  /* Animation utilities */
+  .animate-in {
+    @apply animate-fade-in;
+  }
+  
+  .animate-out {
+    @apply animate-fade-out;
+  }
+  
+  /* Safe area utilities for mobile */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Performance optimization classes */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  .contain-layout {
+    contain: layout;
+  }
+  
+  .contain-style {
+    contain: style;
+  }
+  
+  .contain-paint {
+    contain: paint;
+  }
+  
+  .contain-size {
+    contain: size;
+  }
+  
+  .contain-strict {
+    contain: strict;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
