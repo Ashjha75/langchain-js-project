@@ -74,6 +74,13 @@ export class RateLimitError extends AppError {
   }
 }
 
+export class UnauthorizedError extends AppError {
+  constructor(message: string = 'Unauthorized', details?: any) {
+    super(message, 401, details);
+    this.name = 'UnauthorizedError';
+  }
+}
+
 export class ForbiddenError extends AppError {
   constructor(message: string = 'Access denied', details?: any) {
     super(message, 403, details);

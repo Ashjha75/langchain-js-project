@@ -1,13 +1,23 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Mic, Plus, X, Paperclip, Code, Bot } from 'lucide-react';
+import { Send, Mic, Plus, X, Paperclip, Code, Bot, SlidersHorizontal } from 'lucide-react';
+import { toolsOptions } from './data';
+import { cn } from '@/lib/utils';
 
 const assetOptions = [
   { id: 'upload', icon: Paperclip, label: 'Upload files' },
   { id: 'drive', icon: Bot, label: 'Add from Drive' },
   { id: 'code', icon: Code, label: 'Import code' },
 ];
+
+const iconMap = {
+  search: Search,
+  video: Video,
+  image: Image,
+  'pen-square': PenSquare,
+  'book-open': BookOpen,
+};
 
 interface ChatInputProps {
   input: string;
@@ -17,13 +27,18 @@ interface ChatInputProps {
 
 export function ChatInput({ input, setInput, handleSendMessage }: ChatInputProps) {
   const [showAssetMenu, setShowAssetMenu] = useState(false);
+  const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const assetMenuRef = useRef<HTMLDivElement>(null);
+  const toolsMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (assetMenuRef.current && !assetMenuRef.current.contains(event.target as Node)) {
         setShowAssetMenu(false);
+      }
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target as Node)) {
+        setShowToolsMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -97,29 +112,22 @@ export function ChatInput({ input, setInput, handleSendMessage }: ChatInputProps
             )}
           </div>
 
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask IntelliChat"
-            className="flex-1 bg-transparent text-[#e8eaed] outline-none border-none text-base placeholder:text-[#9aa0a6]"
-          />
-
-          <div className="flex items-center gap-1 ml-2">
-            <button className="p-2 hover:bg-[#404040] rounded-full transition-colors">
-              <Mic size={20} className="text-[#9aa0a6]" />
-            </button>
+          <div className="relative" ref={toolsMenuRef}>
             <button
-              onClick={() => handleSendMessage()}
-              disabled={!input.trim()}
-              className="p-2 bg-[#4285f4] rounded-full transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed hover:bg-[#3367d6]"
+              onClick={() => setShowToolsMenu(!showToolsMenu)}
+              className="p-2 hover:bg-[#404040] rounded-full transition-colors mx-1"
             >
-              <Send size={20} className="text-white" />
+              <SlidersHorizontal size={20} className="text-[#9aa0a6]" />
             </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+            {showToolsMenu && (
+              <div className="absolute bottom-full left-0 mb-3 w-80 bg-[#282a2c] border border-[#333537] rounded-xl p-2 z-50 shadow-lg animate-fade-in">
+                <div className="p-3 border-b border-[#333537] mb-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#e8eaed] text-base font-medium">Tools</span>
+                    <div className="bg-[#333537] text-[#9aa0a6] text-xs px-1.5 py-0.5 rounded">
+                      {toolsOptions.length}
+                    </div>
+                  </div>
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {toolsOptions.map((tool, index) => {
