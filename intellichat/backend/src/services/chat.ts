@@ -6,18 +6,21 @@
 import { Types } from 'mongoose';
 import { createLogger } from '@/utils/logger';
 import { getCurrentProvider } from '@/ai/factory';
-import { Conversation, Message, TokenUsage, ChatHistory, IConversation, IMessage } from '@/models/chat';
+import { 
+  Conversation, 
+  Message, 
+  TokenUsage, 
+  ChatHistory
+} from '@/models';
 import { User } from '@/models/user';
 import {
   AIMessage,
-  AIResponse,
   StreamChunk,
   ConversationContext,
   AIConfig,
-  AIProviderError,
   TokenLimitError
 } from '@/ai/interfaces';
-import { ValidationError, NotFoundError, ForbiddenError } from '@/utils/errorHandler';
+import { ValidationError, NotFoundError, } from '@/utils/errorHandler';
 
 const logger = createLogger('ChatService');
 
@@ -64,7 +67,7 @@ export class ChatService {
   // CONVERSATION MANAGEMENT
   // ============================================================================
 
-  async createConversation(request: CreateConversationRequest): Promise<IConversation> {
+  async createConversation(request: CreateConversationRequest): Promise<any> {
     try {
       logger.info('Creating new conversation', {
         userId: request.userId,
@@ -118,7 +121,7 @@ export class ChatService {
     }
   }
 
-  async getConversation(conversationId: string, userId: string): Promise<IConversation> {
+  async getConversation(conversationId: string, userId: string): Promise<any> {
     const conversation = await Conversation.findOne({
       _id: conversationId,
       userId: new Types.ObjectId(userId),
@@ -133,7 +136,7 @@ export class ChatService {
   }
 
   async listConversations(options: ConversationListOptions): Promise<{
-    conversations: IConversation[];
+    conversations: any[];
     total: number;
     page: number;
     totalPages: number;
@@ -177,8 +180,8 @@ export class ChatService {
   async updateConversation(
     conversationId: string,
     userId: string,
-    updates: Partial<Pick<IConversation, 'title' | 'systemPrompt' | 'config'>>
-  ): Promise<IConversation> {
+    updates: Partial<Pick<any, 'title' | 'systemPrompt' | 'config'>>
+  ): Promise<any> {
     const conversation = await Conversation.findOneAndUpdate(
       {
         _id: conversationId,
@@ -223,7 +226,7 @@ export class ChatService {
   // MESSAGE HANDLING
   // ============================================================================
 
-  async sendMessage(request: SendMessageRequest): Promise<IMessage> {
+  async sendMessage(request: SendMessageRequest): Promise<any> {
     try {
       logger.info('Processing message', {
         conversationId: request.conversationId,
@@ -272,7 +275,7 @@ export class ChatService {
           maxTokens: conversation.config.maxTokens,
           topP: conversation.config.topP,
           stream: false,
-          systemPrompt: conversation.systemPrompt
+          ...(conversation.systemPrompt && { systemPrompt: conversation.systemPrompt })
         }
       };
 
@@ -396,11 +399,11 @@ export class ChatService {
           maxTokens: conversation.config.maxTokens,
           topP: conversation.config.topP,
           stream: true,
-          systemPrompt: conversation.systemPrompt
+          ...(conversation.systemPrompt && { systemPrompt: conversation.systemPrompt })
         }
       };
 
-      let assistantMessage: IMessage | null = null;
+      let assistantMessage: any | null = null;
       let finalContent = '';
 
       // Stream AI response
@@ -476,7 +479,7 @@ export class ChatService {
     conversationId: string,
     limit: number = 50,
     before?: string
-  ): Promise<IMessage[]> {
+  ): Promise<any[]> {
     const query: any = {
       conversationId: new Types.ObjectId(conversationId)
     };
@@ -588,7 +591,7 @@ export class ChatService {
     await tokenUsage.save();
   }
 
-  private async updateChatHistory(userId: string, conversation: IConversation): Promise<void> {
+  private async updateChatHistory(userId: string, conversation: any): Promise<void> {
     await ChatHistory.findOneAndUpdate(
       { userId: new Types.ObjectId(userId) },
       {

@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Mic, Plus, X, Paperclip, Code, Bot, SlidersHorizontal } from 'lucide-react';
+import { Send, Mic, Plus, X, Paperclip, Code, Bot, SlidersHorizontal, Search, Video, Image, PenSquare, BookOpen } from 'lucide-react';
 import { toolsOptions } from './data';
-import { cn } from '@/lib/utils';
 
 const assetOptions = [
   { id: 'upload', icon: Paperclip, label: 'Upload files' },
@@ -131,3 +130,53 @@ export function ChatInput({ input, setInput, handleSendMessage }: ChatInputProps
                 </div>
                 <div className="max-h-72 overflow-y-auto">
                   {toolsOptions.map((tool, index) => {
+                    const Icon = iconMap[tool.icon as keyof typeof iconMap];
+                    return (
+                      <button
+                        key={index}
+                        className="w-full flex items-center gap-3 p-3 hover:bg-[#333537] rounded-lg transition-colors text-left"
+                      >
+                        <Icon size={20} className="text-[#9aa0a6]" />
+                        <div className="flex-1">
+                          <div className="text-[#e8eaed] text-sm font-medium mb-0.5">
+                            {tool.title}
+                          </div>
+                          <div className="text-[#9aa0a6] text-xs leading-snug">
+                            {tool.description}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Ask IntelliChat"
+            className="flex-1 bg-transparent text-[#e8eaed] outline-none border-none text-base placeholder:text-[#9aa0a6] resize-none"
+            rows={1}
+          />
+
+          <div className="flex items-center gap-1 ml-2">
+            <button className="p-2 hover:bg-[#404040] rounded-full transition-colors">
+              <Mic size={20} className="text-[#9aa0a6]" />
+            </button>
+            {input.trim() && (
+              <button
+                onClick={() => handleSendMessage()}
+                className="p-2 bg-[#4285f4] rounded-full transition-all duration-300 ease-in-out hover:bg-[#3367d6] animate-fade-in"
+              >
+                <Send size={20} className="text-white" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

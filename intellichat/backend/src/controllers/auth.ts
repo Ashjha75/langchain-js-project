@@ -7,7 +7,6 @@ import { Request, Response, NextFunction } from 'express';
 import { authService } from '@/services/auth';
 import { createLogger } from '@/utils/logger';
 import { ValidationError, UnauthorizedError } from '@/utils/errorHandler';
-import { AuthenticatedRequest } from '@/types';
 
 const logger = createLogger('AuthController');
 
@@ -100,10 +99,11 @@ export class AuthController {
     }
   }
 
-  async logout(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const user = (req as any).user;
       const { refreshToken } = req.body;
-      const userId = req.user?.id;
+      const userId = user?.id;
 
       if (!userId) {
         throw new UnauthorizedError('User not authenticated');
@@ -129,10 +129,11 @@ export class AuthController {
   // PASSWORD MANAGEMENT
   // ============================================================================
 
-  async changePassword(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const user = (req as any).user;
       const { currentPassword, newPassword } = req.body;
-      const userId = req.user?.id;
+      const userId = user?.id;
 
       if (!userId) {
         throw new UnauthorizedError('User not authenticated');
@@ -190,9 +191,10 @@ export class AuthController {
   // PROFILE MANAGEMENT
   // ============================================================================
 
-  async getProfile(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user?.id;
+      const authUser = (req as any).user;
+      const userId = authUser?.id;
 
       if (!userId) {
         throw new UnauthorizedError('User not authenticated');
@@ -224,9 +226,10 @@ export class AuthController {
     }
   }
 
-  async updateProfile(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user?.id;
+      const authUser = (req as any).user;
+      const userId = authUser?.id;
       const { firstName, lastName, profile } = req.body;
 
       if (!userId) {

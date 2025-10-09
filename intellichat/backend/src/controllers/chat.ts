@@ -7,7 +7,6 @@ import { Request, Response, NextFunction } from 'express';
 import { chatService } from '@/services/chat';
 import { createLogger } from '@/utils/logger';
 import { ValidationError, UnauthorizedError } from '@/utils/errorHandler';
-import { AuthenticatedRequest } from '@/types';
 
 const logger = createLogger('ChatController');
 
@@ -16,9 +15,10 @@ export class ChatController {
   // CONVERSATION MANAGEMENT
   // ============================================================================
 
-  async createConversation(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  async createConversation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = req.user?.id;
+      const authUser = (req as any).user;
+      const userId = authUser?.id;
       const { title, model, systemPrompt, config } = req.body;
 
       if (!userId) {

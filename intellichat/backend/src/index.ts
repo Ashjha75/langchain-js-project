@@ -5,16 +5,31 @@
 
 // Core exports
 export * from '@/types';
-export * from '@/config';
+export { config, CONFIG } from '@/config';
 export { createLogger } from '@/utils/logger';
 export * from '@/utils/errorHandler';
 
-// Component exports
-export * from '@/models';
-export * from '@/services';
+// Specific model exports to avoid conflicts
+export { 
+  User, 
+  Conversation, 
+  Message, 
+  TokenUsage, 
+  ChatHistory 
+} from '@/models';
+
+// Service exports
+export { AuthService } from '@/services/auth';
+export { ChatService } from '@/services/chat';
+
+// Controller exports
 export * from '@/controllers';
+
+// Route exports
 export * from '@/routes';
-export * from '@/ai';
+
+// AI exports
+export { aiProviderFactory } from '@/ai/factory';
 
 // Main application export
 export { default as app } from '@/app';

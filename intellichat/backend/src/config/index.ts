@@ -148,10 +148,10 @@ const envSchema = z.object({
 });
 
 // Validate and parse environment variables
-let config: z.infer<typeof envSchema>;
+let envConfig: z.infer<typeof envSchema>;
 
 try {
-  config = envSchema.parse(process.env);
+  envConfig = envSchema.parse(process.env);
 } catch (error) {
   console.error('❌ Invalid environment configuration:');
   if (error instanceof z.ZodError) {
@@ -166,223 +166,226 @@ try {
 export const CONFIG = {
   // Application
   app: {
-    name: config.APP_NAME,
-    env: config.NODE_ENV,
-    port: config.PORT,
-    apiVersion: config.API_VERSION,
-    isDevelopment: config.NODE_ENV === 'development',
-    isProduction: config.NODE_ENV === 'production',
-    isTest: config.NODE_ENV === 'test',
+    name: envConfig.APP_NAME,
+    env: envConfig.NODE_ENV,
+    port: envConfig.PORT,
+    apiVersion: envConfig.API_VERSION,
+    isDevelopment: envConfig.NODE_ENV === 'development',
+    isProduction: envConfig.NODE_ENV === 'production',
+    isTest: envConfig.NODE_ENV === 'test',
   },
 
   // Frontend
   frontend: {
-    url: config.FRONTEND_URL,
-    domain: config.FRONTEND_DOMAIN,
-    corsOrigins: config.CORS_ORIGINS.split(',').map(origin => origin.trim()),
+    url: envConfig.FRONTEND_URL,
+    domain: envConfig.FRONTEND_DOMAIN,
+    corsOrigins: envConfig.CORS_ORIGINS.split(',').map(origin => origin.trim()),
   },
 
   // Database
   database: {
     mongodb: {
-      uri: config.NODE_ENV === 'test' ? config.MONGODB_TEST_URI : config.MONGODB_URI,
-      dbName: config.MONGODB_DB_NAME,
-      testUri: config.MONGODB_TEST_URI,
+      uri: envConfig.NODE_ENV === 'test' ? envConfig.MONGODB_TEST_URI : envConfig.MONGODB_URI,
+      dbName: envConfig.MONGODB_DB_NAME,
+      testUri: envConfig.MONGODB_TEST_URI,
       options: {
-        maxPoolSize: config.DB_POOL_SIZE,
-        serverSelectionTimeoutMS: config.DB_TIMEOUT,
-        retryWrites: config.DB_RETRY_WRITES,
+        maxPoolSize: envConfig.DB_POOL_SIZE,
+        serverSelectionTimeoutMS: envConfig.DB_TIMEOUT,
+        retryWrites: envConfig.DB_RETRY_WRITES,
       },
     },
     redis: {
-      url: config.REDIS_URL,
-      password: config.REDIS_PASSWORD,
-      db: config.NODE_ENV === 'test' ? config.REDIS_TEST_DB : config.REDIS_DB,
-      testDb: config.REDIS_TEST_DB,
+      url: envConfig.REDIS_URL,
+      password: envConfig.REDIS_PASSWORD,
+      db: envConfig.NODE_ENV === 'test' ? envConfig.REDIS_TEST_DB : envConfig.REDIS_DB,
+      testDb: envConfig.REDIS_TEST_DB,
     },
   },
 
   // Authentication
   auth: {
     jwt: {
-      secret: config.JWT_SECRET,
-      refreshSecret: config.JWT_REFRESH_SECRET,
-      expiresIn: config.JWT_EXPIRE_TIME,
-      refreshExpiresIn: config.JWT_REFRESH_EXPIRE_TIME,
-      accessSecret: config.JWT_SECRET,
+      secret: envConfig.JWT_SECRET,
+      refreshSecret: envConfig.JWT_REFRESH_SECRET,
+      expiresIn: envConfig.JWT_EXPIRE_TIME,
+      refreshExpiresIn: envConfig.JWT_REFRESH_EXPIRE_TIME,
+      accessSecret: envConfig.JWT_SECRET,
       accessExpiresIn: 3600, // 1 hour in seconds
       refreshExpiresInSeconds: 604800, // 7 days in seconds
     },
     session: {
-      secret: config.SESSION_SECRET,
-      maxAge: config.SESSION_MAX_AGE,
+      secret: envConfig.SESSION_SECRET,
+      maxAge: envConfig.SESSION_MAX_AGE,
     },
     password: {
-      bcryptRounds: config.BCRYPT_ROUNDS,
-      minLength: config.PASSWORD_MIN_LENGTH,
+      bcryptRounds: envConfig.BCRYPT_ROUNDS,
+      minLength: envConfig.PASSWORD_MIN_LENGTH,
     },
     passwordPolicy: {
-      minLength: config.PASSWORD_MIN_LENGTH,
-      requireUppercase: config.PASSWORD_REQUIRE_UPPERCASE,
-      requireLowercase: config.PASSWORD_REQUIRE_LOWERCASE,
-      requireNumbers: config.PASSWORD_REQUIRE_NUMBERS,
-      requireSpecialChars: config.PASSWORD_REQUIRE_SPECIAL_CHARS,
+      minLength: envConfig.PASSWORD_MIN_LENGTH,
+      requireUppercase: envConfig.PASSWORD_REQUIRE_UPPERCASE,
+      requireLowercase: envConfig.PASSWORD_REQUIRE_LOWERCASE,
+      requireNumbers: envConfig.PASSWORD_REQUIRE_NUMBERS,
+      requireSpecialChars: envConfig.PASSWORD_REQUIRE_SPECIAL_CHARS,
     },
-    bcryptRounds: config.BCRYPT_ROUNDS,
+    bcryptRounds: envConfig.BCRYPT_ROUNDS,
   },
 
   // Security
   security: {
     rateLimit: {
-      windowMs: config.RATE_LIMIT_WINDOW_MS,
-      maxRequests: config.RATE_LIMIT_MAX_REQUESTS,
-      skipFailedRequests: config.RATE_LIMIT_SKIP_FAILED_REQUESTS,
-      enabled: config.SECURITY_RATE_LIMIT_ENABLED,
+      windowMs: envConfig.RATE_LIMIT_WINDOW_MS,
+      maxRequests: envConfig.RATE_LIMIT_MAX_REQUESTS,
+      skipFailedRequests: envConfig.RATE_LIMIT_SKIP_FAILED_REQUESTS,
+      enabled: envConfig.SECURITY_RATE_LIMIT_ENABLED,
     },
     cors: {
-      enabled: config.SECURITY_CORS_ENABLED,
-      origins: config.CORS_ORIGINS.split(',').map(origin => origin.trim()),
-      allOrigins: config.DEV_CORS_ALL_ORIGINS && config.NODE_ENV === 'development',
+      enabled: envConfig.SECURITY_CORS_ENABLED,
+      origins: envConfig.CORS_ORIGINS.split(',').map(origin => origin.trim()),
+      allOrigins: envConfig.DEV_CORS_ALL_ORIGINS && envConfig.NODE_ENV === 'development',
     },
     helmet: {
-      enabled: config.SECURITY_HELMET_ENABLED,
+      enabled: envConfig.SECURITY_HELMET_ENABLED,
     },
   },
 
   // AI Services
   ai: {
     groq: {
-      apiKey: config.GROQ_API_KEY,
-      model: config.GROQ_MODEL_DEFAULT,
-      maxTokens: config.GROQ_MAX_TOKENS,
-      temperature: config.GROQ_TEMPERATURE,
-      topP: config.GROQ_TOP_P,
-      timeout: config.GROQ_TIMEOUT,
+      apiKey: envConfig.GROQ_API_KEY,
+      model: envConfig.GROQ_MODEL_DEFAULT,
+      maxTokens: envConfig.GROQ_MAX_TOKENS,
+      temperature: envConfig.GROQ_TEMPERATURE,
+      topP: envConfig.GROQ_TOP_P,
+      timeout: envConfig.GROQ_TIMEOUT,
     },
     tools: {
-      enabled: config.TOOL_ENABLED,
-      timeout: config.TOOL_TIMEOUT,
-      maxConcurrent: config.TOOL_MAX_CONCURRENT,
+      enabled: envConfig.TOOL_ENABLED,
+      timeout: envConfig.TOOL_TIMEOUT,
+      maxConcurrent: envConfig.TOOL_MAX_CONCURRENT,
     },
     external: {
-      tavily: config.TAVILY_API_KEY,
-      openai: config.OPENAI_API_KEY,
-      anthropic: config.ANTHROPIC_API_KEY,
-      gemini: config.GEMINI_API_KEY,
+      tavily: envConfig.TAVILY_API_KEY,
+      openai: envConfig.OPENAI_API_KEY,
+      anthropic: envConfig.ANTHROPIC_API_KEY,
+      gemini: envConfig.GEMINI_API_KEY,
     },
   },
 
   // Logging
   logging: {
-    level: config.LOG_LEVEL,
+    level: envConfig.LOG_LEVEL,
     file: {
-      enabled: config.LOG_FILE_ENABLED,
-      path: config.LOG_FILE_PATH,
-      errorPath: config.LOG_ERROR_FILE_PATH,
-      maxSize: config.LOG_MAX_SIZE,
-      maxFiles: config.LOG_MAX_FILES,
-      datePattern: config.LOG_DATE_PATTERN,
+      enabled: envConfig.LOG_FILE_ENABLED,
+      path: envConfig.LOG_FILE_PATH,
+      errorPath: envConfig.LOG_ERROR_FILE_PATH,
+      maxSize: envConfig.LOG_MAX_SIZE,
+      maxFiles: envConfig.LOG_MAX_FILES,
+      datePattern: envConfig.LOG_DATE_PATTERN,
     },
     console: {
-      enabled: config.LOG_CONSOLE_ENABLED,
+      enabled: envConfig.LOG_CONSOLE_ENABLED,
     },
     requests: {
-      enabled: config.LOG_REQUESTS,
-      logBody: config.LOG_REQUEST_BODY,
-      logResponse: config.LOG_RESPONSE_BODY,
+      enabled: envConfig.LOG_REQUESTS,
+      logBody: envConfig.LOG_REQUEST_BODY,
+      logResponse: envConfig.LOG_RESPONSE_BODY,
     },
   },
 
   // File Upload
   upload: {
-    maxFileSize: config.MAX_FILE_SIZE,
-    maxFiles: config.MAX_FILES_PER_REQUEST,
-    allowedTypes: config.ALLOWED_FILE_TYPES.split(',').map(type => type.trim()),
+    maxFileSize: envConfig.MAX_FILE_SIZE,
+    maxFiles: envConfig.MAX_FILES_PER_REQUEST,
+    allowedTypes: envConfig.ALLOWED_FILE_TYPES.split(',').map(type => type.trim()),
     directories: {
-      upload: config.UPLOAD_DIR,
-      temp: config.TEMP_DIR,
-      static: config.STATIC_DIR,
+      upload: envConfig.UPLOAD_DIR,
+      temp: envConfig.TEMP_DIR,
+      static: envConfig.STATIC_DIR,
     },
   },
 
   // WebSocket
   websocket: {
-    enabled: config.WEBSOCKET_ENABLED,
-    path: config.WEBSOCKET_PATH,
-    corsOrigins: config.WEBSOCKET_CORS_ORIGINS.split(',').map(origin => origin.trim()),
-    pingTimeout: config.WEBSOCKET_PING_TIMEOUT,
-    pingInterval: config.WEBSOCKET_PING_INTERVAL,
+    enabled: envConfig.WEBSOCKET_ENABLED,
+    path: envConfig.WEBSOCKET_PATH,
+    corsOrigins: envConfig.WEBSOCKET_CORS_ORIGINS.split(',').map(origin => origin.trim()),
+    pingTimeout: envConfig.WEBSOCKET_PING_TIMEOUT,
+    pingInterval: envConfig.WEBSOCKET_PING_INTERVAL,
   },
 
   // Performance
   performance: {
     compression: {
-      enabled: config.COMPRESSION_ENABLED,
-      level: config.COMPRESSION_LEVEL,
-      threshold: config.COMPRESSION_THRESHOLD,
+      enabled: envConfig.COMPRESSION_ENABLED,
+      level: envConfig.COMPRESSION_LEVEL,
+      threshold: envConfig.COMPRESSION_THRESHOLD,
     },
     cache: {
-      ttl: config.CACHE_TTL,
-      maxKeys: config.CACHE_MAX_KEYS,
-      memoryEnabled: config.MEMORY_CACHE_ENABLED,
+      ttl: envConfig.CACHE_TTL,
+      maxKeys: envConfig.CACHE_MAX_KEYS,
+      memoryEnabled: envConfig.MEMORY_CACHE_ENABLED,
     },
     timeout: {
-      request: config.REQUEST_TIMEOUT,
-      slowThreshold: config.SLOW_REQUEST_THRESHOLD,
+      request: envConfig.REQUEST_TIMEOUT,
+      slowThreshold: envConfig.SLOW_REQUEST_THRESHOLD,
     },
   },
 
   // Monitoring
   monitoring: {
     healthCheck: {
-      enabled: config.HEALTH_CHECK_ENABLED,
-      path: config.HEALTH_CHECK_PATH,
-      interval: config.HEALTH_CHECK_INTERVAL,
+      enabled: envConfig.HEALTH_CHECK_ENABLED,
+      path: envConfig.HEALTH_CHECK_PATH,
+      interval: envConfig.HEALTH_CHECK_INTERVAL,
     },
     metrics: {
-      enabled: config.METRICS_ENABLED,
-      endpoint: config.PROMETHEUS_ENDPOINT,
-      port: config.PROMETHEUS_PORT,
+      enabled: envConfig.METRICS_ENABLED,
+      endpoint: envConfig.PROMETHEUS_ENDPOINT,
+      port: envConfig.PROMETHEUS_PORT,
     },
     sentry: {
-      enabled: config.SENTRY_ENABLED,
-      dsn: config.SENTRY_DSN,
-      environment: config.SENTRY_ENVIRONMENT,
+      enabled: envConfig.SENTRY_ENABLED,
+      dsn: envConfig.SENTRY_DSN,
+      environment: envConfig.SENTRY_ENVIRONMENT,
     },
   },
 
   // Email
   email: {
-    enabled: config.EMAIL_ENABLED,
+    enabled: envConfig.EMAIL_ENABLED,
     smtp: {
-      host: config.SMTP_HOST,
-      port: config.SMTP_PORT,
-      secure: config.SMTP_SECURE,
+      host: envConfig.SMTP_HOST,
+      port: envConfig.SMTP_PORT,
+      secure: envConfig.SMTP_SECURE,
       auth: {
-        user: config.SMTP_USER,
-        pass: config.SMTP_PASS,
+        user: envConfig.SMTP_USER,
+        pass: envConfig.SMTP_PASS,
       },
     },
-    from: config.EMAIL_FROM,
+    from: envConfig.EMAIL_FROM,
   },
 
   // Development
   development: {
-    seedDatabase: config.DEV_SEED_DATABASE && config.NODE_ENV === 'development',
-    autoMigrate: config.DEV_AUTO_MIGRATE && config.NODE_ENV === 'development',
-    swagger: config.DEV_SWAGGER_ENABLED && config.NODE_ENV === 'development',
+    seedDatabase: envConfig.DEV_SEED_DATABASE && envConfig.NODE_ENV === 'development',
+    autoMigrate: envConfig.DEV_AUTO_MIGRATE && envConfig.NODE_ENV === 'development',
+    swagger: envConfig.DEV_SWAGGER_ENABLED && envConfig.NODE_ENV === 'development',
   },
 
   // Testing
   testing: {
-    timeout: config.TEST_TIMEOUT,
-    parallel: config.TEST_PARALLEL,
-    coverageThreshold: config.TEST_COVERAGE_THRESHOLD,
+    timeout: envConfig.TEST_TIMEOUT,
+    parallel: envConfig.TEST_PARALLEL,
+    coverageThreshold: envConfig.TEST_COVERAGE_THRESHOLD,
   },
 } as const;
 
 // Type export for configuration
 export type Config = typeof CONFIG;
+
+// Export the config object with the name expected by imports
+export const config = CONFIG;
 
 // Utility functions
 export const isDevelopment = () => CONFIG.app.isDevelopment;

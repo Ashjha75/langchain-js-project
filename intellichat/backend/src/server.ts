@@ -1,44 +1,73 @@
-/**
- * Server Entry Point
- * Starts the IntelliChat Pro backend server
- */
-
+// src/server.ts
 import app from './app';
-import { createLogger } from '@/utils/logger';
+import { CONFIG } from './config';
+import dbConnect from './database';
+import { logger } from './utils/logger';
 
-const logger = createLogger('Server');
+const PORT = CONFIG.app.port || 3001;
 
-const PORT = process.env.PORT || 5000;
-
-const startServer = async () => {
+async function startServer() {
   try {
-    // Start the server
-    app.listen(PORT, () => {
-      logger.info(`🚀 IntelliChat Pro Server is running!`, {
-        port: PORT,
-        environment: process.env.NODE_ENV || 'development',
-        timestamp: new Date().toISOString()
+    // Connect to database
+    logger.info('🔌 Connecting to database...');
+    await dbConnect();
+    logger.info('✅ Database connected successfully');
+
+    // Start HTTP server
+    const server = app.listen(PORT, () => {
+      logger.info(`🚀 IntelliChat Backend Server started`);
+      logger.info(`📡 Server running on port ${PORT}`);
+      logger.info(`🌍 Environment: ${CONFIG.app.env}`);
+      logger.info(`📊 API Version: ${CONFIG.app.apiVersion}`);
+      logger.info(`🔗 Health Check: http://localhost:${PORT}/api/health`);
+      
+      if (CONFIG.app.isDevelopment) {
+        logger.info(`📖 Frontend URL: ${CONFIG.frontend.url}`);
+        logger.info(`🛠️  Development mode enabled`);
+      }
+    });
+
+    // Graceful shutdown handling
+    process.on('SIGTERM', () => {
+      logger.info('🛑 SIGTERM received. Shutting down gracefully...');
+      server.close(() => {
+        logger.info('✅ Process terminated');
+        process.exit(0);
       });
     });
 
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      logger.info('SIGTERM received. Shutting down gracefully...');
-      process.exit(0);
+    process.on('SIGINT', () => {
+      logger.info('🛑 SIGINT received. Shutting down gracefully...');
+      server.close(() => {
+        logger.info('✅ Process terminated');
+        process.exit(0);
+      });
     });
 
-    process.on('SIGINT', () => {
-      logger.info('SIGINT received. Shutting down gracefully...');
-      process.exit(0);
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+      logger.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
+      server.close(() => {
+        process.exit(1);
+      });
+    });
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error: Error) => {
+      logger.error('🚨 Uncaught Exception thrown:', error);
+      server.close(() => {
+        process.exit(1);
+      });
     });
 
   } catch (error) {
-    logger.error('Failed to start server', {
-      error: (error as Error).message,
-      stack: (error as Error).stack
-    });
+    logger.error('❌ Failed to start server:', error);
     process.exit(1);
   }
-};
+}
 
-startServer();
+// Start the server
+startServer().catch((error) => {
+  logger.error('💥 Server startup failed:', error);
+  process.exit(1);
+});

@@ -6,7 +6,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createLogger } from '@/utils/logger';
-import { User, IUser } from '@/models/user';
+import { User } from '@/models/user';
 import { ChatHistory } from '@/models/chat';
 import { config } from '@/config';
 import { ValidationError, UnauthorizedError, ConflictError, NotFoundError } from '@/utils/errorHandler';
@@ -84,9 +84,9 @@ export interface UpdateProfileRequest {
 }
 
 export class AuthService {
-  private readonly JWT_SECRET = config.jwt.secret;
-  private readonly JWT_EXPIRES_IN = config.jwt.expiresIn;
-  private readonly JWT_REFRESH_EXPIRES_IN = config.jwt.refreshExpiresIn;
+  private readonly JWT_SECRET = config.auth.jwt.secret;
+  private readonly JWT_EXPIRES_IN = config.auth.jwt.expiresIn;
+  private readonly JWT_REFRESH_EXPIRES_IN = config.auth.jwt.refreshExpiresIn;
 
   // ============================================================================
   // USER REGISTRATION & LOGIN
@@ -196,7 +196,7 @@ export class AuthService {
 
       // Check if account is locked
       if (user.auth.failedLoginAttempts >= 5) {
-        const lockUntil = new Date(user.auth.lastFailedLogin);
+        const lockUntil = user.auth.lastFailedLogin ? new Date(user.auth.lastFailedLogin) : new Date();
         lockUntil.setMinutes(lockUntil.getMinutes() + 15); // 15 minutes lockout
 
         if (new Date() < lockUntil) {
@@ -252,7 +252,7 @@ export class AuthService {
           type: 'access'
         },
         this.JWT_SECRET,
-        { expiresIn: this.JWT_EXPIRES_IN }
+        { expiresIn: this.JWT_EXPIRES_IN } as jwt.SignOptions
       );
 
       logger.info('Token refreshed successfully', { userId: user._id });
@@ -269,7 +269,7 @@ export class AuthService {
     }
   }
 
-  async logout(userId: string, refreshToken: string): Promise<void> {
+  async logout(userId: string, _refreshToken: string): Promise<void> {
     try {
       // In a production environment, you might want to maintain a blacklist of tokens
       // For now, we'll just log the logout
@@ -388,7 +388,7 @@ export class AuthService {
   // PROFILE MANAGEMENT
   // ============================================================================
 
-  async getProfile(userId: string): Promise<IUser> {
+  async getProfile(userId: string): Promise<any> {
     const user = await User.findById(userId);
     if (!user) {
       throw new NotFoundError('User not found');
@@ -396,7 +396,7 @@ export class AuthService {
     return user;
   }
 
-  async updateProfile(request: UpdateProfileRequest): Promise<IUser> {
+  async updateProfile(request: UpdateProfileRequest): Promise<any> {
     try {
       logger.info('Profile update attempt', { userId: request.userId });
 
@@ -499,7 +499,7 @@ export class AuthService {
     }
   }
 
-  private async generateTokens(user: IUser, longLived = false): Promise<{
+  private async generateTokens(user: any, longLived = false): Promise<{
     accessToken: string;
     refreshToken: string;
     expiresIn: number;
@@ -512,7 +512,7 @@ export class AuthService {
         type: 'access'
       },
       this.JWT_SECRET,
-      { expiresIn: this.JWT_EXPIRES_IN }
+      { expiresIn: this.JWT_EXPIRES_IN } as jwt.SignOptions
     );
 
     const refreshToken = jwt.sign(
@@ -522,7 +522,7 @@ export class AuthService {
         type: 'refresh'
       },
       this.JWT_SECRET,
-      { expiresIn: longLived ? '30d' : this.JWT_REFRESH_EXPIRES_IN }
+      { expiresIn: longLived ? '30d' : this.JWT_REFRESH_EXPIRES_IN } as jwt.SignOptions
     );
 
     return {
@@ -532,7 +532,7 @@ export class AuthService {
     };
   }
 
-  private formatAuthResponse(user: IUser, tokens: {
+  private formatAuthResponse(user: any, tokens: {
     accessToken: string;
     refreshToken: string;
     expiresIn: number;

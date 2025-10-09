@@ -19,7 +19,7 @@ const logger = createLogger('AuthMiddleware');
  * JWT Token Validation Middleware
  * Validates JWT tokens and sets user context
  */
-export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const authenticateJWT = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.startsWith('Bearer ') 
@@ -82,7 +82,7 @@ export const authenticateJWT = async (req: AuthenticatedRequest, res: Response, 
     }
 
     // Set user context
-    req.user = {
+    (req as any).user = {
       id: decoded.userId,
       email: decoded.email,
       role: decoded.role,
@@ -143,7 +143,7 @@ export const optionalAuth = async (req: AuthenticatedRequest, _res: Response, ne
         const decoded = jwt.verify(token, CONFIG.auth.jwt.accessSecret) as ITokenPayload;
         
         if (decoded.userId && decoded.email && decoded.role) {
-          req.user = {
+          (req as any).user = {
             id: decoded.userId,
             email: decoded.email,
             role: decoded.role,

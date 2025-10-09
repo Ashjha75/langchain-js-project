@@ -7,7 +7,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { UserRole, Permission } from '@/types';
 
-export interface IUser extends Document {
+export interface UserSchema {
   _id: Types.ObjectId;
   email: string;
   username: string;
@@ -18,10 +18,18 @@ export interface IUser extends Document {
     avatar?: string;
     bio?: string;
     timezone: string;
+    language?: string;
   };
   role: UserRole;
   permissions: Permission[];
   isVerified: boolean;
+  status: 'active' | 'inactive' | 'suspended';
+  auth: {
+    failedLoginAttempts: number;
+    lastFailedLogin?: Date;
+    accountLocked: boolean;
+    lockUntil?: Date;
+  };
   preferences: {
     theme: 'light' | 'dark' | 'auto';
     language: string;
@@ -61,7 +69,9 @@ export interface IUser extends Document {
   getPublicProfile(): any;
 }
 
-const UserSchema = new Schema<IUser>({
+export type IUserDocument = Document & UserSchema;
+
+const UserSchema = new Schema({
   email: {
     type: String,
     required: true,
@@ -112,6 +122,11 @@ const UserSchema = new Schema<IUser>({
       type: String,
       default: 'UTC',
       maxlength: 50
+    },
+    language: {
+      type: String,
+      default: 'en',
+      maxlength: 10
     }
   },
   role: {
@@ -137,6 +152,23 @@ const UserSchema = new Schema<IUser>({
   isVerified: {
     type: Boolean,
     default: false
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'suspended'],
+    default: 'active'
+  },
+  auth: {
+    failedLoginAttempts: {
+      type: Number,
+      default: 0
+    },
+    lastFailedLogin: Date,
+    accountLocked: {
+      type: Boolean,
+      default: false
+    },
+    lockUntil: Date
   },
   preferences: {
     theme: {
@@ -239,8 +271,8 @@ const UserSchema = new Schema<IUser>({
 });
 
 // Indexes
-UserSchema.index({ email: 1 });
-UserSchema.index({ username: 1 });
+// email already has unique: true, no need for separate index
+// username already has unique: true, no need for separate index  
 UserSchema.index({ role: 1 });
 UserSchema.index({ isVerified: 1 });
 UserSchema.index({ 'subscription.plan': 1 });
@@ -300,10 +332,10 @@ UserSchema.methods.getPublicProfile = function() {
 
 // Virtual for full name
 UserSchema.virtual('profile.fullName').get(function() {
-  return `${this.profile.firstName} ${this.profile.lastName}`;
+  return this.profile ? `${this.profile.firstName} ${this.profile.lastName}` : '';
 });
 
 // Ensure virtual fields are serialized
 UserSchema.set('toJSON', { virtuals: true });
 
-export const User = mongoose.model<IUser>('User', UserSchema);
+export const User = mongoose.model<IUserDocument>('User', UserSchema);

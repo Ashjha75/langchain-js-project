@@ -159,7 +159,7 @@ export type Permission =
   | 'admin:system';
 
 export interface AuthenticatedRequest extends Request {
-  user?: {
+  user: {
     id: string;
     email: string;
     role: UserRole;

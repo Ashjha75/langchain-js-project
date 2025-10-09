@@ -4,13 +4,12 @@
  */
 
 import mongoose, { Schema, Document, Types } from 'mongoose';
-import { UserRole } from '@/types';
 
 // ============================================================================
 // CONVERSATION MODEL
 // ============================================================================
 
-export interface IConversation extends Document {
+export interface ConversationSchema {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   title: string;
@@ -30,7 +29,9 @@ export interface IConversation extends Document {
   lastMessageAt?: Date;
 }
 
-const ConversationSchema = new Schema<IConversation>({
+export type IConversationDocument = Document & ConversationSchema;
+
+const ConversationSchema = new Schema({
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -112,13 +113,13 @@ ConversationSchema.virtual('messages', {
   foreignField: 'conversationId'
 });
 
-export const Conversation = mongoose.model<IConversation>('Conversation', ConversationSchema);
+export const Conversation = mongoose.model<IConversationDocument>('Conversation', ConversationSchema);
 
 // ============================================================================
 // MESSAGE MODEL
 // ============================================================================
 
-export interface IMessage extends Document {
+export interface MessageSchema {
   _id: Types.ObjectId;
   conversationId: Types.ObjectId;
   role: 'user' | 'assistant' | 'system';
@@ -144,7 +145,9 @@ export interface IMessage extends Document {
   updatedAt: Date;
 }
 
-const MessageSchema = new Schema<IMessage>({
+export type IMessageDocument = Document & MessageSchema;
+
+const MessageSchema = new Schema({
   conversationId: {
     type: Schema.Types.ObjectId,
     ref: 'Conversation',
@@ -209,13 +212,13 @@ const MessageSchema = new Schema<IMessage>({
 MessageSchema.index({ conversationId: 1, createdAt: 1 });
 MessageSchema.index({ conversationId: 1, role: 1 });
 
-export const Message = mongoose.model<IMessage>('Message', MessageSchema);
+export const Message = mongoose.model<IMessageDocument>('Message', MessageSchema);
 
 // ============================================================================
 // TOKEN USAGE MODEL
 // ============================================================================
 
-export interface ITokenUsage extends Document {
+export interface TokenUsageSchema {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   conversationId?: Types.ObjectId;
@@ -241,7 +244,9 @@ export interface ITokenUsage extends Document {
   createdAt: Date;
 }
 
-const TokenUsageSchema = new Schema<ITokenUsage>({
+export type ITokenUsageDocument = Document & TokenUsageSchema;
+
+const TokenUsageSchema = new Schema({
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -320,13 +325,13 @@ TokenUsageSchema.index({ userId: 1, provider: 1, createdAt: -1 });
 TokenUsageSchema.index({ conversationId: 1, createdAt: -1 });
 TokenUsageSchema.index({ createdAt: -1 }); // For cleanup and analytics
 
-export const TokenUsage = mongoose.model<ITokenUsage>('TokenUsage', TokenUsageSchema);
+export const TokenUsage = mongoose.model<ITokenUsageDocument>('TokenUsage', TokenUsageSchema);
 
 // ============================================================================
 // USER CHAT HISTORY MODEL (for quick access)
 // ============================================================================
 
-export interface IChatHistory extends Document {
+export interface ChatHistorySchema {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   conversations: Array<{
@@ -345,7 +350,9 @@ export interface IChatHistory extends Document {
   updatedAt: Date;
 }
 
-const ChatHistorySchema = new Schema<IChatHistory>({
+export type IChatHistoryDocument = Document & ChatHistorySchema;
+
+const ChatHistorySchema = new Schema({
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -403,15 +410,10 @@ const ChatHistorySchema = new Schema<IChatHistory>({
   collection: 'chat_history'
 });
 
-export const ChatHistory = mongoose.model<IChatHistory>('ChatHistory', ChatHistorySchema);
+export const ChatHistory = mongoose.model<IChatHistoryDocument>('ChatHistory', ChatHistorySchema);
 
 // ============================================================================
 // MODEL EXPORTS
 // ============================================================================
 
-export {
-  IConversation,
-  IMessage,
-  ITokenUsage,
-  IChatHistory
-};
+// Export only the schemas, not the document types to avoid conflicts
