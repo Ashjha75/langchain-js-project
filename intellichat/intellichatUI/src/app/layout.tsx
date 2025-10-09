@@ -130,7 +130,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} ${poppins.variable}`}
+      className={`dark ${inter.variable} ${jetbrainsMono.variable} ${poppins.variable}`}
       suppressHydrationWarning
     >
       <head>

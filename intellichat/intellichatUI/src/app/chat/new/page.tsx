@@ -1,12 +1,5 @@
-import { Suspense } from 'react';
-
-import { ChatContainer } from '@/components/chat/chat-container';
-import { ChatSkeleton } from '@/components/ui/skeletons';
+import { GeminiHomePage } from '@/components/GeminiHomePage_Fixed'
 
 export default function NewChatPage() {
-  return (
-    <Suspense fallback={<ChatSkeleton />}>
-      <ChatContainer conversationId={null} />
-    </Suspense>
-  );
+  return <GeminiHomePage />
 }

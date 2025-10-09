@@ -1,11 +1,5 @@
-import { redirect } from 'next/navigation';
-
-import { LoadingScreen } from '@/components/ui/loading-screen';
+import { GeminiHomePage } from '@/components/GeminiHomePage_Fixed'
 
 export default function HomePage() {
-  // Redirect to chat page
-  redirect('/chat');
-  
-  // This won't render due to redirect, but included for completeness
-  return <LoadingScreen message="Redirecting to chat..." />;
+  return <GeminiHomePage />
 }
