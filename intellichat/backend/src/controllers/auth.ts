@@ -17,18 +17,19 @@ export class AuthController {
 
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, password, firstName, lastName, acceptTerms } = req.body;
-
-      if (!email || !password || !firstName || !lastName || !acceptTerms) {
+      const { username, email, password, firstName, lastName, acceptTerms } = req.body;
+             console.log(req.body);
+      if (!email || !password || !firstName || !lastName || !acceptTerms || !username) {
         throw new ValidationError('All fields are required');
       }
 
       const result = await authService.register({
+        username,
         email,
         password,
         firstName,
         lastName,
-        acceptTerms
+        acceptTerms,
       });
 
       logger.info('User registered successfully', {
