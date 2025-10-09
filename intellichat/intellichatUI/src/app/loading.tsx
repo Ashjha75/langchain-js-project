@@ -1,5 +1,4 @@
-import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { LoadingScreen } from '@/components/ui/loading-screen';
+import { ErrorBoundary, LoadingScreen } from '@/components/ui';
 
 export default function LoadingPage() {
   return (

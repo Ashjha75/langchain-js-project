@@ -5,9 +5,9 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from 'next-themes';
 import { useState } from 'react';
 
-import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { Toaster } from '@/components/ui/toaster';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { ErrorBoundary } from '@/components/ui';
+import { Toaster } from '@/components/ui';
+import { TooltipProvider } from '@/components/ui';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -63,7 +63,6 @@ export function Providers({ children }: ProvidersProps) {
         </ThemeProvider>
         <ReactQueryDevtools
           initialIsOpen={false}
-          position="bottom-right"
         />
       </QueryClientProvider>
     </ErrorBoundary>

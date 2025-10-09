@@ -1,4 +1,4 @@
-import { ChatLayout } from '@/components/chat/chat-layout';
+import { ChatLayout } from '@/components/chat';
 
 interface ChatLayoutPageProps {
   children: React.ReactNode;

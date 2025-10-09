@@ -285,7 +285,7 @@ const config: Config = {
     require('tailwind-scrollbar'),
     
     // Custom plugin for chat utilities
-    function({ addUtilities, theme }) {
+    function({ addUtilities, theme }: { addUtilities: any; theme: any }) {
       const newUtilities = {
         '.scrollbar-hide': {
           '-ms-overflow-style': 'none',

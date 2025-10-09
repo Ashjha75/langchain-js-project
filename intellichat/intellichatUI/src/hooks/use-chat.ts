@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAppStore, useActions } from '@/stores/app-store';
@@ -281,7 +281,7 @@ export function useMessages(conversationId: string | null) {
     sendMessageMutation.mutate({
       conversationId,
       content: content.trim(),
-      attachments,
+      ...(attachments && { attachments }),
     });
   };
   

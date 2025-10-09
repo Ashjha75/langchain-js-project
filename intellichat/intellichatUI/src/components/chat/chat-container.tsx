@@ -1,7 +1,9 @@
+'use client';
+
 import { FC } from 'react';
 
 interface ChatContainerProps {
-  conversationId: string;
+  conversationId: string | null;
 }
 
 export const ChatContainer: FC<ChatContainerProps> = ({ conversationId }) => {
@@ -12,7 +14,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({ conversationId }) => {
           {/* Chat Header */}
           <div className="border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
             <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Chat {conversationId}
+              {conversationId ? `Chat ${conversationId}` : 'New Chat'}
             </h1>
           </div>
 

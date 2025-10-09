@@ -172,14 +172,14 @@ export const useAppStore = create<AppState>()(
           }),
           
           updateConversation: (id, updates) => set((state) => {
-            const index = state.conversations.findIndex(c => c.id === id);
+            const index = state.conversations.findIndex((c: any) => c.id === id);
             if (index !== -1) {
               state.conversations[index] = { ...state.conversations[index], ...updates };
             }
           }),
           
           deleteConversation: (id) => set((state) => {
-            state.conversations = state.conversations.filter(c => c.id !== id);
+            state.conversations = state.conversations.filter((c: any) => c.id !== id);
             delete state.messages[id];
             if (state.currentConversationId === id) {
               state.currentConversationId = null;
@@ -204,7 +204,7 @@ export const useAppStore = create<AppState>()(
             state.messages[conversationId].push(message);
             
             // Update conversation's last message time
-            const conversation = state.conversations.find(c => c.id === conversationId);
+            const conversation = state.conversations.find((c: any) => c.id === conversationId);
             if (conversation) {
               conversation.lastMessageAt = message.createdAt;
               conversation.messageCount = state.messages[conversationId].length;
@@ -214,7 +214,7 @@ export const useAppStore = create<AppState>()(
           updateMessage: (conversationId, messageId, updates) => set((state) => {
             const messages = state.messages[conversationId];
             if (messages) {
-              const index = messages.findIndex(m => m.id === messageId);
+              const index = messages.findIndex((m: any) => m.id === messageId);
               if (index !== -1) {
                 messages[index] = { ...messages[index], ...updates };
               }
@@ -224,7 +224,7 @@ export const useAppStore = create<AppState>()(
           deleteMessage: (conversationId, messageId) => set((state) => {
             const messages = state.messages[conversationId];
             if (messages) {
-              state.messages[conversationId] = messages.filter(m => m.id !== messageId);
+              state.messages[conversationId] = messages.filter((m: any) => m.id !== messageId);
             }
           }),
           
@@ -268,7 +268,7 @@ export const useAppStore = create<AppState>()(
           }),
           
           deselectMessage: (messageId) => set((state) => {
-            state.ui.selectedMessages = state.ui.selectedMessages.filter(id => id !== messageId);
+            state.ui.selectedMessages = state.ui.selectedMessages.filter((id: any) => id !== messageId);
           }),
           
           clearSelectedMessages: () => set((state) => {
@@ -308,7 +308,7 @@ export const useAppStore = create<AppState>()(
           }),
           
           removeTypingUser: (userId) => set((state) => {
-            state.typingUsers = state.typingUsers.filter(id => id !== userId);
+            state.typingUsers = state.typingUsers.filter((id: any) => id !== userId);
           }),
           
           clearTypingUsers: () => set((state) => {
@@ -348,7 +348,7 @@ export const useCurrentConversationId = () => useAppStore(state => state.current
 export const useCurrentConversation = () => useAppStore(state => {
   const conversations = state.conversations;
   const currentId = state.currentConversationId;
-  return currentId ? conversations.find(c => c.id === currentId) : null;
+  return currentId ? conversations.find((c: any) => c.id === currentId) : null;
 });
 
 export const useMessages = (conversationId: string | null) => 
