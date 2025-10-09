@@ -1,16 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Mic, Paperclip, Search, Video, Image, PenSquare, BookOpen, SlidersHorizontal } from 'lucide-react';
-import { toolsOptions } from './data';
+import { Send, Mic, Plus, X, Paperclip, Code, Bot } from 'lucide-react';
 
-const iconMap = {
-  search: Search,
-  video: Video,
-  image: Image,
-  'pen-square': PenSquare,
-  'book-open': BookOpen,
-};
+const assetOptions = [
+  { id: 'upload', icon: Paperclip, label: 'Upload files' },
+  { id: 'drive', icon: Bot, label: 'Add from Drive' },
+  { id: 'code', icon: Code, label: 'Import code' },
+];
 
 interface ChatInputProps {
   input: string;
@@ -19,16 +16,16 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ input, setInput, handleSendMessage }: ChatInputProps) {
-  const [showTools, setShowTools] = useState(false);
-  const toolsRef = useRef<HTMLDivElement>(null);
+  const [showAssetMenu, setShowAssetMenu] = useState(false);
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
+  const assetMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
-        setShowTools(false);
+      if (assetMenuRef.current && !assetMenuRef.current.contains(event.target as Node)) {
+        setShowAssetMenu(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -40,56 +37,65 @@ export function ChatInput({ input, setInput, handleSendMessage }: ChatInputProps
     }
   };
 
+  const toggleAsset = (assetId: string) => {
+    setSelectedAssets((prev) =>
+      prev.includes(assetId) ? prev.filter((id) => id !== assetId) : [...prev, assetId]
+    );
+    setShowAssetMenu(false);
+  };
+
   return (
     <div className="w-full">
-      <div className="relative">
-        <div className="flex items-center bg-[#333537] border border-transparent rounded-3xl p-2 transition-colors focus-within:ring-2 focus-within:ring-[#4285f4]">
-          <div className="relative" ref={toolsRef}>
+      <div className="relative bg-[#333537] rounded-3xl p-2 transition-colors focus-within:ring-2 focus-within:ring-[#4285f4]">
+        {selectedAssets.length > 0 && (
+          <div className="flex flex-wrap gap-2 p-2">
+            {selectedAssets.map((assetId) => {
+              const asset = assetOptions.find((opt) => opt.id === assetId);
+              if (!asset) return null;
+              const Icon = asset.icon;
+              return (
+                <div
+                  key={assetId}
+                  className="flex items-center gap-2 bg-[#404040] text-[#e8eaed] text-sm px-3 py-1.5 rounded-lg"
+                >
+                  <Icon size={16} />
+                  <span>{asset.label}</span>
+                  <button onClick={() => toggleAsset(assetId)} className="ml-1">
+                    <X size={16} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="flex items-center">
+          <div className="relative" ref={assetMenuRef}>
             <button
-              onClick={() => setShowTools(!showTools)}
-              className="flex items-center gap-2 text-sm text-[#9aa0a6] bg-transparent px-3 py-2 rounded-full hover:bg-[#404040] transition-colors"
+              onClick={() => setShowAssetMenu(!showAssetMenu)}
+              className="p-2 hover:bg-[#404040] rounded-full transition-colors mx-1"
             >
-              <SlidersHorizontal size={20} />
-              <span>Tools</span>
+              <Plus size={20} className="text-[#9aa0a6]" />
             </button>
-            {showTools && (
-              <div className="absolute bottom-full left-0 mb-3 w-80 bg-[#282a2c] border border-[#333537] rounded-xl p-2 z-50 shadow-lg animate-fade-in">
-                <div className="p-3 border-b border-[#333537] mb-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#e8eaed] text-base font-medium">Tools</span>
-                    <div className="bg-[#333537] text-[#9aa0a6] text-xs px-1.5 py-0.5 rounded">
-                      {toolsOptions.length}
-                    </div>
-                  </div>
-                </div>
-                <div className="max-h-72 overflow-y-auto">
-                  {toolsOptions.map((tool, index) => {
-                    const Icon = iconMap[tool.icon as keyof typeof iconMap];
-                    return (
-                      <button
-                        key={index}
-                        className="w-full flex items-center gap-3 p-3 hover:bg-[#333537] rounded-lg transition-colors text-left"
-                      >
-                        <Icon size={20} className="text-[#9aa0a6]" />
-                        <div className="flex-1">
-                          <div className="text-[#e8eaed] text-sm font-medium mb-0.5">
-                            {tool.title}
-                          </div>
-                          <div className="text-[#9aa0a6] text-xs leading-snug">
-                            {tool.description}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+            {showAssetMenu && (
+              <div className="absolute bottom-full left-0 mb-3 w-64 bg-[#282a2c] border border-[#333537] rounded-xl p-2 z-50 shadow-lg animate-fade-in">
+                {assetOptions.map((asset) => {
+                  const Icon = asset.icon;
+                  const isSelected = selectedAssets.includes(asset.id);
+                  return (
+                    <button
+                      key={asset.id}
+                      onClick={() => toggleAsset(asset.id)}
+                      disabled={isSelected}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-[#333537] rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Icon size={20} className="text-[#9aa0a6]" />
+                      <span className="text-[#e8eaed] text-sm">{asset.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
-
-          <button className="p-2 hover:bg-[#404040] rounded-full transition-colors mx-1">
-            <Paperclip size={20} className="text-[#9aa0a6]" />
-          </button>
 
           <input
             type="text"
