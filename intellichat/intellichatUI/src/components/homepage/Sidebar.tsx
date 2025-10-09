@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, Clock, Settings } from 'lucide-react';
+import { Logo } from '@/components/ui/Logo';
 import { recentChats } from './data';
 
 interface SidebarProps {
@@ -21,13 +22,10 @@ export function Sidebar({ sidebarOpen }: SidebarProps) {
       <div className="flex flex-col h-full p-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#4285f4] flex items-center justify-center text-white font-semibold text-sm">
-              IC
-            </div>
-            <div>
-              <h1 className="text-[#e8eaed] text-lg font-semibold">IntelliChat</h1>
-              <span className="text-xs px-2 py-0.5 bg-[#4285f4] text-white rounded-full">
+          <Logo size="sm" showText={true} />
+          <span className="text-xs px-2 py-0.5 bg-[#4285f4] text-white rounded-full">
+            Pro
+          </span>
                 PRO
               </span>
             </div>

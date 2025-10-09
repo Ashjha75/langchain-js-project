@@ -1,19 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Server external packages (moved from experimental)
+  serverExternalPackages: ['sharp'],
+  
   experimental: {
-    serverComponentsExternalPackages: ['sharp'],
     optimizePackageImports: ['lucide-react', '@heroicons/react'],
     // Next.js 15 specific optimizations
     optimizeCss: true,
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
+    // Removed deprecated turbo configuration
   },
+  
   
   // React 19 configuration
   reactStrictMode: true,
@@ -34,7 +30,6 @@ const nextConfig = {
   
   // PWA configuration
   ...(process.env.NODE_ENV === 'production' && {
-    swcMinify: true,
   }),
   
   // Bundle analysis
@@ -98,6 +93,7 @@ const nextConfig = {
   
   // Output configuration
   output: 'standalone',
+  outputFileTracingRoot: __dirname,
   
   // Environment variables
   env: {

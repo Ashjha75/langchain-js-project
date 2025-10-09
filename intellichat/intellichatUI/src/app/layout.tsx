@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     description: 'Experience the future of AI conversation with IntelliChat Pro',
     images: [
       {
-        url: '/og-image.png',
+        url: '/images/logo.svg',
         width: 1200,
         height: 630,
         alt: 'IntelliChat Pro',
@@ -95,15 +95,14 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/images/logo.svg', type: 'image/svg+xml', sizes: '32x32' },
     ],
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/images/logo.svg', sizes: '180x180', type: 'image/svg+xml' },
     ],
     other: [
-      { url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/images/logo.svg', sizes: '192x192', type: 'image/svg+xml' },
     ],
   },
   manifest: '/site.webmanifest',
