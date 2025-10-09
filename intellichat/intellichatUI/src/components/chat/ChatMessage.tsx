@@ -10,6 +10,7 @@ import rehypeRaw from 'rehype-raw';
 import { Message } from './types';
 import { cn } from '@/lib/utils';
 import { CodeBlock } from './CodeBlock';
+import { Logo } from '@/components/ui/Logo';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github-dark.css';
 
@@ -168,8 +169,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div className={cn('flex items-start gap-4 mb-6', isUser ? 'justify-end' : 'justify-start')}>
       {!isUser && (
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4285f4] to-[#34a853] flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 shadow-lg">
-          AI
+        <div className="flex-shrink-0">
+          <Logo size="sm" variant="icon" />
         </div>
       )}
       <div

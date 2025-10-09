@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector_Fixed';
+import { Logo } from '@/components/ui/Logo';
 import { suggestionCards } from './data';
 import { SuggestionCard } from './SuggestionCard';
 import { ChatInput } from './ChatInput';
@@ -42,12 +43,7 @@ export function MainContent({ sidebarOpen, setSidebarOpen }: MainContentProps) {
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <div className="flex items-center gap-2">
-            <h1 className="text-[#e8eaed] text-xl font-semibold">IntelliChat</h1>
-            <span className="text-xs px-2 py-0.5 bg-[#4285f4] text-white rounded-full">
-              PRO
-            </span>
-          </div>
+          <Logo size="sm" showText={true} />
         </div>
 
         <div className="flex items-center gap-4">
@@ -63,6 +59,9 @@ export function MainContent({ sidebarOpen, setSidebarOpen }: MainContentProps) {
       {/* Welcome Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-4xl mx-auto w-full">
         <div className="text-center mb-12">
+          <div className="mb-8 flex justify-center">
+            <Logo size="xl" variant="icon" className="opacity-80" />
+          </div>
           <h2 className="text-5xl font-light mb-4">
             <span className="text-[#e8eaed]">Hello, </span>
             <span className="text-[#4285f4]">Ashish</span>

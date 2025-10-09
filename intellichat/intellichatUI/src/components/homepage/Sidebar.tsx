@@ -26,10 +26,6 @@ export function Sidebar({ sidebarOpen }: SidebarProps) {
           <span className="text-xs px-2 py-0.5 bg-[#4285f4] text-white rounded-full">
             Pro
           </span>
-                PRO
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* New Chat Button */}
