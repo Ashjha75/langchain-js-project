@@ -1,10 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, Clock, Settings } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
-import { recentChats } from './data';
+import { getConversations } from '@/lib/conversation';
+
+interface Conversation {
+  _id: string;
+  title: string;
+}
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -12,6 +17,20 @@ interface SidebarProps {
 
 export function Sidebar({ sidebarOpen }: SidebarProps) {
   const router = useRouter();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const data = await getConversations();
+        setConversations(data.conversations);
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error);
+      }
+    };
+
+    fetchConversations();
+  }, []);
 
   return (
     <div
@@ -52,14 +71,15 @@ export function Sidebar({ sidebarOpen }: SidebarProps) {
           <div className="mb-4">
             <h3 className="text-[#9aa0a6] text-sm font-medium mb-2">Recent</h3>
             <div className="flex flex-col gap-1">
-              {recentChats.map((chat, index) => (
+              {conversations.map((chat) => (
                 <button
-                  key={index}
+                  key={chat._id}
                   className="w-full text-left px-2 py-2 rounded-lg text-[#e8eaed] text-sm hover:bg-[#333537] transition-colors"
+                  onClick={() => router.push(`/chat/${chat._id}`)}
                 >
                   <div className="flex items-center gap-2">
                     <Clock size={16} className="text-[#9aa0a6]" />
-                    <span className="truncate">{chat}</span>
+                    <span className="truncate">{chat.title}</span>
                   </div>
                 </button>
               ))}

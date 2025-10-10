@@ -1,6 +1,7 @@
 'use client';
 
-import { FC, useState, useMemo } from 'react';
+import { FC, useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Search } from 'lucide-react';
@@ -32,6 +33,35 @@ export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredModel, setHoveredModel] = useState<Model | null>(null);
+  const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Update button position when opening
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      setButtonRect(buttonRef.current.getBoundingClientRect());
+    }
+  }, [isOpen]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchTerm('');
+        setHoveredModel(null);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   const filteredAndGroupedModels = useMemo(() => {
     const filtered = models.filter(model =>
@@ -52,59 +82,87 @@ export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
   const selectedModel = models.find(m => m.id === value);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <Button
+        ref={buttonRef}
         variant="outline"
         className="w-full flex justify-between items-center rounded-lg"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span>{selectedModel?.metadata.display_name || 'Select a model'}</span>
-        {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        <span className="truncate">{selectedModel?.metadata.display_name || 'Select a model'}</span>
+        {isOpen ? <ChevronUp className="h-4 w-4 ml-2 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />}
       </Button>
-      {isOpen && (
-        <div className="absolute z-10 w-full mt-2 bg-sidebar-background border border-sidebar-border rounded-lg shadow-lg">
-          <div className="p-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-              <Input
-                placeholder="Search Models..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 w-full rounded-lg"
-              />
-            </div>
-          </div>
-          <div className="flex">
-            <div className="max-h-60 w-60 overflow-y-auto">
-              {Object.entries(filteredAndGroupedModels).map(([owner, modelList]) => (
-                <div key={owner}>
-                  <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">{owner}</p>
-                  {modelList.map(model => (
-                    <div
-                      key={model.id}
-                      className={`p-2 cursor-pointer hover:bg-accent ${value === model.id ? 'bg-accent' : ''}`}
-                      onClick={() => {
-                        onChange(model.id);
-                        setIsOpen(false);
-                        setSearchTerm('');
-                      }}
-                      onMouseEnter={() => setHoveredModel(model)}
-                      onMouseLeave={() => setHoveredModel(null)}
-                    >
-                      <p className="text-sm">{model.metadata.display_name}</p>
-                      <p className="text-xs text-muted-foreground">{model.id}</p>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-            {hoveredModel && (
-              <div className="border-l border-sidebar-border ml-2 pl-2">
-                <ModelTooltip model={hoveredModel} />
+      {isOpen && buttonRect && typeof window !== 'undefined' && createPortal(
+        <div 
+          ref={dropdownRef}
+          className="fixed z-[99999] flex flex-row-reverse gap-0"
+          style={{
+            right: `${window.innerWidth - buttonRect.right}px`,
+            top: `${buttonRect.bottom + 8}px`,
+          }}
+        >
+          {/* Main Dropdown (appears on right due to flex-row-reverse) */}
+          <div className="w-80 bg-[#1e1e1e] border border-[#333537] rounded-lg shadow-2xl overflow-hidden">
+            <div className="p-3 border-b border-[#333537]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9aa0a6]" />
+                <Input
+                  placeholder="Search Models..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 w-full bg-[#282a2c] border-[#404040] text-[#e8eaed] placeholder:text-[#9aa0a6] focus:border-[#4285f4] rounded-lg"
+                  autoFocus
+                />
               </div>
-            )}
+            </div>
+            <div 
+              className="max-h-96 overflow-y-auto model-dropdown-scroll"
+              onMouseLeave={() => setHoveredModel(null)}
+            >
+              {Object.entries(filteredAndGroupedModels).length === 0 ? (
+                <div className="p-4 text-center text-[#9aa0a6] text-sm">
+                  No models found
+                </div>
+              ) : (
+                Object.entries(filteredAndGroupedModels).map(([owner, modelList]) => (
+                  <div key={owner}>
+                    <div className="px-3 py-2 bg-[#282a2c] sticky top-0">
+                      <p className="text-xs font-semibold text-[#9aa0a6] uppercase tracking-wider">{owner}</p>
+                    </div>
+                    {modelList.map(model => (
+                      <div
+                        key={model.id}
+                        className={`px-3 py-2.5 cursor-pointer transition-all duration-150 hover:bg-[#2c2c2c] border-l-2 ${
+                          value === model.id 
+                            ? 'bg-[#2c2c2c] border-l-[#4285f4]' 
+                            : 'border-l-transparent'
+                        }`}
+                        onClick={() => {
+                          onChange(model.id);
+                          setIsOpen(false);
+                          setSearchTerm('');
+                          setHoveredModel(null);
+                        }}
+                        onMouseEnter={() => setHoveredModel(model)}
+                      >
+                        <p className="text-sm font-medium text-[#e8eaed]">{model.metadata.display_name}</p>
+                        <p className="text-xs text-[#9aa0a6] truncate mt-0.5">{model.id}</p>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
+          
+          {/* Tooltip on the left (appears left due to flex-row-reverse) */}
+          {hoveredModel && (
+            <div>
+              <ModelTooltip model={hoveredModel} />
+            </div>
+          )}
+        </div>,
+        document.body
       )}
     </div>
   );

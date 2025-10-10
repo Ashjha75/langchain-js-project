@@ -110,7 +110,7 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="w-96 bg-sidebar-background border-l border-sidebar-border p-4 flex flex-col space-y-6 overflow-y-auto">
+    <div className="w-96 bg-sidebar-background border-l border-sidebar-border p-4 flex flex-col space-y-6 overflow-y-auto overflow-x-visible">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-sidebar-foreground">
           PARAMETERS
@@ -152,12 +152,14 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
       </div>
 
       {/* Model Selection */}
-      <div className="p-4 bg-accent rounded-lg">
+      <div className="p-4 bg-accent rounded-lg overflow-visible">
         <Label className="text-sm font-medium">Model selection</Label>
-        <ModelSelector
-          value={settings.model}
-          onChange={(value) => updateSetting('model', value)}
-        />
+        <div className="overflow-visible">
+          <ModelSelector
+            value={settings.model}
+            onChange={(value) => updateSetting('model', value)}
+          />
+        </div>
       </div>
 
       {/* System Instructions */}
