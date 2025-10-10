@@ -24,7 +24,7 @@
   /* Shadcn UI Theme Variables */
   --background: 210 4.8% 11.0%; /* #1b1c1d */
   --foreground: 210 40% 98%; /* #e8eaed */
-  --primary: 217 89% 61%; /* #4285f4 */
+  --primary: 0 0 61%; /* #4285f4 */
   --primary-foreground: 210 40% 98%; /* #e8eaed */
   --secondary: 210 2.9% 20.8%; /* #333537 */
   --secondary-foreground: 210 40% 98%; /* #e8eaed */

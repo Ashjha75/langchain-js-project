@@ -13,13 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ModelSelector } from '@/components/ModelSelector';
 import { Textarea } from '@/components/ui/textarea';
-import { Code, Settings, X, ChevronDown, ChevronUp, Plus, RotateCcw } from 'lucide-react';
+import { Code, X, ChevronDown, ChevronUp, Plus, RotateCcw, Check } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { SimpleTooltip } from '@/components/ui/tooltip';
 import { 
   DEFAULT_RUN_SETTINGS, 
   RunSettingsConfig, 
-  MODEL_OPTIONS, 
   REASONING_OPTIONS,
   PARAMETER_CONSTRAINTS 
 } from '@/config/runSettingsDefaults';
@@ -40,6 +41,9 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
   
   // Track changes (only modified values)
   const [changedSettings, setChangedSettings] = useState<Partial<RunSettingsConfig>>({});
+  
+  // Copy feedback state
+  const [copied, setCopied] = useState(false);
 
   // Update parent component whenever settings change
   useEffect(() => {
@@ -72,10 +76,33 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
   const handleReset = () => {
     setSettings(DEFAULT_RUN_SETTINGS);
     setChangedSettings({});
+    console.log('✅ Settings reset to defaults');
+  };
+
+  // Copy JSON to clipboard (full settings with all values)
+  const handleCopyJSON = async () => {
+    try {
+      const jsonString = JSON.stringify(settings, null, 2);
+      await navigator.clipboard.writeText(jsonString);
+      setCopied(true);
+      console.log('📋 Full settings JSON copied to clipboard:', jsonString);
+      
+      // Reset copied state after 2 seconds
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy JSON:', err);
+    }
   };
 
   // Check if any settings have been modified
   const hasChanges = Object.keys(changedSettings).length > 0;
+
+  // Log state changes for debugging
+  useEffect(() => {
+    console.log('📊 Current Settings:', settings);
+    console.log('🔄 Changed Settings (for API):', changedSettings);
+    console.log('✨ Has Changes:', hasChanges);
+  }, [settings, changedSettings, hasChanges]);
 
   if (!isOpen) return null;
 
@@ -86,48 +113,48 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
           PARAMETERS
         </h2>
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={handleReset}
-            disabled={!hasChanges}
-            title="Reset to defaults"
-          >
-            <RotateCcw className={`h-5 w-5 ${hasChanges ? 'text-blue-500' : ''}`} />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <Code className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <Settings className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
+          <SimpleTooltip content={hasChanges ? "Reset to defaults" : "No changes to reset"} side="bottom">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleReset}
+              disabled={!hasChanges}
+              className={hasChanges ? 'hover:bg-blue-500/10' : ''}
+            >
+              <RotateCcw className={`h-5 w-5 transition-colors ${hasChanges ? 'text-blue-500' : 'text-gray-500'}`} />
+            </Button>
+          </SimpleTooltip>
+          
+          <SimpleTooltip content={copied ? "Copied!" : "Copy settings JSON"} side="bottom">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleCopyJSON}
+              className="relative"
+            >
+              {copied ? (
+                <Check className="h-5 w-5 text-green-500" />
+              ) : (
+                <Code className="h-5 w-5" />
+              )}
+            </Button>
+          </SimpleTooltip>
+          
+          <SimpleTooltip content="Close" side="bottom">
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-5 w-5" />
+            </Button>
+          </SimpleTooltip>
         </div>
       </div>
 
       {/* Model Selection */}
       <div className="p-4 bg-accent rounded-lg">
         <Label className="text-sm font-medium">Model selection</Label>
-        <Select 
-          value={settings.model} 
-          onValueChange={(value) => updateSetting('model', value)}
-        >
-          <SelectTrigger className="mt-2 rounded-lg">
-            <SelectValue placeholder="Select a model" />
-          </SelectTrigger>
-          <SelectContent>
-            {MODEL_OPTIONS.map((model) => (
-              <SelectItem key={model.value} value={model.value}>
-                {model.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground mt-2">
-          {MODEL_OPTIONS.find((m) => m.value === settings.model)?.description}
-        </p>
+        <ModelSelector
+          value={settings.model}
+          onChange={(value) => updateSetting('model', value)}
+        />
       </div>
 
       {/* System Instructions */}

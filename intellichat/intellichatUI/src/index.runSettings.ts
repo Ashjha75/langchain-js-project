@@ -6,7 +6,6 @@
 // Configuration and types
 export {
   DEFAULT_RUN_SETTINGS,
-  MODEL_OPTIONS,
   REASONING_OPTIONS,
   PARAMETER_CONSTRAINTS,
   type RunSettingsConfig,

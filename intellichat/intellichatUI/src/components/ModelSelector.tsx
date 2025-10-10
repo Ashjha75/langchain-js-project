@@ -1,46 +1,105 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronDownIcon, SparklesIcon } from 'lucide-react';
+import { FC, useState, useMemo } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { models } from '@/config/models';
+import { SimpleTooltip } from '@/components/ui/tooltip';
+import ModelTooltip from './ModelTooltip';
 
-export function ModelSelector() {
+interface ModelSelectorProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+interface Model {
+  id: string;
+  created: number;
+  owned_by: string;
+  metadata: {
+    display_name: string;
+    release_stage: string;
+    limits: {
+      requests_per_minute: number;
+      tokens_per_minute: number;
+      requests_per_day: number;
+      tokens_per_day: number;
+    };
+  };
+}
+
+export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('IntelliChat Pro');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const models = [
-    { name: 'IntelliChat Pro', description: 'Most capable model' },
-    { name: 'IntelliChat Standard', description: 'Faster responses' },
-    { name: 'IntelliChat Code', description: 'Optimized for coding' },
-  ];
+  const filteredAndGroupedModels = useMemo(() => {
+    const filtered = models.filter(model =>
+      model.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      model.metadata.display_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return filtered.reduce((acc, model) => {
+      const owner = model.owned_by;
+      if (!acc[owner]) {
+        acc[owner] = [];
+      }
+      acc[owner].push(model);
+      return acc;
+    }, {} as Record<string, Model[]>);
+  }, [searchTerm]);
+
+  const selectedModel = models.find(m => m.id === value);
 
   return (
     <div className="relative">
-      <button
+      <Button
+        variant="outline"
+        className="w-full flex justify-between items-center rounded-lg"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-[#161b22] border border-[#21262d] rounded-lg hover:border-[#1f6feb] transition-colors"
       >
-        <SparklesIcon className="w-4 h-4 text-[#1f6feb]" />
-        <span className="text-sm font-medium">{selectedModel}</span>
-        <ChevronDownIcon className="w-4 h-4 text-gray-400" />
-      </button>
-
+        <span>{selectedModel?.metadata.display_name || 'Select a model'}</span>
+        {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </Button>
       {isOpen && (
-        <div className="absolute top-full mt-2 left-0 w-64 bg-[#161b22] border border-[#21262d] rounded-lg shadow-lg z-50">
-          {models.map((model) => (
-            <button
-              key={model.name}
-              onClick={() => {
-                setSelectedModel(model.name);
-                setIsOpen(false);
-              }}
-              className="w-full text-left p-3 hover:bg-[#21262d] transition-colors first:rounded-t-lg last:rounded-b-lg"
-            >
-              <div className="font-medium text-white">{model.name}</div>
-              <div className="text-sm text-gray-400">{model.description}</div>
-            </button>
-          ))}
+        <div className="absolute z-10 w-full mt-2 bg-sidebar-background border border-sidebar-border rounded-lg shadow-lg">
+          <div className="p-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Search Models..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 w-full rounded-lg"
+              />
+            </div>
+          </div>
+          <div className="max-h-60 overflow-y-auto">
+            {Object.entries(filteredAndGroupedModels).map(([owner, modelList]) => (
+              <div key={owner}>
+                <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">{owner}</p>
+                {modelList.map(model => (
+                  <SimpleTooltip key={model.id} content={<ModelTooltip model={model} />} side="left" sideOffset={10}>
+                    <div
+                      className={`p-2 cursor-pointer hover:bg-accent ${value === model.id ? 'bg-accent' : ''}`}
+                      onClick={() => {
+                        onChange(model.id);
+                        setIsOpen(false);
+                        setSearchTerm('');
+                      }}
+                    >
+                      <p className="text-sm">{model.metadata.display_name}</p>
+                      <p className="text-xs text-muted-foreground">{model.id}</p>
+                    </div>
+                  </SimpleTooltip>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default ModelSelector;

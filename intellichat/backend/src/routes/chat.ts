@@ -47,6 +47,23 @@ const sendMessageBodySchema = z.object({
   })).optional()
 });
 
+const sendBodySchema = z.object({
+  content: z.string().min(1).max(10000),
+  attachments: z.array(z.object({
+    type: z.enum(['file', 'image', 'url']),
+    content: z.string().min(1),
+    metadata: z.record(z.any()).optional()
+  })).optional(),
+  model: z.string().min(1),
+  systemPrompt: z.string().max(2000).optional(),
+  config: z.object({
+    temperature: z.number().min(0).max(2).optional(),
+    maxTokens: z.number().min(1).max(8192).optional(),
+    topP: z.number().min(0).max(1).optional(),
+    stream: z.boolean().optional()
+  }).optional()
+});
+
 // Validation schemas for query parameters
 const listConversationsQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).optional(),
@@ -123,6 +140,16 @@ router.delete('/conversations/:conversationId',
 // ============================================================================
 // MESSAGE HANDLING
 // ============================================================================
+
+/**
+ * @route   POST /api/chat/send
+ * @desc    Send a message and create a conversation in one call
+ * @access  Private
+ */
+router.post('/send',
+  validateBody(sendBodySchema),
+  chatController.send
+);
 
 /**
  * @route   POST /api/chat/conversations/:conversationId/messages

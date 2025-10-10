@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Mic, Plus, X, Paperclip, Code, Bot, SlidersHorizontal, Search, Video, Image, PenSquare, BookOpen } from 'lucide-react';
 import { toolsOptions } from './data';
+import { SimpleTooltip } from '../ui/tooltip';
 
 const assetOptions = [
   { id: 'upload', icon: Paperclip, label: 'Upload files' },
@@ -273,12 +274,14 @@ export function ChatInput({ input, setInput, handleSendMessage }: ChatInputProps
         )}
         <div className="flex items-end">
           <div className="relative" ref={assetMenuRef}>
-            <button
-              onClick={() => setShowAssetMenu(!showAssetMenu)}
-              className="p-2 hover:bg-[#404040] rounded-full transition-colors mx-1"
-            >
-              <Plus size={20} className="text-[#9aa0a6]" />
-            </button>
+            <SimpleTooltip content="Add files or code" side="top">
+              <button
+                onClick={() => setShowAssetMenu(!showAssetMenu)}
+                className="p-2 hover:bg-[#404040] rounded-full transition-colors mx-1"
+              >
+                <Plus size={20} className="text-[#9aa0a6]" />
+              </button>
+            </SimpleTooltip>
             {showAssetMenu && (
               <div className="absolute bottom-full left-0 mb-3 w-64 bg-[#282a2c] border border-[#333537] rounded-xl p-2 z-50 shadow-lg animate-fade-in">
                 {assetOptions.map((asset) => {
@@ -354,16 +357,20 @@ export function ChatInput({ input, setInput, handleSendMessage }: ChatInputProps
           />
 
           <div className="flex items-center gap-1 ml-2">
-            <button className="p-2 hover:bg-[#404040] rounded-full transition-colors">
-              <Mic size={20} className="text-[#9aa0a6]" />
-            </button>
-            {input.trim() && (
-              <button
-                onClick={() => handleSendMessage()}
-                className="p-2 bg-[#4285f4] rounded-full transition-all duration-300 ease-in-out hover:bg-[#3367d6] animate-fade-in"
-              >
-                <Send size={20} className="text-white" />
+            <SimpleTooltip content="Voice input" side="top">
+              <button className="p-2 hover:bg-[#404040] rounded-full transition-colors">
+                <Mic size={20} className="text-[#9aa0a6]" />
               </button>
+            </SimpleTooltip>
+            {input.trim() && (
+              <SimpleTooltip content="Send message" side="top">
+                <button
+                  onClick={() => handleSendMessage()}
+                  className="p-2 bg-[#4285f4] rounded-full transition-all duration-300 ease-in-out hover:bg-[#3367d6] animate-fade-in"
+                >
+                  <Send size={20} className="text-white" />
+                </button>
+              </SimpleTooltip>
             )}
           </div>
         </div>

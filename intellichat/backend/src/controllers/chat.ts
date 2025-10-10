@@ -179,6 +179,59 @@ export class ChatController {
   // MESSAGE HANDLING
   // ============================================================================
 
+  async send(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const authUser = (req as any).user;
+      const userId = authUser?.id;
+      const { content, attachments, model, systemPrompt, config } = req.body;
+
+      if (!userId) {
+        throw new UnauthorizedError('User not authenticated');
+      }
+
+      if (!model) {
+        throw new ValidationError('Model is required');
+      }
+
+      if (!content || content.trim().length === 0) {
+        throw new ValidationError('Message content is required');
+      }
+
+      const conversation = await chatService.createConversation({
+        userId,
+        title: content.substring(0, 50),
+        model,
+        systemPrompt,
+        config
+      });
+
+      const message = await chatService.sendMessage({
+        conversationId: conversation._id.toString(),
+        userId,
+        content: content.trim(),
+        attachments
+      });
+
+      logger.info('Message sent to new conversation', {
+        conversationId: conversation._id,
+        messageId: message._id,
+        userId,
+        ip: req.ip
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Message sent and conversation created',
+        data: {
+          conversation,
+          message
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async sendMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = (req as any).user?.id;

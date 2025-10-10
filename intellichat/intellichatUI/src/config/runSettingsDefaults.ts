@@ -73,27 +73,6 @@ export const DEFAULT_RUN_SETTINGS: RunSettingsConfig = {
 };
 
 /**
- * Model options available for selection
- */
-export const MODEL_OPTIONS = [
-  {
-    value: 'gemini-2.5-pro',
-    label: 'Gemini 2.5 Pro',
-    description: 'Our most powerful reasoning model, which excels at coding and complex reasoning tasks.',
-  },
-  {
-    value: 'gemini-flash-latest',
-    label: 'Gemini Flash Latest',
-    description: 'Fast and efficient model for quick responses.',
-  },
-  {
-    value: 'gemini-1.5-pro',
-    label: 'Gemini 1.5 Pro',
-    description: 'Advanced model with extended context window.',
-  },
-] as const;
-
-/**
  * Reasoning level options
  */
 export const REASONING_OPTIONS = [

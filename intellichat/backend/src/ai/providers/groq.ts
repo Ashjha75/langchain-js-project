@@ -6,6 +6,7 @@
 import Groq from 'groq-sdk';
 import { CONFIG } from '@/config';
 import { createLogger } from '@/utils/logger';
+import { aiConfigManager } from '@/config/ai-config';
 import {
   AIProvider,
   AIMessage,
@@ -24,19 +25,6 @@ export class GroqProvider implements AIProvider {
   public readonly version = '1.0.0';
   
   private client: Groq;
-  private availableModels: string[] = [
-    'llama-3.1-70b-versatile',
-    'llama-3.1-8b-instant',
-    'llama-3.2-1b-preview',
-    'llama-3.2-3b-preview',
-    'llama-3.2-11b-vision-preview',
-    'llama-3.2-90b-vision-preview',
-    'llama-3.3-70b-versatile',
-    'mixtral-8x7b-32768',
-    'gemma-7b-it',
-    'gemma2-9b-it',
-    'openai/gpt-oss-120b'
-  ];
 
   constructor() {
     if (!CONFIG.ai.groq.apiKey) {
@@ -51,18 +39,29 @@ export class GroqProvider implements AIProvider {
       apiKey: CONFIG.ai.groq.apiKey,
     });
 
+    const enabledModels = aiConfigManager.getProviderModels('groq')
+      .filter(m => m.enabled);
+
     logger.info('Groq provider initialized', {
       model: CONFIG.ai.groq.model,
-      availableModels: this.availableModels.length
+      availableModels: enabledModels.length,
+      models: enabledModels.map(m => m.modelId)
     });
   }
 
   async generateResponse(context: ConversationContext): Promise<AIResponse> {
     try {
+      // Get merged configuration from central config
+      const modelConfig = aiConfigManager.getMergedConfig(
+        context.config.model || CONFIG.ai.groq.model,
+        context.config
+      );
+
       logger.info('Generating response with Groq', {
         conversationId: context.conversationId,
         model: context.config.model,
-        messageCount: context.messages.length
+        messageCount: context.messages.length,
+        config: modelConfig
       });
 
       const messages = this.formatMessages(context.messages, context.config.systemPrompt);
@@ -70,10 +69,12 @@ export class GroqProvider implements AIProvider {
       const completion = await this.client.chat.completions.create({
         model: context.config.model || CONFIG.ai.groq.model,
         messages: messages as any,
-        temperature: context.config.temperature || CONFIG.ai.groq.temperature,
-        max_tokens: context.config.maxTokens || CONFIG.ai.groq.maxTokens,
-        top_p: context.config.topP || CONFIG.ai.groq.topP,
+        temperature: modelConfig.temperature,
+        max_tokens: modelConfig.maxTokens,
+        top_p: modelConfig.topP,
         stream: false,
+        ...(modelConfig.seed && { seed: modelConfig.seed }),
+        ...(modelConfig.stopSequence && { stop: modelConfig.stopSequence })
       });
 
       const response: AIResponse = {
@@ -137,9 +138,16 @@ export class GroqProvider implements AIProvider {
 
   async* generateStreamResponse(context: ConversationContext): AsyncGenerator<StreamChunk, void, unknown> {
     try {
+      // Get merged configuration from central config
+      const modelConfig = aiConfigManager.getMergedConfig(
+        context.config.model || CONFIG.ai.groq.model,
+        context.config
+      );
+
       logger.info('Starting streaming response with Groq', {
         conversationId: context.conversationId,
-        model: context.config.model
+        model: context.config.model,
+        config: modelConfig
       });
 
       const messages = this.formatMessages(context.messages, context.config.systemPrompt);
@@ -147,10 +155,12 @@ export class GroqProvider implements AIProvider {
       const stream = await this.client.chat.completions.create({
         model: context.config.model || CONFIG.ai.groq.model,
         messages: messages as any,
-        temperature: context.config.temperature || CONFIG.ai.groq.temperature,
-        max_tokens: context.config.maxTokens || CONFIG.ai.groq.maxTokens,
-        top_p: context.config.topP || CONFIG.ai.groq.topP,
+        temperature: modelConfig.temperature,
+        max_tokens: modelConfig.maxTokens,
+        top_p: modelConfig.topP,
         stream: true,
+        ...(modelConfig.seed && { seed: modelConfig.seed }),
+        ...(modelConfig.stopSequence && { stop: modelConfig.stopSequence })
       });
 
       let fullContent = '';
@@ -213,17 +223,21 @@ export class GroqProvider implements AIProvider {
 
   async listModels(): Promise<string[]> {
     try {
-      // For Groq, we maintain a static list since their API doesn't provide a models endpoint
-      return [...this.availableModels];
+      // Get all enabled Groq models from configuration
+      const groqModels = aiConfigManager.getProviderModels('groq')
+        .filter(m => m.enabled)
+        .map(m => m.modelId);
+      
+      logger.info('Listing available models', { count: groqModels.length });
+      return groqModels;
     } catch (error: any) {
       logger.error('Error listing models', { error: error.message });
-      return this.availableModels; // Fallback to static list
+      return [];
     }
   }
 
   async validateModel(model: string): Promise<boolean> {
-    const models = await this.listModels();
-    return models.includes(model);
+    return aiConfigManager.isValidModel(model);
   }
 
   async healthCheck(): Promise<boolean> {

@@ -14,6 +14,7 @@ import { globalErrorHandler } from '@/utils/errorHandler';
 // Routes
 import { authRoutes } from '@/routes/auth';
 import { chatRoutes } from '@/routes/chat';
+import { modelsRoutes } from '@/routes/models';
 
 const logger = createLogger('Application');
 
@@ -61,6 +62,7 @@ class Application {
     // API routes
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/chat', chatRoutes);
+    this.app.use('/api/models', modelsRoutes);
 
     // 404 handler
     this.app.use('*', (req, res) => {
