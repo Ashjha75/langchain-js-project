@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { Sidebar } from './homepage/Sidebar';
 import { MainContent } from './homepage/MainContent';
 import { RunSettingsSidebar } from './RunSettingsSidebar';
-import { Button } from './ui/button';
-import { Menu } from 'lucide-react';
+
 
 export function GeminiHomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);

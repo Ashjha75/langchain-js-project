@@ -1,16 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, Settings, X } from 'lucide-react';
 import { ModelSelector } from '../ModelSelector_Fixed';
 import { ChatInput } from '../homepage/ChatInput';
 import { MessageList } from './MessageList';
 import { Message } from './types';
 
+import { Button } from '../ui/button';
 interface ChatUIProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   initialMessage: string | null;
+  setRunSettingsOpen: (open: boolean) => void;
+  conversation: any;
 }
 
 const mockAiResponse = `
@@ -44,15 +47,19 @@ function Timer() {
 This is a basic example, but it demonstrates the power of combining state and effects in a functional component.
 `;
 
-export function ChatUI({ sidebarOpen, setSidebarOpen, initialMessage }: ChatUIProps) {
+export function ChatUI({ sidebarOpen, setSidebarOpen, initialMessage, setRunSettingsOpen, conversation }: ChatUIProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
 
   useEffect(() => {
-    if (initialMessage) {
+    if (conversation) {
+      // Assuming the conversation object has a 'messages' array
+      // @ts-ignore
+      setMessages(conversation.messages || []);
+    } else if (initialMessage) {
       handleSendMessage(initialMessage);
     }
-  }, [initialMessage]);
+  }, [initialMessage, conversation]);
 
   const handleSendMessage = (message?: string) => {
     const messageToSend = message || input;
@@ -112,12 +119,16 @@ export function ChatUI({ sidebarOpen, setSidebarOpen, initialMessage }: ChatUIPr
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <ModelSelector />
+          <Button variant="ghost" onClick={() => setRunSettingsOpen(true)} className="flex items-center gap-2">
+            <Settings size={16} />
+            Settings
+          </Button>
+          {/* <ModelSelector />
           <button className="p-2 rounded-lg hover:bg-[#333537] transition-colors">
             <div className="w-8 h-8 rounded-full bg-[#4285f4] flex items-center justify-center text-white font-semibold text-sm">
               A
             </div>
-          </button>
+          </button> */}
         </div>
       </div>
 
