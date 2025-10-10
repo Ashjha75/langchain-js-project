@@ -1,5 +1,16 @@
-import { GeminiHomePage } from '@/components/GeminiHomePage_Refactored'
+'use client';
 
-export default function HomePage() {
-  return <GeminiHomePage />
-}
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+const HomePage = () => {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.push('/login');
+  }, [router]);
+
+  return null;
+};
+
+export default HomePage;

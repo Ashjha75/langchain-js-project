@@ -1,17 +1,28 @@
 'use client';
 
-import { FC, ReactNode } from 'react';
+import { Toaster as Sonner } from 'sonner';
 
-interface ToasterProps {
-  children?: ReactNode;
-}
+type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-export const Toaster: FC<ToasterProps> = ({ children }) => {
+const Toaster = ({ ...props }: ToasterProps) => {
   return (
-    <div id="toaster-container" className="fixed top-4 right-4 z-50">
-      {children}
-    </div>
+    <Sonner
+      theme="dark"
+      className="toaster group"
+      toastOptions={{
+        classNames: {
+          toast:
+            'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg',
+          description: 'group-[.toast]:text-muted-foreground',
+          actionButton:
+            'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
+          cancelButton:
+            'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
+        },
+      }}
+      {...props}
+    />
   );
 };
 
-export default Toaster;
+export { Toaster };

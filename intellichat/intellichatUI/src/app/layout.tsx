@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono, Poppins } from 'next/font/google';
 
 import { Providers } from '@/providers';
+import { Toaster } from '@/components/ui/toaster';
 import '@/styles/globals.css';
 
 // Font configurations
@@ -140,6 +141,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           <div className="relative flex min-h-screen flex-col">
             <div className="flex-1">{children}</div>
           </div>
+          <Toaster />
         </Providers>
         
         {/* Service Worker Registration */}

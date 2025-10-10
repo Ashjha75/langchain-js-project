@@ -243,3 +243,9 @@ input[type=number]::-webkit-outer-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+.auth-bg {
+  background-image: url('/images/bghome.svg');
+  background-size: cover;
+  background-position: center;
+}
