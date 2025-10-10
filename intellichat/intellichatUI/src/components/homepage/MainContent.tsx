@@ -51,7 +51,7 @@ export function MainContent({ sidebarOpen, setSidebarOpen, setRunSettingsOpen }:
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => setRunSettingsOpen(true)} className="flex items-center gap-2">
             <Settings size={16} />
-            Run settings
+            Settings
           </Button>
           {/* <ModelSelector /> */}
           {/* <button className="p-2 rounded-lg hover:bg-[#333537] transition-colors">

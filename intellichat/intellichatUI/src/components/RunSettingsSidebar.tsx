@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,18 +14,68 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Code, Settings, X, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { Code, Settings, X, ChevronDown, ChevronUp, Plus, RotateCcw } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { 
+  DEFAULT_RUN_SETTINGS, 
+  RunSettingsConfig, 
+  MODEL_OPTIONS, 
+  REASONING_OPTIONS,
+  PARAMETER_CONSTRAINTS 
+} from '@/config/runSettingsDefaults';
 
 interface RunSettingsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  onSettingsChange?: (settings: RunSettingsConfig) => void;
 }
 
-export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClose }) => {
-  const [temperature, setTemperature] = useState(0.95);
-  const [maxTokens, setMaxTokens] = useState(8192);
-  const [topP, setTopP] = useState(1);
+export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ 
+  isOpen, 
+  onClose,
+  onSettingsChange 
+}) => {
+  // Initialize with default settings
+  const [settings, setSettings] = useState<RunSettingsConfig>(DEFAULT_RUN_SETTINGS);
+  
+  // Track changes (only modified values)
+  const [changedSettings, setChangedSettings] = useState<Partial<RunSettingsConfig>>({});
+
+  // Update parent component whenever settings change
+  useEffect(() => {
+    if (onSettingsChange) {
+      onSettingsChange(settings);
+    }
+  }, [settings, onSettingsChange]);
+
+  // Helper function to update settings and track changes
+  const updateSetting = <K extends keyof RunSettingsConfig>(
+    key: K,
+    value: RunSettingsConfig[K]
+  ) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    
+    // Track if value differs from default
+    if (JSON.stringify(value) !== JSON.stringify(DEFAULT_RUN_SETTINGS[key])) {
+      setChangedSettings((prev) => ({ ...prev, [key]: value }));
+    } else {
+      // Remove from changed settings if it matches default
+      setChangedSettings((prev) => {
+        const newChanged = { ...prev };
+        delete newChanged[key];
+        return newChanged;
+      });
+    }
+  };
+
+  // Reset to default values
+  const handleReset = () => {
+    setSettings(DEFAULT_RUN_SETTINGS);
+    setChangedSettings({});
+  };
+
+  // Check if any settings have been modified
+  const hasChanges = Object.keys(changedSettings).length > 0;
 
   if (!isOpen) return null;
 
@@ -36,6 +86,15 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClos
           PARAMETERS
         </h2>
         <div className="flex items-center space-x-2">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={handleReset}
+            disabled={!hasChanges}
+            title="Reset to defaults"
+          >
+            <RotateCcw className={`h-5 w-5 ${hasChanges ? 'text-blue-500' : ''}`} />
+          </Button>
           <Button variant="ghost" size="icon">
             <Code className="h-5 w-5" />
           </Button>
@@ -51,17 +110,23 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClos
       {/* Model Selection */}
       <div className="p-4 bg-accent rounded-lg">
         <Label className="text-sm font-medium">Model selection</Label>
-        <Select defaultValue="gemini-2.5-pro">
+        <Select 
+          value={settings.model} 
+          onValueChange={(value) => updateSetting('model', value)}
+        >
           <SelectTrigger className="mt-2 rounded-lg">
             <SelectValue placeholder="Select a model" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
-            <SelectItem value="gemini-flash-latest">Gemini Flash Latest</SelectItem>
+            {MODEL_OPTIONS.map((model) => (
+              <SelectItem key={model.value} value={model.value}>
+                {model.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground mt-2">
-          Our most powerful reasoning model, which excels at coding and complex reasoning tasks.
+          {MODEL_OPTIONS.find((m) => m.value === settings.model)?.description}
         </p>
       </div>
 
@@ -71,6 +136,8 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClos
         <Textarea
           id="system-instructions"
           placeholder="Optional tone and style instructions for the model"
+          value={settings.systemInstructions}
+          onChange={(e) => updateSetting('systemInstructions', e.target.value)}
           className="min-h-[100px] mt-2 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg"
         />
       </div>
@@ -82,18 +149,18 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClos
           <Input
             id="temperature-value"
             type="number"
-            value={temperature.toFixed(2)}
-            onChange={(e) => setTemperature(parseFloat(e.target.value))}
+            value={settings.temperature.toFixed(2)}
+            onChange={(e) => updateSetting('temperature', parseFloat(e.target.value) || 0)}
             className="w-20 rounded-lg"
           />
         </div>
         <Slider
           id="temperature"
-          value={[temperature]}
-          onValueChange={(values) => setTemperature(values[0] ?? 0.95)}
-          max={2}
-          min={0}
-          step={0.01}
+          value={[settings.temperature]}
+          onValueChange={(values) => updateSetting('temperature', values[0] ?? DEFAULT_RUN_SETTINGS.temperature)}
+          max={PARAMETER_CONSTRAINTS.temperature.max}
+          min={PARAMETER_CONSTRAINTS.temperature.min}
+          step={PARAMETER_CONSTRAINTS.temperature.step}
           className="mt-2"
         />
       </div>
@@ -105,18 +172,18 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClos
           <Input
             id="max-tokens-value"
             type="number"
-            value={maxTokens}
-            onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+            value={settings.maxCompletionTokens}
+            onChange={(e) => updateSetting('maxCompletionTokens', parseInt(e.target.value) || 1)}
             className="w-20 rounded-lg"
           />
         </div>
         <Slider
           id="max-tokens"
-          value={[maxTokens]}
-          onValueChange={(values) => setMaxTokens(values[0] ?? 8192)}
-          max={8192}
-          min={1}
-          step={1}
+          value={[settings.maxCompletionTokens]}
+          onValueChange={(values) => updateSetting('maxCompletionTokens', values[0] ?? DEFAULT_RUN_SETTINGS.maxCompletionTokens)}
+          max={PARAMETER_CONSTRAINTS.maxCompletionTokens.max}
+          min={PARAMETER_CONSTRAINTS.maxCompletionTokens.min}
+          step={PARAMETER_CONSTRAINTS.maxCompletionTokens.step}
           className="mt-2"
         />
       </div>
@@ -124,14 +191,19 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClos
       {/* Reasoning */}
       <div>
         <Label>Reasoning</Label>
-        <Select defaultValue="medium">
+        <Select 
+          value={settings.reasoning} 
+          onValueChange={(value: 'low' | 'medium' | 'high') => updateSetting('reasoning', value)}
+        >
           <SelectTrigger className="mt-2 rounded-lg">
             <SelectValue placeholder="Select a reasoning level" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="medium">medium</SelectItem>
-            <SelectItem value="high">high</SelectItem>
-            <SelectItem value="low">low</SelectItem>
+            {REASONING_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -139,11 +211,19 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClos
       {/* Stream and JSON Mode */}
       <div className="flex items-center justify-between">
         <Label htmlFor="stream">Stream</Label>
-        <Switch id="stream" defaultChecked />
+        <Switch 
+          id="stream" 
+          checked={settings.stream}
+          onCheckedChange={(checked) => updateSetting('stream', checked)}
+        />
       </div>
       <div className="flex items-center justify-between">
         <Label htmlFor="json-mode">JSON Mode</Label>
-        <Switch id="json-mode" />
+        <Switch 
+          id="json-mode" 
+          checked={settings.jsonMode}
+          onCheckedChange={(checked) => updateSetting('jsonMode', checked)}
+        />
       </div>
 
       {/* Built-in tools */}
@@ -152,11 +232,23 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClos
         <div className="space-y-4 mt-2 p-4 bg-accent rounded-lg">
             <div className="flex items-center justify-between">
               <Label htmlFor="browser-search">Browser Search</Label>
-              <Switch id="browser-search" />
+              <Switch 
+                id="browser-search" 
+                checked={settings.builtInTools.browserSearch}
+                onCheckedChange={(checked) => 
+                  updateSetting('builtInTools', { ...settings.builtInTools, browserSearch: checked })
+                }
+              />
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="code-interpreter">Code Interpreter</Label>
-              <Switch id="code-interpreter" />
+              <Switch 
+                id="code-interpreter" 
+                checked={settings.builtInTools.codeInterpreter}
+                onCheckedChange={(checked) => 
+                  updateSetting('builtInTools', { ...settings.builtInTools, codeInterpreter: checked })
+                }
+              />
             </div>
         </div>
       </div>
@@ -182,7 +274,13 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClos
           <div className="space-y-4 mt-2 p-4 bg-accent rounded-lg">
             <div className="flex items-center justify-between">
               <Label htmlFor="moderation">Moderation: llamaguard</Label>
-              <Switch id="moderation" />
+              <Switch 
+                id="moderation" 
+                checked={settings.advanced.moderation}
+                onCheckedChange={(checked) => 
+                  updateSetting('advanced', { ...settings.advanced, moderation: checked })
+                }
+              />
             </div>
             {/* Top P */}
             <div>
@@ -191,34 +289,62 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({ isOpen, onClos
                 <Input
                   id="top-p-value"
                   type="number"
-                  value={topP}
-                  onChange={(e) => setTopP(parseFloat(e.target.value))}
+                  value={settings.advanced.topP}
+                  onChange={(e) => 
+                    updateSetting('advanced', { ...settings.advanced, topP: parseFloat(e.target.value) || 0 })
+                  }
                   className="w-20 rounded-lg"
                 />
               </div>
               <Slider
                 id="top-p"
-                value={[topP]}
-                onValueChange={(values) => setTopP(values[0] ?? 1)}
-                max={1}
-                min={0}
-                step={0.01}
+                value={[settings.advanced.topP]}
+                onValueChange={(values) => 
+                  updateSetting('advanced', { ...settings.advanced, topP: values[0] ?? DEFAULT_RUN_SETTINGS.advanced.topP })
+                }
+                max={PARAMETER_CONSTRAINTS.topP.max}
+                min={PARAMETER_CONSTRAINTS.topP.min}
+                step={PARAMETER_CONSTRAINTS.topP.step}
                 className="mt-2"
               />
             </div>
             {/* Seed */}
             <div>
               <Label htmlFor="seed">Seed</Label>
-              <Input id="seed" type="number" className="mt-2 rounded-lg" />
+              <Input 
+                id="seed" 
+                type="number" 
+                value={settings.advanced.seed ?? ''}
+                onChange={(e) => 
+                  updateSetting('advanced', { 
+                    ...settings.advanced, 
+                    seed: e.target.value ? parseInt(e.target.value) : null 
+                  })
+                }
+                className="mt-2 rounded-lg" 
+              />
             </div>
             {/* Stop Sequence */}
             <div>
               <Label htmlFor="stop-sequence">Stop Sequence</Label>
-              <Input id="stop-sequence" className="mt-2 rounded-lg" />
+              <Input 
+                id="stop-sequence" 
+                value={settings.advanced.stopSequence}
+                onChange={(e) => 
+                  updateSetting('advanced', { ...settings.advanced, stopSequence: e.target.value })
+                }
+                className="mt-2 rounded-lg" 
+              />
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="template">Template</Label>
-              <Switch id="template" />
+              <Switch 
+                id="template" 
+                checked={settings.advanced.template}
+                onCheckedChange={(checked) => 
+                  updateSetting('advanced', { ...settings.advanced, template: checked })
+                }
+              />
             </div>
           </div>
         </CollapsibleContent>
