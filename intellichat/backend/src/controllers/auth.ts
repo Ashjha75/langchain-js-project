@@ -17,8 +17,13 @@ export class AuthController {
 
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { username, email, password, firstName, lastName, acceptTerms } = req.body;
-             console.log(req.body);
+      const { email, password, firstName, lastName, acceptTerms, username } = req.body;
+      console.log('=== DEBUG REQUEST ===');
+      console.log('Full req.body:', JSON.stringify(req.body, null, 2));
+      console.log('All keys in body:', Object.keys(req.body));
+      console.log('Username value:', req.body.username);
+      console.log('Username type:', typeof req.body.username);
+      console.log('==================');
       if (!email || !password || !firstName || !lastName || !acceptTerms || !username) {
         throw new ValidationError('All fields are required');
       }
@@ -210,10 +215,10 @@ export class AuthController {
           email: user.email,
           firstName: (user as any).firstName,
           lastName: (user as any).lastName,
+          username: (user as any).username,
           role: user.role,
           status: (user as any).status,
           subscription: user.subscription,
-          profile: user.profile,
           auth: {
             lastLogin: (user as any).auth?.lastLogin,
             emailVerified: (user as any).auth?.emailVerified

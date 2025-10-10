@@ -98,9 +98,10 @@ export const userRegistrationSchema = z.object({
         .min(CONFIG.auth.passwordPolicy.minLength, `Password must be at least ${CONFIG.auth.passwordPolicy.minLength} characters`)
         .max(128, 'Password must be less than 128 characters'),
     username: z.string()
-        .min(1, 'User name is required')
-        .max(50, 'User name must be less than 50 characters')
-        .regex(/^[a-zA-Z\s'-]+$/, 'User name contains invalid characters'),
+        .min(2, 'Username must be at least 2 characters')
+        .max(30, 'Username must be less than 30 characters')
+        .regex(/^[a-zA-Z0-9._-]+$/, 'Username can only contain letters, numbers, periods, underscores, and hyphens')
+        .regex(/^[a-zA-Z]/, 'Username must start with a letter'),
     firstName: z.string()
         .min(1, 'First name is required')
         .max(50, 'First name must be less than 50 characters')

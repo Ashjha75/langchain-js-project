@@ -41,11 +41,7 @@ export interface AuthResponse {
             tokensLimit: number;
             tokensUsed: number;
         };
-        profile: {
-            avatar?: string;
-            timezone?: string;
-            language?: string;
-        };
+        avatar?: string;
     };
     tokens: {
         accessToken: string;
@@ -109,14 +105,11 @@ export class AuthService {
                 throw new ConflictError('User with this email already exists');
             }
 
-            // Hash password
-            const hashedPassword = await bcrypt.hash(request.password, 12);
-
-            // Create user
+            // Create user (password will be hashed by User model pre-save hook)
             const user = new User({
                 email: request.email.toLowerCase(),
-                password: hashedPassword,
-                username: request.username, // Generate username from email
+                password: request.password, // Don't hash here - let the model do it
+                username: request.username,
                 role: 'user',
                 status: 'active',
                 subscription: {
@@ -195,6 +188,7 @@ export class AuthService {
 
             // Verify password
             const isPasswordValid = await bcrypt.compare(request.password, user.password);
+            
             if (!isPasswordValid) {
                 // Update failed login attempts
                 await User.findByIdAndUpdate(user._id, {
@@ -204,9 +198,8 @@ export class AuthService {
 
                 throw new UnauthorizedError('Invalid email or password');
             }
-
             // Check if account is locked
-            if (user.auth.failedLoginAttempts >= 5) {
+            if (user.auth.failedLoginAttempts >= 17) {
                 const lockUntil = user.auth.lastFailedLogin ? new Date(user.auth.lastFailedLogin) : new Date();
                 lockUntil.setMinutes(lockUntil.getMinutes() + 15); // 15 minutes lockout
 
@@ -421,22 +414,22 @@ export class AuthService {
                 updateData.lastName = request.lastName.trim();
             }
 
-            if (request.profile) {
-                if (request.profile.avatar) {
-                    updateData['profile.avatar'] = request.profile.avatar;
-                }
-                if (request.profile.timezone) {
-                    updateData['profile.timezone'] = request.profile.timezone;
-                }
-                if (request.profile.language) {
-                    updateData['profile.language'] = request.profile.language;
-                }
-                if (request.profile.preferences) {
-                    Object.keys(request.profile.preferences).forEach(key => {
-                        updateData[`profile.preferences.${key}`] = request.profile!.preferences![key as keyof typeof request.profile.preferences];
-                    });
-                }
-            }
+            // if (request.profile) {
+            //     if (request.profile.avatar) {
+            //         updateData['profile.avatar'] = request.profile.avatar;
+            //     }
+            //     if (request.profile.timezone) {
+            //         updateData['profile.timezone'] = request.profile.timezone;
+            //     }
+            //     if (request.profile.language) {
+            //         updateData['profile.language'] = request.profile.language;
+            //     }
+            //     if (request.preferences) {
+            //         Object.keys(request.profile.preferences).forEach(key => {
+            //             updateData[`profile.preferences.${key}`] = request.profile!.preferences![key as keyof typeof request.profile.preferences];
+            //         });
+            //     }
+            // }
 
             const user = await User.findByIdAndUpdate(
                 request.userId,
@@ -564,11 +557,7 @@ export class AuthService {
                     tokensLimit: user.subscription.tokensLimit,
                     tokensUsed: user.subscription.tokensUsed
                 },
-                profile: {
-                    avatar: user.profile.avatar,
-                    timezone: user.profile.timezone,
-                    language: user.profile.language
-                }
+                    avatar: user.avatar,
             },
             tokens
         };

@@ -20,6 +20,7 @@ const registerBodySchema = z.object({
     .regex(/(?=.*[A-Z])/, 'Password must contain at least one uppercase letter')
     .regex(/(?=.*\d)/, 'Password must contain at least one number')
     .regex(/(?=.*[@$!%*?&])/, 'Password must contain at least one special character'),
+  username: z.string().min(2, 'User name must be at least 2 characters long').trim(),
   firstName: z.string().min(2, 'First name must be at least 2 characters long').trim(),
   lastName: z.string().min(2, 'Last name must be at least 2 characters long').trim(),
   acceptTerms: z.boolean().refine(val => val === true, 'You must accept the terms and conditions')
