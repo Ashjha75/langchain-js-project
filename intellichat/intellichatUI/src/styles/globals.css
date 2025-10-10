@@ -15,6 +15,31 @@
   --gemini-hover: #333537;
   --gemini-input: #333537;
   --gemini-red: #ea4335;
+
+  /* Sidebar variables for Tailwind */
+  --sidebar-background: 210 4.8% 15.9%; /* #282a2c */
+  --sidebar-foreground: 210 40% 98%; /* #e8eaed */
+  --sidebar-border: 210 2.9% 20.8%; /* #333537 */
+
+  /* Shadcn UI Theme Variables */
+  --background: 210 4.8% 11.0%; /* #1b1c1d */
+  --foreground: 210 40% 98%; /* #e8eaed */
+  --primary: 217 89% 61%; /* #4285f4 */
+  --primary-foreground: 210 40% 98%; /* #e8eaed */
+  --secondary: 210 2.9% 20.8%; /* #333537 */
+  --secondary-foreground: 210 40% 98%; /* #e8eaed */
+  --muted: 210 2.9% 20.8%; /* #333537 */
+  --muted-foreground: 210 40% 98%; /* #e8eaed */
+  --accent: 210 2.9% 20.8%; /* #333537 */
+  --accent-foreground: 210 40% 98%; /* #e8eaed */
+  --destructive: 0 63% 31%; /* #ea4335 */
+  --destructive-foreground: 210 40% 98%; /* #e8eaed */
+  --border: 210 2.9% 20.8%; /* #333537 */
+  --input: 210 2.9% 20.8%; /* #333537 */
+  --ring: 217 89% 61%; /* #4285f4 */
+  --popover: 210 4.8% 11.0%; /* #1b1c1d */
+  --popover-foreground: 210 40% 98%; /* #e8eaed */
+  --radius: 0.5rem;
 }
 
 * {
@@ -207,4 +232,14 @@ body {
 
 .gemini-shadow-lg {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Hide number input arrows */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
 }

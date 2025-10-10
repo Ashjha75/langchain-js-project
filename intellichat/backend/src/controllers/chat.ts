@@ -56,7 +56,7 @@ export class ChatController {
 
   async getConversation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id;
       const { conversationId } = req.params;
 
       if (!userId) {
@@ -80,7 +80,7 @@ export class ChatController {
 
   async listConversations(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id;
       const {
         page = '1',
         limit = '20',
@@ -111,7 +111,7 @@ export class ChatController {
 
   async updateConversation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id;
       const { conversationId } = req.params;
       const { title, systemPrompt, config } = req.body;
 
@@ -147,7 +147,7 @@ export class ChatController {
 
   async deleteConversation(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id;
       const { conversationId } = req.params;
 
       if (!userId) {
@@ -181,7 +181,7 @@ export class ChatController {
 
   async sendMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id;
       const { conversationId } = req.params;
       const { content, attachments } = req.body;
 
@@ -224,7 +224,7 @@ export class ChatController {
 
   async sendMessageStream(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id;
       const { conversationId } = req.params;
       const { content, attachments } = req.body;
 
@@ -291,7 +291,7 @@ export class ChatController {
         logger.error('Stream error after headers sent', {
           error: (error as Error).message,
           conversationId: req.params.conversationId,
-          userId: (req as any).user?.userId
+          userId: (req as any).user?.id
         });
       }
     }
@@ -299,7 +299,7 @@ export class ChatController {
 
   async getMessages(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id;
       const { conversationId } = req.params;
       const { limit = '50', before } = req.query;
 
@@ -338,7 +338,7 @@ export class ChatController {
 
   async getTokenUsage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const userId = (req as any).user?.userId;
+      const userId = (req as any).user?.id;
 
       if (!userId) {
         throw new UnauthorizedError('User not authenticated');

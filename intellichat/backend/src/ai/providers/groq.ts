@@ -27,9 +27,15 @@ export class GroqProvider implements AIProvider {
   private availableModels: string[] = [
     'llama-3.1-70b-versatile',
     'llama-3.1-8b-instant',
+    'llama-3.2-1b-preview',
+    'llama-3.2-3b-preview',
+    'llama-3.2-11b-vision-preview',
+    'llama-3.2-90b-vision-preview',
+    'llama-3.3-70b-versatile',
     'mixtral-8x7b-32768',
     'gemma-7b-it',
-    'gemma2-9b-it'
+    'gemma2-9b-it',
+    'openai/gpt-oss-120b'
   ];
 
   constructor() {
