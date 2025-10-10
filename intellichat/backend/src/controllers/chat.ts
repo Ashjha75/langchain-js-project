@@ -224,7 +224,16 @@ export class ChatController {
         message: 'Message sent and conversation created',
         data: {
           conversation,
-          message
+          message: {
+            ...message.toObject(),
+            contentType: 'markdown',  // 👈 Add content type at response level
+            formatted: {
+              isMarkdown: true,
+              hasCodeBlocks: message.content.includes('```'),
+              hasTables: message.content.includes('|'),
+              hasHeaders: message.content.includes('#')
+            }
+          }
         }
       });
     } catch (error) {
@@ -268,7 +277,16 @@ export class ChatController {
       res.json({
         success: true,
         message: 'Message sent successfully',
-        data: message
+        data: {
+          ...message.toObject(),
+          contentType: 'markdown',  // 👈 Add content type indicator
+          formatted: {
+            isMarkdown: true,
+            hasCodeBlocks: message.content.includes('```'),
+            hasTables: message.content.includes('|'),
+            hasHeaders: message.content.includes('#')
+          }
+        }
       });
     } catch (error) {
       next(error);

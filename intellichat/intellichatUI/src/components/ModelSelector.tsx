@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { models } from '@/config/models';
-import { SimpleTooltip } from '@/components/ui/tooltip';
 import ModelTooltip from './ModelTooltip';
 
 interface ModelSelectorProps {
@@ -32,6 +31,7 @@ interface Model {
 export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [hoveredModel, setHoveredModel] = useState<Model | null>(null);
 
   const filteredAndGroupedModels = useMemo(() => {
     const filtered = models.filter(model =>
@@ -74,27 +74,35 @@ export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
               />
             </div>
           </div>
-          <div className="max-h-60 overflow-y-auto">
-            {Object.entries(filteredAndGroupedModels).map(([owner, modelList]) => (
-              <div key={owner}>
-                <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">{owner}</p>
-                {modelList.map(model => (
-                  <SimpleTooltip key={model.id} content={<ModelTooltip model={model} />} side="left" sideOffset={10}>
+          <div className="flex">
+            <div className="max-h-60 w-60 overflow-y-auto">
+              {Object.entries(filteredAndGroupedModels).map(([owner, modelList]) => (
+                <div key={owner}>
+                  <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">{owner}</p>
+                  {modelList.map(model => (
                     <div
+                      key={model.id}
                       className={`p-2 cursor-pointer hover:bg-accent ${value === model.id ? 'bg-accent' : ''}`}
                       onClick={() => {
                         onChange(model.id);
                         setIsOpen(false);
                         setSearchTerm('');
                       }}
+                      onMouseEnter={() => setHoveredModel(model)}
+                      onMouseLeave={() => setHoveredModel(null)}
                     >
                       <p className="text-sm">{model.metadata.display_name}</p>
                       <p className="text-xs text-muted-foreground">{model.id}</p>
                     </div>
-                  </SimpleTooltip>
-                ))}
+                  ))}
+                </div>
+              ))}
+            </div>
+            {hoveredModel && (
+              <div className="border-l border-sidebar-border ml-2 pl-2">
+                <ModelTooltip model={hoveredModel} />
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}

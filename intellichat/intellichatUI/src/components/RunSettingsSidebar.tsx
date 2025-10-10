@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { ModelSelector } from '@/components/ModelSelector';
 import { Textarea } from '@/components/ui/textarea';
-import { Code, X, ChevronDown, ChevronUp, Plus, RotateCcw, Check } from 'lucide-react';
+import { Code, X, ChevronDown, ChevronUp, Plus, RotateCcw, Check, Pencil, Save } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import { 
@@ -44,6 +44,9 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
   
   // Copy feedback state
   const [copied, setCopied] = useState(false);
+
+  // System instructions edit state
+  const [isEditingInstructions, setIsEditingInstructions] = useState(false);
 
   // Update parent component whenever settings change
   useEffect(() => {
@@ -159,13 +162,41 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
 
       {/* System Instructions */}
       <div className="p-4 bg-accent rounded-lg">
-        <Label htmlFor="system-instructions" className="text-sm font-medium">System instructions</Label>
+        <div className="flex justify-between items-center">
+          <Label htmlFor="system-instructions" className="text-sm font-medium">System instructions</Label>
+          <div className="flex items-center space-x-2">
+            {isEditingInstructions ? (
+              <SimpleTooltip content="Save" side="bottom">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsEditingInstructions(false)}
+                  disabled={!settings.systemInstructions}
+                >
+                  <Save className="h-5 w-5" />
+                </Button>
+              </SimpleTooltip>
+            ) : (
+              <SimpleTooltip content="Edit" side="bottom">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsEditingInstructions(true)}
+                  disabled={!settings.systemInstructions}
+                >
+                  <Pencil className="h-5 w-5" />
+                </Button>
+              </SimpleTooltip>
+            )}
+          </div>
+        </div>
         <Textarea
           id="system-instructions"
           placeholder="Optional tone and style instructions for the model"
           value={settings.systemInstructions}
           onChange={(e) => updateSetting('systemInstructions', e.target.value)}
           className="min-h-[100px] mt-2 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg"
+          disabled={!isEditingInstructions && !!settings.systemInstructions}
         />
       </div>
 

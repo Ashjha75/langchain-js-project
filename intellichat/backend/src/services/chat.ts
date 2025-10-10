@@ -275,7 +275,7 @@ export class ChatService {
           maxTokens: conversation.config.maxTokens,
           topP: conversation.config.topP,
           stream: false,
-          ...(conversation.systemPrompt && { systemPrompt: conversation.systemPrompt })
+          systemPrompt: conversation.systemPrompt || 'You are a helpful assistant. Please format your response in Markdown.'
         }
       };
 
@@ -296,6 +296,7 @@ export class ChatService {
           model: conversation.model,
           provider: this.aiProvider.name,
           finishReason: aiResponse.finishReason,
+          contentType: 'markdown',  // 👈 Add content type indicator
           timestamp: new Date()
         }
       });
@@ -323,13 +324,14 @@ export class ChatService {
           model: conversation.model,
           operation: 'chat',
           tokens: aiResponse.usage,
-          metadata: {
-            requestId: (request as any).requestId,
-            userAgent: (request as any).userAgent,
-            ip: (request as any).ip,
-            timestamp: new Date()
-          }
-        });
+        metadata: {
+          model: conversation.model,
+          provider: this.aiProvider.name,
+          finishReason: aiResponse.finishReason,
+          contentType: 'markdown',
+          timestamp: new Date()
+        }
+      });
       }
 
       // Update user's subscription usage

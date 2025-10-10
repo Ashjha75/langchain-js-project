@@ -73,12 +73,15 @@ export class GroqProvider implements AIProvider {
         max_tokens: modelConfig.maxTokens,
         top_p: modelConfig.topP,
         stream: false,
+        response_format: { type: 'json_object' },
         ...(modelConfig.seed && { seed: modelConfig.seed }),
         ...(modelConfig.stopSequence && { stop: modelConfig.stopSequence })
       });
 
+      const responseContent = JSON.parse(completion.choices[0]?.message?.content || '{}');
+
       const response: AIResponse = {
-        content: completion.choices[0]?.message?.content || '',
+        content: responseContent.markdown || responseContent.content || '',
         ...(completion.usage && {
           usage: {
             promptTokens: completion.usage.prompt_tokens || 0,
@@ -268,11 +271,17 @@ export class GroqProvider implements AIProvider {
   private formatMessages(messages: AIMessage[], systemPrompt?: string): any[] {
     const formattedMessages = [];
 
+    const markdownPrompt = `
+      Please format your entire response in Markdown.
+      Return a single JSON object with a key "markdown" containing the Markdown content.
+      ${systemPrompt || ''}
+    `;
+
     // Add system prompt if provided
-    if (systemPrompt) {
+    if (markdownPrompt) {
       formattedMessages.push({
         role: 'system',
-        content: systemPrompt
+        content: markdownPrompt.trim()
       });
     }
 
