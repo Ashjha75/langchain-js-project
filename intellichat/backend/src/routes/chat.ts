@@ -195,6 +195,17 @@ router.post(
 );
 
 /**
+ * @route   GET /api/chat/conversations/:conversationId/messages/stream
+ * @desc    Stream a message via GET (for EventSource compatibility)
+ * @access  Private
+ */
+router.get(
+  "/conversations/:conversationId/messages/stream",
+  validateParams(conversationIdParamsSchema),
+  chatController.sendMessageStream,
+);
+
+/**
  * @route   GET /api/chat/conversations/:conversationId/messages
  * @desc    Get messages from a conversation
  * @access  Private

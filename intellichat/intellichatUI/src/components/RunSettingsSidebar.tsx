@@ -17,7 +17,7 @@ import { ModelSelector } from '@/components/ModelSelector';
 import { Textarea } from '@/components/ui/textarea';
 import { Code, X, ChevronDown, ChevronUp, Plus, RotateCcw, Check, Pencil, Save } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { SimpleTooltip } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   DEFAULT_RUN_SETTINGS, 
   RunSettingsConfig, 
@@ -135,38 +135,53 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
           PARAMETERS
         </h2>
         <div className="flex items-center space-x-2">
-          <SimpleTooltip content={hasChanges ? "Reset to defaults" : "No changes to reset"} side="bottom">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={handleReset}
-              disabled={!hasChanges}
-              className={hasChanges ? 'hover:bg-blue-500/10' : ''}
-            >
-              <RotateCcw className={`h-5 w-5 transition-colors ${hasChanges ? 'text-blue-500' : 'text-gray-500'}`} />
-            </Button>
-          </SimpleTooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={handleReset}
+                disabled={!hasChanges}
+                className={hasChanges ? 'hover:bg-blue-500/10' : ''}
+              >
+                <RotateCcw className={`h-5 w-5 transition-colors ${hasChanges ? 'text-blue-500' : 'text-gray-500'}`} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{hasChanges ? "Reset to defaults" : "No changes to reset"}</p>
+            </TooltipContent>
+          </Tooltip>
           
-          <SimpleTooltip content={copied ? "Copied!" : "Copy settings JSON"} side="bottom">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={handleCopyJSON}
-              className="relative"
-            >
-              {copied ? (
-                <Check className="h-5 w-5 text-green-500" />
-              ) : (
-                <Code className="h-5 w-5" />
-              )}
-            </Button>
-          </SimpleTooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={handleCopyJSON}
+                className="relative"
+              >
+                {copied ? (
+                  <Check className="h-5 w-5 text-green-500" />
+                ) : (
+                  <Code className="h-5 w-5" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{copied ? "Copied!" : "Copy settings JSON"}</p>
+            </TooltipContent>
+          </Tooltip>
           
-          <SimpleTooltip content="Close" side="bottom">
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-5 w-5" />
-            </Button>
-          </SimpleTooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Close</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -187,26 +202,36 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
           <Label htmlFor="system-instructions" className="text-sm font-medium">System instructions</Label>
           <div className="flex items-center space-x-2">
             {isEditingInstructions ? (
-              <SimpleTooltip content="Save" side="bottom">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSaveInstructions}
-                  disabled={!tempInstructions}
-                >
-                  <Save className="h-5 w-5" />
-                </Button>
-              </SimpleTooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleSaveInstructions}
+                    disabled={!tempInstructions}
+                  >
+                    <Save className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Save</p>
+                </TooltipContent>
+              </Tooltip>
             ) : (
-              <SimpleTooltip content="Edit" side="bottom">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleEditInstructions}
-                >
-                  <Pencil className="h-5 w-5" />
-                </Button>
-              </SimpleTooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleEditInstructions}
+                  >
+                    <Pencil className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Edit</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         </div>

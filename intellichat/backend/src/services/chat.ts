@@ -478,7 +478,9 @@ export class ChatService {
       query._id = { $lt: new Types.ObjectId(before) };
     }
 
-    return Message.find(query).sort({ createdAt: -1 }).limit(limit).lean();
+    // Sort in ascending order (oldest first) for proper conversation context
+    // The AI needs messages in chronological order to understand the conversation flow
+    return Message.find(query).sort({ createdAt: 1 }).limit(limit).lean();
   }
 
   // ============================================================================

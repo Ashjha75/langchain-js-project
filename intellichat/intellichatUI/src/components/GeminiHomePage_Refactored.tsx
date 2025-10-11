@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sidebar } from './homepage/Sidebar';
+import { ConversationSidebar } from './chat/ConversationSidebar';
 import { MainContent } from './homepage/MainContent';
 import { RunSettingsSidebar } from './RunSettingsSidebar';
 
@@ -12,7 +12,7 @@ export function GeminiHomePage() {
 
   return (
     <div className="bg-[#1b1c1d] text-[#e8eaed] h-screen flex font-sans relative">
-      <Sidebar sidebarOpen={sidebarOpen} />
+      <ConversationSidebar isOpen={sidebarOpen} />
       <MainContent
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}

@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Poppins } from 'next/font/google';
 
 import { Providers } from '@/providers';
 import { Toaster } from '@/components/ui/toaster';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import '@/styles/globals.css';
 
 // Font configurations
@@ -138,10 +139,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
         suppressHydrationWarning
       >
         <Providers>
-          <div className="relative flex min-h-screen flex-col">
-            <div className="flex-1">{children}</div>
-          </div>
-          <Toaster />
+          <TooltipProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <div className="flex-1">{children}</div>
+            </div>
+            <Toaster />
+          </TooltipProvider>
         </Providers>
         
         {/* Service Worker Registration */}

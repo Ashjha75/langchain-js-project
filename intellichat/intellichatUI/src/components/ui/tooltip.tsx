@@ -1,117 +1,53 @@
 'use client';
 
-import { FC, ReactNode, useState, useRef, useEffect } from 'react';
+import * as React from 'react';
+import * as TooltipPrimitive from '@radix-ui/react-tooltip';
+import { cn } from '@/lib/utils';
 
-interface TooltipProviderProps {
-  children: ReactNode;
-  delayDuration?: number;
-}
+const TooltipProvider = TooltipPrimitive.Provider;
+const Tooltip = TooltipPrimitive.Root;
+const TooltipTrigger = TooltipPrimitive.Trigger;
 
-export const TooltipProvider: FC<TooltipProviderProps> = ({ 
-  children, 
-  delayDuration = 300 
-}) => {
-  return <div>{children}</div>;
-};
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => (
+  <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn(
+        'z-50 overflow-hidden rounded-md px-3 py-1.5 text-xs animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+        'bg-[#000] text-white shadow-[0_0_10px_rgba(255,255,255,0.1)] whitespace-nowrap',
+        className
+      )}
+      {...props}
+    />
+  </TooltipPrimitive.Portal>
+));
+TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
-interface TooltipProps {
-  children: ReactNode;
-}
-
-export const Tooltip: FC<TooltipProps> = ({ children }) => {
-  return <>{children}</>;
-};
-
-interface TooltipTriggerProps {
-  children: ReactNode;
-  asChild?: boolean;
-}
-
-export const TooltipTrigger: FC<TooltipTriggerProps> = ({ children }) => {
-  return <>{children}</>;
-};
-
-interface TooltipContentProps {
-  children: ReactNode;
-  side?: 'top' | 'bottom' | 'left' | 'right';
+// Simple tooltip wrapper component
+interface SimpleTooltipProps {
+  children: React.ReactNode;
+  content: React.ReactNode;
+  side?: 'top' | 'right' | 'bottom' | 'left';
   className?: string;
 }
 
-export const TooltipContent: FC<TooltipContentProps> = ({ children, side = 'bottom', className = '' }) => {
+export function SimpleTooltip({ children, content, side = 'top', className }: SimpleTooltipProps) {
   return (
-    <div 
-      className={`absolute z-50 overflow-hidden rounded-md bg-gray-900 px-3 py-1.5 text-xs text-white animate-in fade-in-0 zoom-in-95 ${className}`}
-      style={{
-        [side === 'top' ? 'bottom' : side === 'bottom' ? 'top' : side === 'left' ? 'right' : 'left']: '100%',
-        marginTop: side === 'bottom' ? '0.5rem' : '0',
-        marginBottom: side === 'top' ? '0.5rem' : '0',
-      }}
-    >
-      {children}
-    </div>
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {children}
+        </TooltipTrigger>
+        <TooltipContent side={side} className={className}>
+          {content}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
-};
-
-// Simple Tooltip wrapper with hover
-interface SimpleTooltipProps {
-  content: ReactNode;
-  children: ReactNode;
-  side?: 'top' | 'bottom' | 'left' | 'right';
-  sideOffset?: number;
 }
 
-export const SimpleTooltip: FC<SimpleTooltipProps> = ({ content, children, side = 'right', sideOffset = 8 }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({});
-
-  useEffect(() => {
-    if (isVisible && tooltipRef.current) {
-      const rect = tooltipRef.current.getBoundingClientRect();
-      const newPosition: React.CSSProperties = {};
-
-      if (rect.right > window.innerWidth) {
-        newPosition.right = 0;
-      }
-      if (rect.left < 0) {
-        newPosition.left = 0;
-      }
-      if (rect.bottom > window.innerHeight) {
-        newPosition.bottom = '100%';
-      }
-      if (rect.top < 0) {
-        newPosition.top = 0;
-      }
-      setPosition(newPosition);
-    }
-  }, [isVisible]);
-
-  return (
-    <div
-      className="relative inline-block"
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-    >
-      {children}
-      {isVisible && (
-        <div
-          ref={tooltipRef}
-          className={`absolute z-50 pointer-events-none rounded-md px-3 py-1.5 text-xs bg-[#000] text-white shadow-[0_0_10px_rgba(255,255,255,0.1)] ${
-            side === 'top' ? 'bottom-full left-1/2 -translate-x-1/2 mb-2' :
-            side === 'bottom' ? 'top-full left-1/2 -translate-x-1/2 mt-2' :
-            side === 'left' ? 'right-full top-1/2 -translate-y-1/2 mr-2' :
-            'left-full top-1/2 -translate-y-1/2 ml-2'
-          }`}
-          style={{
-            ...position,
-            [side === 'left' ? 'marginRight' : 'marginLeft']: `${sideOffset}px`,
-          }}
-        >
-          {content}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default TooltipProvider;
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };

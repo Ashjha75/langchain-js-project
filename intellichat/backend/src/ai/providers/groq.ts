@@ -1,12 +1,13 @@
 /**
  * Groq AI Provider Implementation
- * Handles all Groq API interactions with streaming support
+ * Handles all Groq API interactions with streaming support and web search integration
  */
 
 import Groq from "groq-sdk";
 import { CONFIG } from "@/config";
 import { createLogger } from "@/utils/logger";
 import { aiConfigManager } from "@/config/ai-config";
+import { tavilySearch } from "@/tools/tavilySearch";
 import type {
   AIProvider,
   AIMessage,
@@ -39,11 +40,91 @@ export class GroqProvider implements AIProvider {
       model: CONFIG.ai.groq.model,
       availableModels: enabledModels.length,
       models: enabledModels.map((m) => m.modelId),
+      webSearchEnabled: tavilySearch.isEnabled(),
     });
+  }
+
+  /**
+   * Check if the user's query needs web search
+   */
+  private needsWebSearch(message: string): boolean {
+    const searchKeywords = [
+      "search",
+      "find",
+      "latest",
+      "recent",
+      "current",
+      "today",
+      "news",
+      "what's",
+      "what is",
+      "who is",
+      "when did",
+      "browse",
+      "look up",
+      "google",
+      "web",
+      "internet",
+      "online",
+      "2024",
+      "2025",
+      "this year",
+      "now",
+      "update",
+    ];
+
+    const lowerMessage = message.toLowerCase();
+    return searchKeywords.some((keyword) => lowerMessage.includes(keyword));
+  }
+
+  /**
+   * Perform web search if needed and enhance context
+   */
+  private async enhanceWithWebSearch(
+    context: ConversationContext,
+  ): Promise<{ enhanced: boolean; searchResults?: string }> {
+    // Get the latest user message
+    const lastMessage = context.messages[context.messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "user") {
+      return { enhanced: false };
+    }
+
+    // Check if web search is needed and enabled
+    if (!tavilySearch.isEnabled() || !this.needsWebSearch(lastMessage.content)) {
+      return { enhanced: false };
+    }
+
+    try {
+      logger.info("Performing web search for query", {
+        conversationId: context.conversationId,
+        query: lastMessage.content.substring(0, 100),
+      });
+
+      const searchResults = await tavilySearch.searchAndFormat({
+        query: lastMessage.content,
+        searchDepth: "basic",
+        maxResults: 5,
+        includeAnswer: true,
+      });
+
+      return {
+        enhanced: true,
+        searchResults,
+      };
+    } catch (error: any) {
+      logger.error("Web search failed", {
+        error: error.message,
+        conversationId: context.conversationId,
+      });
+      return { enhanced: false };
+    }
   }
 
   async generateResponse(context: ConversationContext): Promise<AIResponse> {
     try {
+      // Check if web search is needed and enhance context
+      const { enhanced, searchResults } = await this.enhanceWithWebSearch(context);
+
       // Get merged configuration from central config
       const modelConfig = aiConfigManager.getMergedConfig(
         context.config.model || CONFIG.ai.groq.model,
@@ -54,10 +135,17 @@ export class GroqProvider implements AIProvider {
         conversationId: context.conversationId,
         model: context.config.model,
         messageCount: context.messages.length,
+        webSearchUsed: enhanced,
         config: modelConfig,
       });
 
-      const messages = this.formatMessages(context.messages, context.config.systemPrompt);
+      // Enhance system prompt with web search results if available
+      let systemPrompt = context.config.systemPrompt || "You are a helpful assistant.";
+      if (enhanced && searchResults) {
+        systemPrompt += `\n\n# Real-time Web Search Results\n\n${searchResults}\n\nUse the above web search results to provide accurate, up-to-date information. Cite sources when possible.`;
+      }
+
+      const messages = this.formatMessages(context.messages, systemPrompt);
 
       const completion = await this.client.chat.completions.create({
         model: context.config.model || CONFIG.ai.groq.model,
@@ -88,6 +176,7 @@ export class GroqProvider implements AIProvider {
         metadata: {
           model: completion.model,
           provider: "groq",
+          webSearchUsed: enhanced,
           timestamp: new Date().toISOString(),
         },
       };
@@ -96,6 +185,7 @@ export class GroqProvider implements AIProvider {
         conversationId: context.conversationId,
         contentLength: response.content.length,
         tokensUsed: response.usage?.totalTokens,
+        webSearchUsed: enhanced,
       });
 
       return response;
@@ -167,8 +257,9 @@ export class GroqProvider implements AIProvider {
           fullContent += delta;
           tokenCount++;
 
+          // Send delta only (not full content) for real-time streaming effect
           const streamChunk: StreamChunk = {
-            content: fullContent,
+            content: delta, // Send only the new token, not full content
             delta,
             isComplete: false,
           };
@@ -179,7 +270,7 @@ export class GroqProvider implements AIProvider {
         // Check if stream is complete
         if (chunk.choices[0]?.finish_reason) {
           const finalChunk: StreamChunk = {
-            content: fullContent,
+            content: fullContent, // Send full content in final chunk
             delta: "",
             isComplete: true,
             usage: {

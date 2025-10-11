@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Menu, Settings, X, AlertCircle, Coins } from 'lucide-react';
+import { Menu, Settings, X, AlertCircle, Coins, Copy, Check } from 'lucide-react';
 import { ChatInput } from '../homepage/ChatInput';
 import { MessageList } from './MessageList';
 import { Message } from './types';
 import { Button } from '../ui/button';
-import { SimpleTooltip } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { useChat } from '@/hooks/useChat';
 import { useRouter } from 'next/navigation';
 import chatAPI from '@/lib/chat-api';
@@ -29,6 +29,7 @@ export function ChatUI({
   const [input, setInput] = useState('');
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [copied, setCopied] = useState(false);
   const router = useRouter();
 
   // Validate conversation ID - must be a valid MongoDB ObjectId (24 hex chars)
@@ -131,6 +132,25 @@ export function ChatUI({
     }
   };
 
+  const handleCopyConversation = async () => {
+    if (!messages.length) return;
+
+    const conversationText = uiMessages
+      .map((msg) => {
+        const role = msg.role === 'user' ? 'You' : 'AI';
+        return `${role}:\n${msg.content}\n`;
+      })
+      .join('\n---\n\n');
+
+    try {
+      await navigator.clipboard.writeText(conversationText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy conversation:', err);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-[#1b1c1d]">
       {/* Header */}
@@ -163,30 +183,55 @@ export function ChatUI({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {conversation && messages.length > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  onClick={handleCopyConversation}
+                  className="flex items-center gap-2 hover:bg-[#333537] px-3"
+                  aria-label="Copy conversation"
+                >
+                  {copied ? (
+                    <Check size={16} className="text-green-500" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
+                  <span className="text-sm">{copied ? 'Copied!' : 'Copy'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Copy entire conversation</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
           {conversation && conversation.totalTokens > 0 && (
-            <SimpleTooltip content={
-              <div className="text-xs space-y-1">
-                <div className="font-semibold mb-2">Token Usage</div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-[#9aa0a6]">Total tokens:</span>
-                  <span className="font-mono">{conversation.totalTokens.toLocaleString()}</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-[#2d2e30] rounded-lg hover:bg-[#333537] transition-colors cursor-help">
+                  <Coins size={14} className="text-[#9aa0a6]" />
+                  <span className="text-xs font-mono text-[#e8eaed]">
+                    {conversation.totalTokens.toLocaleString()}
+                  </span>
                 </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-[#9aa0a6]">Messages:</span>
-                  <span className="font-mono">{conversation.messageCount}</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs space-y-1">
+                  <div className="font-semibold mb-2">Token Usage</div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-[#9aa0a6]">Total tokens:</span>
+                    <span className="font-mono">{conversation.totalTokens.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-[#9aa0a6]">Messages:</span>
+                    <span className="font-mono">{conversation.messageCount}</span>
+                  </div>
+                  <div className="text-[#9aa0a6] pt-1 border-t border-[#333537] mt-2">
+                    Avg per message: {Math.round(conversation.totalTokens / conversation.messageCount)}
+                  </div>
                 </div>
-                <div className="text-[#9aa0a6] pt-1 border-t border-[#333537] mt-2">
-                  Avg per message: {Math.round(conversation.totalTokens / conversation.messageCount)}
-                </div>
-              </div>
-            }>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-[#2d2e30] rounded-lg hover:bg-[#333537] transition-colors cursor-help">
-                <Coins size={14} className="text-[#9aa0a6]" />
-                <span className="text-xs font-mono text-[#e8eaed]">
-                  {conversation.totalTokens.toLocaleString()}
-                </span>
-              </div>
-            </SimpleTooltip>
+              </TooltipContent>
+            </Tooltip>
           )}
           <Button 
             variant="ghost" 
@@ -260,7 +305,11 @@ export function ChatUI({
 
       {/* Message List */}
       {(!isLoading && !isTransitioning) || messages.length > 0 ? (
-        <MessageList messages={uiMessages} />
+        <MessageList 
+          messages={uiMessages} 
+          isLoading={isSending}
+          isStreaming={isStreaming}
+        />
       ) : null}
 
       {/* Chat Input */}

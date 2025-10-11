@@ -211,7 +211,8 @@ export const sendMessageStream = (
   // Get auth token
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
   
-  // Create EventSource with auth header (using query param as EventSource doesn't support headers directly)
+  // First, send the message via POST to initiate the stream
+  // Create EventSource with auth header and message content as query params
   const url = new URL(
     `/api/chat/conversations/${conversationId}/messages/stream`,
     process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
@@ -219,6 +220,13 @@ export const sendMessageStream = (
   
   if (token) {
     url.searchParams.set('token', token);
+  }
+  
+  // Encode message content in URL (not ideal but EventSource limitation)
+  url.searchParams.set('content', request.content);
+  
+  if (request.attachments) {
+    url.searchParams.set('attachments', JSON.stringify(request.attachments));
   }
 
   const eventSource = new EventSource(url.toString());

@@ -1,12 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
+import { Copy, Check } from 'lucide-react';
 import { Message } from './types';
 import { cn } from '@/lib/utils';
 import { CodeBlock } from './CodeBlock';
@@ -21,6 +22,17 @@ interface ChatMessageProps {
 export function ChatMessage({ message }: ChatMessageProps) {
   const { role, content } = message;
   const isUser = role === 'user';
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy message:', err);
+    }
+  };
 
   const markdownComponents = {
     // Enhanced code block rendering
@@ -167,7 +179,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   };
 
   return (
-    <div className={cn('flex items-start gap-4 mb-6', isUser ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex items-start gap-4 mb-6 group relative', isUser ? 'justify-end' : 'justify-start')}>
       {!isUser && (
         <div className="flex-shrink-0">
           <Logo size="sm" variant="icon" />
@@ -175,12 +187,30 @@ export function ChatMessage({ message }: ChatMessageProps) {
       )}
       <div
         className={cn(
-          'p-4 rounded-2xl max-w-4xl shadow-lg transition-all duration-200 hover:shadow-xl',
+          'relative p-4 rounded-2xl max-w-4xl shadow-lg transition-all duration-200 hover:shadow-xl',
           isUser
             ? 'bg-[#2d2d2d] rounded-br-none border border-[#3c4043]'
             : 'bg-[#1e1e1e] rounded-bl-none border border-[#3c4043]'
         )}
       >
+        {/* Copy Button */}
+        <button
+          onClick={handleCopy}
+          className={cn(
+            'absolute top-2 right-2 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100',
+            'bg-[#3c4043] hover:bg-[#4c5053] text-[#e8eaed]',
+            copied && 'opacity-100 bg-green-600 hover:bg-green-700'
+          )}
+          aria-label="Copy message"
+          title={copied ? 'Copied!' : 'Copy message'}
+        >
+          {copied ? (
+            <Check size={14} className="text-white" />
+          ) : (
+            <Copy size={14} />
+          )}
+        </button>
+
         <article className="prose prose-invert prose-sm max-w-none overflow-hidden">
           <ReactMarkdown 
             remarkPlugins={[remarkGfm, remarkMath]} 

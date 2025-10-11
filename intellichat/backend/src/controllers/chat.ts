@@ -292,7 +292,15 @@ export class ChatController {
     try {
       const userId = (req as any).user?.id;
       const { conversationId } = req.params;
-      const { content, attachments } = req.body;
+
+      // Support both POST (body) and GET (query params) for EventSource compatibility
+      const isGet = req.method === "GET";
+      const content = isGet ? (req.query.content as string) : req.body.content;
+      const attachments = isGet
+        ? req.query.attachments
+          ? JSON.parse(req.query.attachments as string)
+          : undefined
+        : req.body.attachments;
 
       if (!userId) {
         throw new UnauthorizedError("User not authenticated");
@@ -318,6 +326,7 @@ export class ChatController {
       logger.info("Starting message stream", {
         conversationId,
         userId,
+        method: req.method,
         contentLength: content.length,
         ip: req.ip,
       });
