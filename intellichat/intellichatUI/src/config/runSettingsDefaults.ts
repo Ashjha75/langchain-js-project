@@ -41,7 +41,7 @@ export interface RunSettingsConfig {
  */
 export const DEFAULT_RUN_SETTINGS: RunSettingsConfig = {
   // Model Configuration
-  model: 'gpt-oss-120b',
+  model: 'openai/gpt-oss-120b',
   systemInstructions: '',
 
   // Core Parameters

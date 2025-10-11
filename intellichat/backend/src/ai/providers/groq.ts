@@ -189,19 +189,31 @@ export class GroqProvider implements AIProvider {
       // Convert context to UI config
       const uiConfig = this.contextToUIConfig(context);
 
+      // LOG REQUEST DETAILS
+      logger.info("🚀 [GROQ API REQUEST] Starting generation", {
+        conversationId: context.conversationId,
+        model: uiConfig.model,
+        messageCount: context.messages.length,
+        webSearchUsed: enhanced,
+        uiConfig: {
+          model: uiConfig.model,
+          temperature: uiConfig.temperature,
+          maxCompletionTokens: uiConfig.maxCompletionTokens,
+          stream: uiConfig.stream,
+          jsonMode: uiConfig.jsonMode,
+          reasoning: uiConfig.reasoning,
+          advanced: uiConfig.advanced,
+          systemInstructions: uiConfig.systemInstructions?.substring(0, 100) + '...'
+        },
+        timestamp: new Date().toISOString()
+      });
+
       // Enhance system instructions with web search results if available
       if (enhanced && searchResults) {
         const enhancedInstructions = (uiConfig.systemInstructions || "You are a helpful assistant.") +
           `\n\n# Real-time Web Search Results\n\n${searchResults}\n\nUse the above web search results to provide accurate, up-to-date information. Cite sources when possible.`;
         uiConfig.systemInstructions = enhancedInstructions;
       }
-
-      logger.info("Generating response with Groq (modular client)", {
-        conversationId: context.conversationId,
-        model: uiConfig.model,
-        messageCount: context.messages.length,
-        webSearchUsed: enhanced,
-      });
 
       // Convert messages and call modular Groq client
       const groqMessages = this.convertMessages(context.messages);
@@ -225,19 +237,24 @@ export class GroqProvider implements AIProvider {
         aiResponse.usage = response.usage;
       }
 
-      logger.info("Response generated successfully", {
+      // LOG RESPONSE DETAILS
+      logger.info("✅ [GROQ API RESPONSE] Response generated successfully", {
         conversationId: context.conversationId,
         contentLength: aiResponse.content.length,
         tokensUsed: aiResponse.usage?.totalTokens,
         webSearchUsed: enhanced,
+        finishReason: aiResponse.finishReason,
+        timestamp: new Date().toISOString()
       });
 
       return aiResponse as AIResponse;
     } catch (error: any) {
-      logger.error("Error generating response", {
+      logger.error("❌ [GROQ API ERROR] Error generating response", {
         error: error.message,
         conversationId: context.conversationId,
         model: context.config.model,
+        stack: error.stack?.substring(0, 200),
+        timestamp: new Date().toISOString()
       });
 
       if (error.status === 400 && error.message?.includes("token")) {
@@ -273,18 +290,31 @@ export class GroqProvider implements AIProvider {
       const uiConfig = this.contextToUIConfig(context);
       uiConfig.stream = true; // Force streaming
 
+      // LOG STREAMING REQUEST DETAILS
+      logger.info("🚀 [GROQ API STREAMING REQUEST] Starting stream", {
+        conversationId: context.conversationId,
+        model: uiConfig.model,
+        messageCount: context.messages.length,
+        webSearchUsed: enhanced,
+        uiConfig: {
+          model: uiConfig.model,
+          temperature: uiConfig.temperature,
+          maxCompletionTokens: uiConfig.maxCompletionTokens,
+          stream: uiConfig.stream,
+          jsonMode: uiConfig.jsonMode,
+          reasoning: uiConfig.reasoning,
+          advanced: uiConfig.advanced,
+          systemInstructions: uiConfig.systemInstructions?.substring(0, 100) + '...'
+        },
+        timestamp: new Date().toISOString()
+      });
+
       // Enhance system instructions with web search results if available
       if (enhanced && searchResults) {
         const enhancedInstructions = (uiConfig.systemInstructions || "You are a helpful assistant.") +
           `\n\n# Real-time Web Search Results\n\n${searchResults}\n\nUse the above web search results to provide accurate, up-to-date information. Cite sources when possible.`;
         uiConfig.systemInstructions = enhancedInstructions;
       }
-
-      logger.info("Starting streaming response with Groq (modular client)", {
-        conversationId: context.conversationId,
-        model: uiConfig.model,
-        webSearchUsed: enhanced,
-      });
 
       // Convert messages and call modular Groq client's streaming method
       const groqMessages = this.convertMessages(context.messages);
@@ -321,11 +351,25 @@ export class GroqProvider implements AIProvider {
             },
           };
 
+          // LOG STREAMING COMPLETION
+          logger.info("✅ [GROQ API STREAMING RESPONSE] Stream completed", {
+            conversationId: context.conversationId,
+            contentLength: fullContent.length,
+            tokenCount,
+            webSearchUsed: enhanced,
+            timestamp: new Date().toISOString()
+          });
+
           yield finalChunk;
           break;
         }
 
         if (chunk.type === 'error') {
+          logger.error("❌ [GROQ API STREAMING ERROR] Stream error", {
+            conversationId: context.conversationId,
+            error: chunk.error,
+            timestamp: new Date().toISOString()
+          });
           throw new Error(chunk.error || 'Streaming error');
         }
       }

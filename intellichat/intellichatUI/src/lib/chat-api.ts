@@ -129,10 +129,25 @@ export const createConversation = async (
   request: CreateConversationRequest
 ): Promise<Conversation> => {
   try {
+    console.log('🚀 [API Request] Creating conversation:', {
+      model: request.model,
+      config: request.config,
+      systemPrompt: request.systemPrompt?.substring(0, 50) + '...',
+      timestamp: new Date().toISOString()
+    });
+    
     const response = await api.post('/chat/conversations', request);
+    
+    console.log('✅ [API Response] Conversation created:', {
+      conversationId: response.data.data._id,
+      model: response.data.data.model,
+      timestamp: new Date().toISOString()
+    });
+    
     showToast('Conversation created successfully', 'success');
     return response.data.data;
   } catch (error: any) {
+    console.error('❌ [API Error] Failed to create conversation:', error);
     const errorMessage = error.response?.data?.message || error.message || 'Failed to create conversation';
     showToast(errorMessage, 'error');
     throw error;
@@ -218,17 +233,30 @@ export const sendNewChat = async (
   request: SendNewChatRequest
 ): Promise<{ conversation: Conversation; message: Message }> => {
   try {
-    console.log('Sending new chat request:', request);
+    console.log('🚀 [API Request] Sending new chat:', {
+      model: request.model,
+      config: request.config,
+      contentPreview: request.content.substring(0, 100) + '...',
+      timestamp: new Date().toISOString()
+    });
+    
     const response = await api.post('/chat/send', request);
-    console.log('New chat response:', response.data);
+    
+    console.log('✅ [API Response] New chat created:', {
+      conversationId: response.data.data.conversation?._id,
+      messageId: response.data.data.message?._id,
+      model: response.data.data.conversation?.model,
+      timestamp: new Date().toISOString()
+    });
     
     if (!response.data.data.conversation?._id) {
-      console.error('Invalid response - missing conversation ID:', response.data);
+      console.error('❌ Invalid response - missing conversation ID:', response.data);
       throw new Error('Invalid response from server - no conversation ID');
     }
     
     return response.data.data;
   } catch (error: any) {
+    console.error('❌ [API Error] Failed to send new chat:', error);
     const errorMessage = error.response?.data?.message || error.message || 'Failed to send message';
     showToast(errorMessage, 'error');
     throw error;
@@ -244,12 +272,26 @@ export const sendMessage = async (
   request: SendMessageRequest
 ): Promise<Message> => {
   try {
+    console.log('🚀 [API Request] Sending message:', {
+      conversationId,
+      contentPreview: request.content.substring(0, 100) + '...',
+      timestamp: new Date().toISOString()
+    });
+    
     const response = await api.post(
       `/chat/conversations/${conversationId}/messages`,
       request
     );
+    
+    console.log('✅ [API Response] Message sent:', {
+      messageId: response.data.data._id,
+      tokens: response.data.data.tokens,
+      timestamp: new Date().toISOString()
+    });
+    
     return response.data.data;
   } catch (error: any) {
+    console.error('❌ [API Error] Failed to send message:', error);
     const errorMessage = error.response?.data?.message || error.message || 'Failed to send message';
     showToast(errorMessage, 'error');
     throw error;
@@ -268,6 +310,12 @@ export const sendMessageStream = (
   onError: (error: Error) => void,
   onComplete: () => void
 ): EventSource => {
+  console.log('🚀 [API Request] Starting stream:', {
+    conversationId,
+    contentPreview: request.content.substring(0, 100) + '...',
+    timestamp: new Date().toISOString()
+  });
+  
   // Get auth token
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
   
@@ -297,6 +345,10 @@ export const sendMessageStream = (
       const chunk: StreamChunk = JSON.parse(event.data);
       
       if (chunk.type === 'done') {
+        console.log('✅ [API Response] Stream completed:', {
+          conversationId,
+          timestamp: new Date().toISOString()
+        });
         onComplete();
         eventSource.close();
       } else if (chunk.type === 'error') {
