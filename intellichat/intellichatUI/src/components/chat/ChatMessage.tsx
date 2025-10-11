@@ -63,7 +63,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
         codeString = String(children || '');
       }
       
-      console.log('✅ Converted code string:', codeString.substring(0, 100));
       
       if (!inline && match && match[1]) {
         return (

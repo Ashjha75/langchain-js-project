@@ -24,6 +24,7 @@ import {
   REASONING_OPTIONS,
   PARAMETER_CONSTRAINTS 
 } from '@/config/runSettingsDefaults';
+import tooltipMessages from '@/config/tooltipMessages.json';
 
 interface RunSettingsSidebarProps {
   isOpen: boolean;
@@ -247,16 +248,23 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
 
       {/* Temperature */}
       <div>
-        <div className="flex justify-between items-center">
-          <Label htmlFor="temperature">Temperature</Label>
-          <Input
-            id="temperature-value"
-            type="number"
-            value={settings.temperature.toFixed(2)}
-            onChange={(e) => updateSetting('temperature', parseFloat(e.target.value) || 0)}
-            className="w-20 rounded-lg"
-          />
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="temperature">Temperature</Label>
+              <Input
+                id="temperature-value"
+                type="number"
+                value={settings.temperature.toFixed(2)}
+                onChange={(e) => updateSetting('temperature', parseFloat(e.target.value) || 0)}
+                className="w-20 rounded-lg"
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{tooltipMessages.temperature}</p>
+          </TooltipContent>
+        </Tooltip>
         <Slider
           id="temperature"
           value={[settings.temperature]}
@@ -270,16 +278,23 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
 
       {/* Max Completion Tokens */}
       <div>
-        <div className="flex justify-between items-center">
-          <Label htmlFor="max-tokens">Max Completion Tokens</Label>
-          <Input
-            id="max-tokens-value"
-            type="number"
-            value={settings.maxCompletionTokens}
-            onChange={(e) => updateSetting('maxCompletionTokens', parseInt(e.target.value) || 1)}
-            className="w-20 rounded-lg"
-          />
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="max-tokens">Max Completion Tokens</Label>
+              <Input
+                id="max-tokens-value"
+                type="number"
+                value={settings.maxCompletionTokens}
+                onChange={(e) => updateSetting('maxCompletionTokens', parseInt(e.target.value) || 1)}
+                className="w-20 rounded-lg"
+              />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{tooltipMessages.maxCompletionTokens}</p>
+          </TooltipContent>
+        </Tooltip>
         <Slider
           id="max-tokens"
           value={[settings.maxCompletionTokens]}
@@ -293,7 +308,14 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
 
       {/* Reasoning */}
       <div>
-        <Label>Reasoning</Label>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Label>Reasoning</Label>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{tooltipMessages.reasoning}</p>
+          </TooltipContent>
+        </Tooltip>
         <Select 
           value={settings.reasoning} 
           onValueChange={(value: 'low' | 'medium' | 'high') => updateSetting('reasoning', value)}
@@ -313,19 +335,43 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
 
       {/* Stream and JSON Mode */}
       <div className="flex items-center justify-between">
-        <Label htmlFor="stream">Stream</Label>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Label htmlFor="stream">Stream</Label>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{tooltipMessages.stream}</p>
+          </TooltipContent>
+        </Tooltip>
         <Switch 
           id="stream" 
           checked={settings.stream}
-          onCheckedChange={(checked) => updateSetting('stream', checked)}
+          onCheckedChange={(checked) => {
+            updateSetting('stream', checked);
+            if (checked) {
+              updateSetting('jsonMode', false);
+            }
+          }}
         />
       </div>
       <div className="flex items-center justify-between">
-        <Label htmlFor="json-mode">JSON Mode</Label>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Label htmlFor="json-mode">JSON Mode</Label>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{tooltipMessages.jsonMode}</p>
+          </TooltipContent>
+        </Tooltip>
         <Switch 
           id="json-mode" 
           checked={settings.jsonMode}
-          onCheckedChange={(checked) => updateSetting('jsonMode', checked)}
+          onCheckedChange={(checked) => {
+            updateSetting('jsonMode', checked);
+            if (checked) {
+              updateSetting('stream', false);
+            }
+          }}
         />
       </div>
 
@@ -334,7 +380,14 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
         <h3 className="text-base font-semibold">Built-in tools</h3>
         <div className="space-y-4 mt-2 p-4 bg-accent rounded-lg">
             <div className="flex items-center justify-between">
-              <Label htmlFor="browser-search">Browser Search</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Label htmlFor="browser-search">Browser Search</Label>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{tooltipMessages.tools.browserSearch}</p>
+                </TooltipContent>
+              </Tooltip>
               <Switch 
                 id="browser-search" 
                 checked={settings.builtInTools.browserSearch}
@@ -344,7 +397,14 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="code-interpreter">Code Interpreter</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Label htmlFor="code-interpreter">Code Interpreter</Label>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{tooltipMessages.tools.codeExecution}</p>
+                </TooltipContent>
+              </Tooltip>
               <Switch 
                 id="code-interpreter" 
                 checked={settings.builtInTools.codeInterpreter}
@@ -376,7 +436,14 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
         <CollapsibleContent>
           <div className="space-y-4 mt-2 p-4 bg-accent rounded-lg">
             <div className="flex items-center justify-between">
-              <Label htmlFor="moderation">Moderation: llamaguard</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Label htmlFor="moderation">Moderation: llamaguard</Label>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{tooltipMessages.moderation}</p>
+                </TooltipContent>
+              </Tooltip>
               <Switch 
                 id="moderation" 
                 checked={settings.advanced.moderation}
@@ -387,18 +454,25 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
             </div>
             {/* Top P */}
             <div>
-              <div className="flex justify-between items-center">
-                <Label htmlFor="top-p">Top P</Label>
-                <Input
-                  id="top-p-value"
-                  type="number"
-                  value={settings.advanced.topP}
-                  onChange={(e) => 
-                    updateSetting('advanced', { ...settings.advanced, topP: parseFloat(e.target.value) || 0 })
-                  }
-                  className="w-20 rounded-lg"
-                />
-              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="top-p">Top P</Label>
+                    <Input
+                      id="top-p-value"
+                      type="number"
+                      value={settings.advanced.topP}
+                      onChange={(e) => 
+                        updateSetting('advanced', { ...settings.advanced, topP: parseFloat(e.target.value) || 0 })
+                      }
+                      className="w-20 rounded-lg"
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{tooltipMessages.topP}</p>
+                </TooltipContent>
+              </Tooltip>
               <Slider
                 id="top-p"
                 value={[settings.advanced.topP]}
@@ -413,7 +487,14 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
             </div>
             {/* Seed */}
             <div>
-              <Label htmlFor="seed">Seed</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Label htmlFor="seed">Seed</Label>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{tooltipMessages.seed}</p>
+                </TooltipContent>
+              </Tooltip>
               <Input 
                 id="seed" 
                 type="number" 
@@ -429,7 +510,14 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
             </div>
             {/* Stop Sequence */}
             <div>
-              <Label htmlFor="stop-sequence">Stop Sequence</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Label htmlFor="stop-sequence">Stop Sequence</Label>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{tooltipMessages.stopSequence}</p>
+                </TooltipContent>
+              </Tooltip>
               <Input 
                 id="stop-sequence" 
                 value={settings.advanced.stopSequence}
@@ -440,7 +528,14 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
               />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="template">Template</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Label htmlFor="template">Template</Label>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{tooltipMessages.template}</p>
+                </TooltipContent>
+              </Tooltip>
               <Switch 
                 id="template" 
                 checked={settings.advanced.template}

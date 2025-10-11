@@ -1,0 +1,16 @@
+{
+  "stream": "Returns the completion in a stream rather than waiting for the completion to finish and returning it all at once. There is no support for JSON mode when streaming is enabled.",
+  "jsonMode": "Forces the model to output a JSON object. There is no support for streaming when JSON mode is enabled.",
+  "temperature": "Controls randomness: lowering results in less random completions. As the temperature approaches zero, the model will become deterministic and repetitive.",
+  "maxCompletionTokens": "The model can generate up to 65536 tokens, and can use up to 131072 tokens shared between prompt and completion.",
+  "reasoning": "Select the level of reasoning effort. Higher levels may use more tokens and provide more thorough reasoning in the model's response.",
+  "tools": {
+    "browserSearch": "If enabled, the model will be able to search the web.",
+    "codeExecution": "If enabled, the model will be able to execute code."
+  },
+  "moderation": "When this feature is on, we will first call llamaguard to check for moderation.",
+  "topP": "Controls diversity via nucleus sampling: 0.5 means half of all likelihood-weighted options are considered.",
+  "seed": "Seed used for sampling. Groq attempts to return the same response to the same request with an identical seed. If empty, a random seed is used.",
+  "stopSequence": "A stop sequence is a predefined or user-specified text string that signals an AI to stop generating content, ensuring its responses remain focused and concise. Examples include punctuation marks and markers like \"[end]\".",
+  "template": "Preview the chat request with its template applied and individual tokens."
+}
