@@ -53,6 +53,16 @@ const sendMessageBodySchema = z.object({
       }),
     )
     .optional(),
+  config: z
+    .object({
+      temperature: z.number().min(0).max(2).optional(),
+      maxTokens: z.number().min(1).max(8192).optional(),
+      topP: z.number().min(0).max(1).optional(),
+      stream: z.boolean().optional(),
+      browserSearch: z.boolean().optional(),
+      codeInterpreter: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 const sendBodySchema = z.object({

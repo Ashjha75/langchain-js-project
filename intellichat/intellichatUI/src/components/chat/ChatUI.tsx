@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { useChat } from '@/hooks/useChat';
 import { useRouter } from 'next/navigation';
 import chatAPI from '@/lib/chat-api';
+import { useRunSettingsContext } from '@/contexts/RunSettingsContext';
 
 interface ChatUIProps {
   sidebarOpen: boolean;
@@ -31,6 +32,9 @@ export function ChatUI({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [copied, setCopied] = useState(false);
   const router = useRouter();
+  
+  // Get run settings from context
+  const { settings } = useRunSettingsContext();
 
   // Validate conversation ID - must be a valid MongoDB ObjectId (24 hex chars)
   const isValidConversationId = conversationId && /^[0-9a-fA-F]{24}$/.test(conversationId);
@@ -107,6 +111,16 @@ export function ChatUI({
 
     setInput('');
 
+    // Prepare config from run settings
+    const messageConfig = {
+      temperature: settings.temperature,
+      maxTokens: settings.maxCompletionTokens,
+      topP: settings.advanced.topP,
+      stream: settings.stream,
+      browserSearch: settings.builtInTools.browserSearch,
+      codeInterpreter: settings.builtInTools.codeInterpreter,
+    };
+
     try {
       if (!isValidConversationId) {
         // First message: create conversation and send message in one API call
@@ -117,11 +131,7 @@ export function ChatUI({
           const result = await chatAPI.sendNewChat({
             content: messageToSend,
             model: defaultModel,
-            config: {
-              temperature: 0.7,
-              maxTokens: 4096,
-              stream: false, // For first message, use non-streaming to ensure creation
-            },
+            config: messageConfig,
           });
           
           console.log('Conversation created:', result.conversation._id);
@@ -137,8 +147,8 @@ export function ChatUI({
         
         setIsCreatingChat(false);
       } else {
-        // Existing conversation: just send message with streaming
-        await sendMessage(messageToSend);
+        // Existing conversation: send message with current run settings
+        await sendMessage(messageToSend, undefined, messageConfig);
       }
     } catch (err: any) {
       console.error('Error sending message:', err);

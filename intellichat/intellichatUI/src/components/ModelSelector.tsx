@@ -13,32 +13,17 @@ interface ModelSelectorProps {
   onChange: (value: string) => void;
 }
 
-interface Model {
-  id: string;
-  created: number;
-  owned_by: string;
-  metadata: {
-    display_name: string;
-    release_stage: string;
-    limits: {
-      requests_per_minute: number;
-      tokens_per_minute: number;
-      requests_per_day: number;
-      tokens_per_day: number;
-    };
-  };
-}
-
 export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [hoveredModel, setHoveredModel] = useState<Model | null>(null);
+  const [hoveredModel, setHoveredModel] = useState<AIModel | null>(null);
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
   const [models, setModels] = useState<AIModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch models from database on mount
   useEffect(() => {
@@ -85,6 +70,33 @@ export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
     };
   }, [isOpen]);
 
+  // Helper function to set hovered model with immediate effect
+  const handleModelHover = (model: AIModel | null) => {
+    // Clear any pending timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setHoveredModel(model);
+  };
+
+  // Helper function to clear hovered model with delay
+  const handleModelLeave = () => {
+    // Add a small delay before clearing to allow moving to tooltip
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredModel(null);
+    }, 150);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const filteredAndGroupedModels = useMemo(() => {
     const filtered = models.filter(model =>
       model.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,8 +110,8 @@ export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
       }
       acc[owner].push(model);
       return acc;
-    }, {} as Record<string, Model[]>);
-  }, [searchTerm]);
+    }, {} as Record<string, AIModel[]>);
+  }, [models, searchTerm]);
 
   const selectedModel = models.find(m => m.id === value);
 
@@ -158,7 +170,6 @@ export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
             </div>
             <div 
               className="max-h-96 overflow-y-auto model-dropdown-scroll"
-              onMouseLeave={() => setHoveredModel(null)}
             >
               {Object.entries(filteredAndGroupedModels).length === 0 ? (
                 <div className="p-4 text-center text-[#9aa0a6] text-sm">
@@ -182,9 +193,10 @@ export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
                           onChange(model.id);
                           setIsOpen(false);
                           setSearchTerm('');
-                          setHoveredModel(null);
+                          handleModelHover(null);
                         }}
-                        onMouseEnter={() => setHoveredModel(model)}
+                        onMouseEnter={() => handleModelHover(model)}
+                        onMouseLeave={handleModelLeave}
                       >
                         <p className="text-sm font-medium text-[#e8eaed]">{model.metadata.display_name}</p>
                         <p className="text-xs text-[#9aa0a6] truncate mt-0.5">{model.id}</p>
@@ -198,7 +210,20 @@ export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
           
           {/* Tooltip on the left (appears left due to flex-row-reverse) */}
           {hoveredModel && (
-            <div>
+            <div
+              onMouseEnter={() => {
+                // Keep the tooltip visible when hovering over it
+                // Cancel any pending hide timeout
+                if (hoverTimeoutRef.current) {
+                  clearTimeout(hoverTimeoutRef.current);
+                  hoverTimeoutRef.current = null;
+                }
+              }}
+              onMouseLeave={() => {
+                // Clear the tooltip when leaving the tooltip area
+                handleModelLeave();
+              }}
+            >
               <ModelTooltip model={hoveredModel} />
             </div>
           )}

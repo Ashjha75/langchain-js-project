@@ -30,7 +30,7 @@ export interface UseChatReturn {
   error: string | null;
   
   // Actions
-  sendMessage: (content: string, attachments?: any[]) => Promise<void>;
+  sendMessage: (content: string, attachments?: any[], config?: ConversationConfig) => Promise<void>;
   createNewChat: (model: string, config?: ConversationConfig) => Promise<string>;
   loadMessages: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
@@ -159,7 +159,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
   const sendMessageNonStreaming = useCallback(async (
     content: string,
-    attachments?: any[]
+    attachments?: any[],
+    config?: ConversationConfig
   ) => {
     if (!conversationId) {
       throw new Error('No conversation selected');
@@ -180,6 +181,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
     // Send to backend
     const payload: SendMessageRequest = { content };
+    if (config) {
+      payload.config = config;
+    }
     if (attachments) {
       payload.attachments = attachments;
     }
@@ -199,7 +203,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
   const sendMessageStreaming = useCallback(async (
     content: string,
-    attachments?: any[]
+    attachments?: any[],
+    config?: ConversationConfig
   ) => {
     if (!conversationId) {
       throw new Error('No conversation selected');
@@ -239,6 +244,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
     // Prepare request payload
     const payload: SendMessageRequest = { content };
+    if (config) {
+      payload.config = config;
+    }
     if (attachments) {
       payload.attachments = attachments;
     }
@@ -299,7 +307,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
   const sendMessage = useCallback(async (
     content: string,
-    attachments?: any[]
+    attachments?: any[],
+    config?: ConversationConfig
   ) => {
     if (!content.trim()) return;
 
@@ -308,9 +317,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       setError(null);
 
       if (streamingEnabled && conversation?.config?.stream !== false) {
-        await sendMessageStreaming(content, attachments);
+        await sendMessageStreaming(content, attachments, config);
       } else {
-        await sendMessageNonStreaming(content, attachments);
+        await sendMessageNonStreaming(content, attachments, config);
       }
 
       // Update conversation's last message time

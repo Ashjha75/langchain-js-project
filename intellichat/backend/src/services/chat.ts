@@ -31,6 +31,7 @@ export interface SendMessageRequest {
     content: string;
     metadata?: Record<string, any>;
   }>;
+  config?: Partial<AIConfig>;
 }
 
 export interface ConversationListOptions {
@@ -249,20 +250,31 @@ export class ChatService {
         timestamp: msg.createdAt,
       }));
 
+      // Merge conversation config with per-message config (per-message takes priority)
+      const effectiveConfig: AIConfig = {
+        model: conversation.model,
+        temperature: request.config?.temperature ?? conversation.config.temperature,
+        maxTokens: request.config?.maxTokens ?? conversation.config.maxTokens,
+        topP: request.config?.topP ?? conversation.config.topP,
+        stream: false,
+        systemPrompt:
+          conversation.systemPrompt ||
+          "You are a helpful assistant. Please format your response in Markdown.",
+        browserSearch: request.config?.browserSearch ?? false,
+        codeInterpreter: request.config?.codeInterpreter ?? false,
+      };
+
+      logger.info("Using effective config for message", {
+        conversationId: request.conversationId,
+        config: effectiveConfig,
+        perMessageConfig: request.config,
+      });
+
       const context: ConversationContext = {
         conversationId: request.conversationId,
         userId: request.userId,
         messages: aiMessages,
-        config: {
-          model: conversation.model,
-          temperature: conversation.config.temperature,
-          maxTokens: conversation.config.maxTokens,
-          topP: conversation.config.topP,
-          stream: false,
-          systemPrompt:
-            conversation.systemPrompt ||
-            "You are a helpful assistant. Please format your response in Markdown.",
-        },
+        config: effectiveConfig,
       };
 
       // Generate AI response
@@ -379,18 +391,29 @@ export class ChatService {
         timestamp: msg.createdAt,
       }));
 
+      // Merge conversation config with per-message config (per-message takes priority)
+      const effectiveConfig: AIConfig = {
+        model: conversation.model,
+        temperature: request.config?.temperature ?? conversation.config.temperature,
+        maxTokens: request.config?.maxTokens ?? conversation.config.maxTokens,
+        topP: request.config?.topP ?? conversation.config.topP,
+        stream: true,
+        systemPrompt: conversation.systemPrompt,
+        browserSearch: request.config?.browserSearch ?? false,
+        codeInterpreter: request.config?.codeInterpreter ?? false,
+      };
+
+      logger.info("Using effective config for stream", {
+        conversationId: request.conversationId,
+        config: effectiveConfig,
+        perMessageConfig: request.config,
+      });
+
       const context: ConversationContext = {
         conversationId: request.conversationId,
         userId: request.userId,
         messages: aiMessages,
-        config: {
-          model: conversation.model,
-          temperature: conversation.config.temperature,
-          maxTokens: conversation.config.maxTokens,
-          topP: conversation.config.topP,
-          stream: true,
-          ...(conversation.systemPrompt && { systemPrompt: conversation.systemPrompt }),
-        },
+        config: effectiveConfig,
       };
 
       let assistantMessage: any | null = null;

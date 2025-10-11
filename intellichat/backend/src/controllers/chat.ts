@@ -240,7 +240,7 @@ export class ChatController {
     try {
       const userId = (req as any).user?.id;
       const { conversationId } = req.params;
-      const { content, attachments } = req.body;
+      const { content, attachments, config } = req.body;
 
       if (!userId) {
         throw new UnauthorizedError("User not authenticated");
@@ -254,11 +254,20 @@ export class ChatController {
         throw new ValidationError("Message content is required");
       }
 
+      logger.info("Sending message with config", {
+        conversationId,
+        userId,
+        contentLength: content.length,
+        config,
+        ip: req.ip,
+      });
+
       const message = await chatService.sendMessage({
         conversationId,
         userId,
         content: content.trim(),
         attachments,
+        config,
       });
 
       logger.info("Message sent", {
@@ -301,6 +310,11 @@ export class ChatController {
           ? JSON.parse(req.query.attachments as string)
           : undefined
         : req.body.attachments;
+      const config = isGet
+        ? req.query.config
+          ? JSON.parse(req.query.config as string)
+          : undefined
+        : req.body.config;
 
       if (!userId) {
         throw new UnauthorizedError("User not authenticated");
@@ -328,6 +342,7 @@ export class ChatController {
         userId,
         method: req.method,
         contentLength: content.length,
+        config,
         ip: req.ip,
       });
 
@@ -337,6 +352,7 @@ export class ChatController {
           userId,
           content: content.trim(),
           attachments,
+          config,
         })) {
           // Send data as Server-Sent Event
           res.write(`data: ${JSON.stringify(chunk)}\n\n`);

@@ -30,6 +30,8 @@ export interface ConversationConfig {
   maxTokens?: number;
   topP?: number;
   stream?: boolean;
+  browserSearch?: boolean;
+  codeInterpreter?: boolean;
 }
 
 export interface CreateConversationRequest {
@@ -46,6 +48,7 @@ export interface SendMessageRequest {
     content: string;
     metadata?: Record<string, any>;
   }>;
+  config?: ConversationConfig;
 }
 
 export interface SendNewChatRequest extends SendMessageRequest {
@@ -313,11 +316,21 @@ export const sendMessageStream = (
   console.log('🚀 [API Request] Starting stream:', {
     conversationId,
     contentPreview: request.content.substring(0, 100) + '...',
+    config: request.config,
     timestamp: new Date().toISOString()
   });
   
-  // Get auth token
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  // Get auth token from user object (same as api.ts)
+  let token = '';
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      token = user?.tokens?.accessToken || '';
+    } catch (e) {
+      console.error('Error parsing user from localStorage:', e);
+    }
+  }
   
   // First, send the message via POST to initiate the stream
   // Create EventSource with auth header and message content as query params
@@ -335,6 +348,12 @@ export const sendMessageStream = (
   
   if (request.attachments) {
     url.searchParams.set('attachments', JSON.stringify(request.attachments));
+  }
+  
+  // ✅ ADD CONFIG TO URL PARAMS
+  if (request.config) {
+    url.searchParams.set('config', JSON.stringify(request.config));
+    console.log('📤 [API] Sending config in stream URL:', request.config);
   }
 
   const eventSource = new EventSource(url.toString());

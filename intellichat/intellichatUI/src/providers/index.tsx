@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { ErrorBoundary } from '@/components/ui';
 import { Toaster } from '@/components/ui';
 import { TooltipProvider } from '@/components/ui';
+import { RunSettingsProvider } from '@/contexts/RunSettingsContext';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -56,10 +57,12 @@ export function Providers({ children }: ProvidersProps) {
           enableSystem
           disableTransitionOnChange
         >
-          <TooltipProvider>
-            {children}
-            <Toaster />
-          </TooltipProvider>
+          <RunSettingsProvider>
+            <TooltipProvider>
+              {children}
+              <Toaster />
+            </TooltipProvider>
+          </RunSettingsProvider>
         </ThemeProvider>
         <ReactQueryDevtools
           initialIsOpen={false}
