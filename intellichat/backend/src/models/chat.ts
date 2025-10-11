@@ -136,6 +136,14 @@ export interface MessageSchema {
     completion: number;
     total: number;
   };
+  config?: {
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+    stream?: boolean;
+    browserSearch?: boolean;
+    codeInterpreter?: boolean;
+  };
   metadata: {
     model?: string;
     provider?: string;
@@ -187,6 +195,32 @@ const MessageSchema = new Schema(
         type: Number,
         default: 0,
         min: 0,
+      },
+    },
+    config: {
+      temperature: {
+        type: Number,
+        min: 0,
+        max: 2,
+      },
+      maxTokens: {
+        type: Number,
+        min: 1,
+        max: 32000,
+      },
+      topP: {
+        type: Number,
+        min: 0,
+        max: 1,
+      },
+      stream: {
+        type: Boolean,
+      },
+      browserSearch: {
+        type: Boolean,
+      },
+      codeInterpreter: {
+        type: Boolean,
       },
     },
     metadata: {

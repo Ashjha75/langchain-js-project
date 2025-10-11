@@ -55,6 +55,35 @@ export class ChatService {
   private aiProvider = getCurrentProvider();
 
   // ============================================================================
+  // HELPER METHODS
+  // ============================================================================
+
+  /**
+   * Get the last message config from a conversation
+   * Used to auto-populate settings from previous message
+   */
+  private async getLastMessageConfig(conversationId: string): Promise<Partial<AIConfig> | null> {
+    try {
+      const lastMessage = await Message.findOne({ conversationId })
+        .sort({ createdAt: -1 })
+        .limit(1);
+      
+      if (lastMessage && lastMessage.config) {
+        logger.info("Retrieved last message config", {
+          conversationId,
+          config: lastMessage.config,
+        });
+        return lastMessage.config;
+      }
+      
+      return null;
+    } catch (error) {
+      logger.error("Error retrieving last message config", { error, conversationId });
+      return null;
+    }
+  }
+
+  // ============================================================================
   // CONVERSATION MANAGEMENT
   // ============================================================================
 
@@ -217,6 +246,7 @@ export class ChatService {
         conversationId: request.conversationId,
         userId: request.userId,
         contentLength: request.content.length,
+        hasConfig: !!request.config,
       });
 
       // Get conversation and verify access
@@ -225,12 +255,23 @@ export class ChatService {
       // Check token limits
       await this.checkTokenLimits(request.userId);
 
-      // Create user message
+      // Get last message config if no config provided
+      let effectiveRequestConfig = request.config;
+      if (!effectiveRequestConfig) {
+        const lastConfig = await this.getLastMessageConfig(request.conversationId);
+        if (lastConfig) {
+          effectiveRequestConfig = lastConfig;
+          logger.info("Using last message config", { config: lastConfig });
+        }
+      }
+
+      // Create user message with config
       const userMessage = new Message({
         conversationId: new Types.ObjectId(request.conversationId),
         role: "user",
         content: request.content,
         attachments: request.attachments,
+        config: effectiveRequestConfig,
         tokens: {
           prompt: 0,
           completion: 0,
@@ -253,21 +294,21 @@ export class ChatService {
       // Merge conversation config with per-message config (per-message takes priority)
       const effectiveConfig: AIConfig = {
         model: conversation.model,
-        temperature: request.config?.temperature ?? conversation.config.temperature,
-        maxTokens: request.config?.maxTokens ?? conversation.config.maxTokens,
-        topP: request.config?.topP ?? conversation.config.topP,
+        temperature: effectiveRequestConfig?.temperature ?? conversation.config.temperature,
+        maxTokens: effectiveRequestConfig?.maxTokens ?? conversation.config.maxTokens,
+        topP: effectiveRequestConfig?.topP ?? conversation.config.topP,
         stream: false,
         systemPrompt:
           conversation.systemPrompt ||
           "You are a helpful assistant. Please format your response in Markdown.",
-        browserSearch: request.config?.browserSearch ?? false,
-        codeInterpreter: request.config?.codeInterpreter ?? false,
+        browserSearch: effectiveRequestConfig?.browserSearch ?? false,
+        codeInterpreter: effectiveRequestConfig?.codeInterpreter ?? false,
       };
 
       logger.info("Using effective config for message", {
         conversationId: request.conversationId,
         config: effectiveConfig,
-        perMessageConfig: request.config,
+        perMessageConfig: effectiveRequestConfig,
       });
 
       const context: ConversationContext = {
@@ -285,6 +326,7 @@ export class ChatService {
         conversationId: new Types.ObjectId(request.conversationId),
         role: "assistant",
         content: aiResponse.content,
+        config: effectiveRequestConfig,
         tokens: {
           prompt: aiResponse.usage?.promptTokens || 0,
           completion: aiResponse.usage?.completionTokens || 0,
@@ -364,6 +406,7 @@ export class ChatService {
       logger.info("Starting streaming message", {
         conversationId: request.conversationId,
         userId: request.userId,
+        hasConfig: !!request.config,
       });
 
       // Get conversation and verify access
@@ -372,12 +415,23 @@ export class ChatService {
       // Check token limits
       await this.checkTokenLimits(request.userId);
 
-      // Create user message
+      // Get last message config if no config provided
+      let effectiveRequestConfig = request.config;
+      if (!effectiveRequestConfig) {
+        const lastConfig = await this.getLastMessageConfig(request.conversationId);
+        if (lastConfig) {
+          effectiveRequestConfig = lastConfig;
+          logger.info("Using last message config for stream", { config: lastConfig });
+        }
+      }
+
+      // Create user message with config
       const userMessage = new Message({
         conversationId: new Types.ObjectId(request.conversationId),
         role: "user",
         content: request.content,
         attachments: request.attachments,
+        config: effectiveRequestConfig,
         tokens: { prompt: 0, completion: 0, total: 0 },
       });
 
@@ -394,13 +448,13 @@ export class ChatService {
       // Merge conversation config with per-message config (per-message takes priority)
       const effectiveConfig: AIConfig = {
         model: conversation.model,
-        temperature: request.config?.temperature ?? conversation.config.temperature,
-        maxTokens: request.config?.maxTokens ?? conversation.config.maxTokens,
-        topP: request.config?.topP ?? conversation.config.topP,
+        temperature: effectiveRequestConfig?.temperature ?? conversation.config.temperature,
+        maxTokens: effectiveRequestConfig?.maxTokens ?? conversation.config.maxTokens,
+        topP: effectiveRequestConfig?.topP ?? conversation.config.topP,
         stream: true,
         systemPrompt: conversation.systemPrompt,
-        browserSearch: request.config?.browserSearch ?? false,
-        codeInterpreter: request.config?.codeInterpreter ?? false,
+        browserSearch: effectiveRequestConfig?.browserSearch ?? false,
+        codeInterpreter: effectiveRequestConfig?.codeInterpreter ?? false,
       };
 
       logger.info("Using effective config for stream", {
@@ -431,6 +485,7 @@ export class ChatService {
             conversationId: new Types.ObjectId(request.conversationId),
             role: "assistant",
             content: finalContent,
+            config: effectiveRequestConfig,
             tokens: {
               prompt: chunk.usage?.promptTokens || 0,
               completion: chunk.usage?.completionTokens || 0,
