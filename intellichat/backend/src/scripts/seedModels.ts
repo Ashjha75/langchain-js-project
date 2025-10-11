@@ -386,9 +386,9 @@ const models = [{
 async function seedModels() {
   try {
     // Connect to MongoDB
-    const mongoUri = process.env.MONGO_URI;
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
     if (!mongoUri) {
-      throw new Error("MONGO_URI not found in environment variables");
+      throw new Error("MONGODB_URI or MONGO_URI not found in environment variables");
     }
 
     logger.info("Connecting to MongoDB...");

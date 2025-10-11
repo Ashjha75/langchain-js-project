@@ -4,8 +4,8 @@ import { FC, useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Search } from 'lucide-react';
-import { models } from '@/config/models';
+import { ChevronDown, ChevronUp, Search, Loader2 } from 'lucide-react';
+import modelsAPI, { AIModel } from '@/lib/models-api';
 import ModelTooltip from './ModelTooltip';
 
 interface ModelSelectorProps {
@@ -34,8 +34,30 @@ export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredModel, setHoveredModel] = useState<Model | null>(null);
   const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
+  const [models, setModels] = useState<AIModel[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Fetch models from database on mount
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const fetchedModels = await modelsAPI.getModels();
+        setModels(fetchedModels);
+      } catch (err: any) {
+        console.error('Failed to load models:', err);
+        setError('Failed to load models. Please refresh the page.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchModels();
+  }, []);
 
   // Update button position when opening
   useEffect(() => {
@@ -80,6 +102,25 @@ export const ModelSelector: FC<ModelSelectorProps> = ({ value, onChange }) => {
   }, [searchTerm]);
 
   const selectedModel = models.find(m => m.id === value);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Button variant="outline" className="w-full" disabled>
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        Loading models...
+      </Button>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <Button variant="outline" className="w-full" disabled>
+        <span className="text-red-500">{error}</span>
+      </Button>
+    );
+  }
 
   return (
     <div className="relative" ref={dropdownRef}>

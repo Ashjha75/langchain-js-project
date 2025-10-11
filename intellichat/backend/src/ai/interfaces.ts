@@ -39,6 +39,8 @@ export interface AIConfig {
   topP?: number;
   stream?: boolean;
   systemPrompt?: string;
+  browserSearch?: boolean; // Enable web search via Tavily
+  codeInterpreter?: boolean; // Enable code execution
 }
 
 export interface ConversationContext {

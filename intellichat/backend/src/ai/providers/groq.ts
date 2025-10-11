@@ -79,6 +79,10 @@ export class GroqProvider implements AIProvider {
 
   /**
    * Perform web search if needed and enhance context
+   * Only performs search if:
+   * 1. Tavily Search is enabled (has API key)
+   * 2. Browser search is enabled in UI config (builtInTools.browserSearch)
+   * 3. Query needs web search (based on keywords)
    */
   private async enhanceWithWebSearch(
     context: ConversationContext,
@@ -89,8 +93,20 @@ export class GroqProvider implements AIProvider {
       return { enhanced: false };
     }
 
-    // Check if web search is needed and enabled
-    if (!tavilySearch.isEnabled() || !this.needsWebSearch(lastMessage.content)) {
+    // Check if Tavily is enabled
+    if (!tavilySearch.isEnabled()) {
+      return { enhanced: false };
+    }
+
+    // Check if browser search is enabled in UI config
+    const browserSearchEnabled = context.config.browserSearch === true;
+    if (!browserSearchEnabled) {
+      logger.debug("Browser search disabled in config, skipping web search");
+      return { enhanced: false };
+    }
+
+    // Check if the query needs web search
+    if (!this.needsWebSearch(lastMessage.content)) {
       return { enhanced: false };
     }
 
@@ -139,7 +155,14 @@ export class GroqProvider implements AIProvider {
       stream: context.config.stream !== undefined ? context.config.stream : true,
       jsonMode: false,
     };
-    console.log("UI Config:", uiConfig);
+
+    // Add built-in tools configuration
+    if (context.config.browserSearch || context.config.codeInterpreter) {
+      uiConfig.builtInTools = {
+        browserSearch: context.config.browserSearch || false,
+        codeInterpreter: context.config.codeInterpreter || false,
+      };
+    }
 
     // Add advanced config if available
     const advanced: any = {
@@ -165,7 +188,9 @@ export class GroqProvider implements AIProvider {
       model: uiConfig.model,
       temperature: uiConfig.temperature,
       maxTokens: uiConfig.maxCompletionTokens,
-      stream: uiConfig.stream
+      stream: uiConfig.stream,
+      browserSearch: uiConfig.builtInTools?.browserSearch,
+      codeInterpreter: uiConfig.builtInTools?.codeInterpreter
     });
 
     return uiConfig;

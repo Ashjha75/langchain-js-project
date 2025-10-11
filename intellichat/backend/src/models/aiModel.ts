@@ -107,7 +107,7 @@ const ModelPriceSchema = new Schema<IModelPrice>(
     PriceInCachedTokens: { type: String, default: null },
     PriceInBlock: { type: String, default: null },
     PriceOutBlock: { type: String, default: null },
-    BuiltInTool: { type: String, required: true },
+    BuiltInTool: { type: String, default: "" },
     BuiltInToolPrice: { type: String, default: null },
     PriceSSO: { type: String, default: null },
     PriceSCIM: { type: String, default: null },
