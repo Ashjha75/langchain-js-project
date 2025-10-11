@@ -78,6 +78,21 @@ export function ChatUI({
       content: msg.content,
     }));
 
+  // Debug: Log message order
+  useEffect(() => {
+    if (uiMessages.length > 0) {
+      console.log('📋 Message Order Check:', {
+        count: uiMessages.length,
+        order: uiMessages.map((m, idx) => ({
+          index: idx,
+          id: m.id.substring(0, 8),
+          role: m.role,
+          preview: m.content.substring(0, 50).replace(/\n/g, ' ')
+        }))
+      });
+    }
+  }, [uiMessages.length]);
+
   // Handle initial message (from homepage)
   useEffect(() => {
     if (initialMessage && !isValidConversationId) {

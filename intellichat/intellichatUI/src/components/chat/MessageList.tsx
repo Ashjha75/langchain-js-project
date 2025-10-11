@@ -22,10 +22,12 @@ export function MessageList({ messages, isLoading = false, isStreaming = false }
 
   const showTypingIndicator = (isLoading || isStreaming) && messages.length > 0;
 
+  const sortedMessages = [...messages].sort((a, b) => a.id.localeCompare(b.id));
+
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 pb-8">
       <div className="max-w-3xl mx-auto space-y-6 pb-6">
-        {messages.map((message) => (
+        {sortedMessages.map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
         {showTypingIndicator && <TypingIndicator />}

@@ -6,6 +6,21 @@
 
 import api from './api';
 
+// Toast notification utility (will be replaced with actual toast hook where needed)
+let toastFn: ((message: string, type: 'success' | 'error' | 'warning' | 'info') => void) | null = null;
+
+export const setToastFunction = (fn: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void) => {
+  toastFn = fn;
+};
+
+const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'error') => {
+  if (toastFn) {
+    toastFn(message, type);
+  } else {
+    console[type === 'error' ? 'error' : 'log'](message);
+  }
+};
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -113,8 +128,15 @@ export interface MessagesResponse {
 export const createConversation = async (
   request: CreateConversationRequest
 ): Promise<Conversation> => {
-  const response = await api.post('/chat/conversations', request);
-  return response.data.data;
+  try {
+    const response = await api.post('/chat/conversations', request);
+    showToast('Conversation created successfully', 'success');
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to create conversation';
+    showToast(errorMessage, 'error');
+    throw error;
+  }
 };
 
 /**
@@ -126,18 +148,30 @@ export const getConversations = async (
   status: 'active' | 'archived' | 'deleted' = 'active',
   search?: string
 ): Promise<ConversationListResponse> => {
-  const response = await api.get('/chat/conversations', {
-    params: { page, limit, status, search },
-  });
-  return response.data.data;
+  try {
+    const response = await api.get('/chat/conversations', {
+      params: { page, limit, status, search },
+    });
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to load conversations';
+    showToast(errorMessage, 'error');
+    throw error;
+  }
 };
 
 /**
  * Get a specific conversation by ID
  */
 export const getConversationById = async (id: string): Promise<Conversation> => {
-  const response = await api.get(`/chat/conversations/${id}`);
-  return response.data.data;
+  try {
+    const response = await api.get(`/chat/conversations/${id}`);
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to load conversation';
+    showToast(errorMessage, 'error');
+    throw error;
+  }
 };
 
 /**
@@ -147,15 +181,29 @@ export const updateConversation = async (
   id: string,
   updates: Partial<CreateConversationRequest>
 ): Promise<Conversation> => {
-  const response = await api.put(`/chat/conversations/${id}`, updates);
-  return response.data.data;
+  try {
+    const response = await api.put(`/chat/conversations/${id}`, updates);
+    showToast('Conversation updated successfully', 'success');
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to update conversation';
+    showToast(errorMessage, 'error');
+    throw error;
+  }
 };
 
 /**
  * Delete/archive a conversation
  */
 export const deleteConversation = async (id: string): Promise<void> => {
-  await api.delete(`/chat/conversations/${id}`);
+  try {
+    await api.delete(`/chat/conversations/${id}`);
+    showToast('Conversation deleted successfully', 'success');
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to delete conversation';
+    showToast(errorMessage, 'error');
+    throw error;
+  }
 };
 
 // ============================================================================
@@ -169,16 +217,22 @@ export const deleteConversation = async (id: string): Promise<void> => {
 export const sendNewChat = async (
   request: SendNewChatRequest
 ): Promise<{ conversation: Conversation; message: Message }> => {
-  console.log('Sending new chat request:', request);
-  const response = await api.post('/chat/send', request);
-  console.log('New chat response:', response.data);
-  
-  if (!response.data.data.conversation?._id) {
-    console.error('Invalid response - missing conversation ID:', response.data);
-    throw new Error('Invalid response from server - no conversation ID');
+  try {
+    console.log('Sending new chat request:', request);
+    const response = await api.post('/chat/send', request);
+    console.log('New chat response:', response.data);
+    
+    if (!response.data.data.conversation?._id) {
+      console.error('Invalid response - missing conversation ID:', response.data);
+      throw new Error('Invalid response from server - no conversation ID');
+    }
+    
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to send message';
+    showToast(errorMessage, 'error');
+    throw error;
   }
-  
-  return response.data.data;
 };
 
 /**
@@ -189,11 +243,17 @@ export const sendMessage = async (
   conversationId: string,
   request: SendMessageRequest
 ): Promise<Message> => {
-  const response = await api.post(
-    `/chat/conversations/${conversationId}/messages`,
-    request
-  );
-  return response.data.data;
+  try {
+    const response = await api.post(
+      `/chat/conversations/${conversationId}/messages`,
+      request
+    );
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to send message';
+    showToast(errorMessage, 'error');
+    throw error;
+  }
 };
 
 /**
@@ -277,13 +337,19 @@ export const getMessages = async (
   limit = 50,
   before?: string
 ): Promise<MessagesResponse> => {
-  const response = await api.get(
-    `/chat/conversations/${conversationId}/messages`,
-    {
-      params: { limit, before },
-    }
-  );
-  return response.data.data;
+  try {
+    const response = await api.get(
+      `/chat/conversations/${conversationId}/messages`,
+      {
+        params: { limit, before },
+      }
+    );
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to load messages';
+    showToast(errorMessage, 'error');
+    throw error;
+  }
 };
 
 // ============================================================================
@@ -299,10 +365,16 @@ export const searchChat = async (
   page = 1,
   limit = 10
 ): Promise<any> => {
-  const response = await api.get('/chat/search', {
-    params: { q: query, type, page, limit },
-  });
-  return response.data.data;
+  try {
+    const response = await api.get('/chat/search', {
+      params: { q: query, type, page, limit },
+    });
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to search';
+    showToast(errorMessage, 'error');
+    throw error;
+  }
 };
 
 // ============================================================================
@@ -313,8 +385,14 @@ export const searchChat = async (
  * Get user's token usage statistics
  */
 export const getTokenUsage = async (): Promise<any> => {
-  const response = await api.get('/chat/usage');
-  return response.data.data;
+  try {
+    const response = await api.get('/chat/usage');
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to load token usage';
+    showToast(errorMessage, 'error');
+    throw error;
+  }
 };
 
 // ============================================================================
@@ -325,8 +403,14 @@ export const getTokenUsage = async (): Promise<any> => {
  * Check chat service health
  */
 export const healthCheck = async (): Promise<{ status: string; provider: string }> => {
-  const response = await api.get('/chat/health');
-  return response.data.data;
+  try {
+    const response = await api.get('/chat/health');
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || 'Health check failed';
+    showToast(errorMessage, 'error');
+    throw error;
+  }
 };
 
 // ============================================================================

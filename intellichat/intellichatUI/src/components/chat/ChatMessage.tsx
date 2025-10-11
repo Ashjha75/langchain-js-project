@@ -5,7 +5,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
 import { Copy, Check } from 'lucide-react';
 import { Message } from './types';
@@ -13,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { CodeBlock } from './CodeBlock';
 import { Logo } from '@/components/ui/Logo';
 import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github-dark.css';
 
 interface ChatMessageProps {
   message: Message;
@@ -38,20 +36,48 @@ export function ChatMessage({ message }: ChatMessageProps) {
     // Enhanced code block rendering
     code({ node, inline, className, children, ...props }: any) {
       const match = /language-(\w+)/.exec(className || '');
-      if (!inline && match) {
+      
+      // Debug logging
+      console.log('🔍 Code block debug:', {
+        inline,
+        className,
+        childrenType: typeof children,
+        isArray: Array.isArray(children),
+        children: children,
+        match: match ? match[1] : null
+      });
+      
+      // Convert children to string safely - handle all cases
+      let codeString = '';
+      if (Array.isArray(children)) {
+        codeString = children.map(child => {
+          if (typeof child === 'string') return child;
+          if (child?.props?.children) return child.props.children;
+          return String(child);
+        }).join('');
+      } else if (typeof children === 'string') {
+        codeString = children;
+      } else if (children?.props?.children) {
+        codeString = String(children.props.children);
+      } else {
+        codeString = String(children || '');
+      }
+      
+      console.log('✅ Converted code string:', codeString.substring(0, 100));
+      
+      if (!inline && match && match[1]) {
         return (
           <div className="my-4">
             <CodeBlock
               language={match[1]}
-              value={String(children).replace(/\n$/, '')}
-              {...props}
+              value={codeString.replace(/\n$/, '')}
             />
           </div>
         );
       }
       return (
         <code className="bg-[#2d2d2d] text-[#e8eaed] px-2 py-1 rounded-md text-sm font-mono border border-[#3c4043]">
-          {children}
+          {codeString}
         </code>
       );
     },
@@ -214,7 +240,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <article className="prose prose-invert prose-sm max-w-none overflow-hidden">
           <ReactMarkdown 
             remarkPlugins={[remarkGfm, remarkMath]} 
-            rehypePlugins={[rehypeKatex, rehypeHighlight, rehypeRaw]}
+            rehypePlugins={[rehypeKatex, rehypeRaw]}
             components={markdownComponents}
             className="markdown-content"
           >

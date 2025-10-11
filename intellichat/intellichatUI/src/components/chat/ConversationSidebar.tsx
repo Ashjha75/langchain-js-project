@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { MessageSquarePlus, Search, MoreVertical, Trash2, Edit } from 'lucide-react';
 import { getConversations, deleteConversation, Conversation as ApiConversation } from '@/lib/chat-api';
 import { Button } from '../ui/button';
+import { ConfirmModal } from '../ui/confirm-modal';
+import { useToast } from '../ui/toast';
 
 interface Conversation {
   _id: string;
@@ -22,14 +24,17 @@ interface ConversationSidebarProps {
 export function ConversationSidebar({ isOpen, currentConversationId }: ConversationSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { showToast } = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadConversations();
-  }, []);
+  }, [pathname]);
 
   const loadConversations = async () => {
     try {
@@ -48,6 +53,7 @@ export function ConversationSidebar({ isOpen, currentConversationId }: Conversat
       setConversations(mappedConversations);
     } catch (error) {
       console.error('Failed to load conversations:', error);
+      showToast('Failed to load conversations', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -63,18 +69,28 @@ export function ConversationSidebar({ isOpen, currentConversationId }: Conversat
 
   const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Delete this conversation?')) return;
+    setConversationToDelete(id);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!conversationToDelete) return;
 
     try {
-      await deleteConversation(id);
-      setConversations(prev => prev.filter(c => c._id !== id));
+      await deleteConversation(conversationToDelete);
+      setConversations(prev => prev.filter(c => c._id !== conversationToDelete));
+      showToast('Conversation deleted successfully', 'success');
       
       // If deleting current conversation, redirect to new chat
-      if (id === currentConversationId) {
+      if (conversationToDelete === currentConversationId) {
         router.push('/chat/new');
       }
     } catch (error) {
       console.error('Failed to delete conversation:', error);
+      showToast('Failed to delete conversation', 'error');
+    } finally {
+      setDeleteModalOpen(false);
+      setConversationToDelete(null);
     }
   };
 
@@ -197,6 +213,16 @@ export function ConversationSidebar({ isOpen, currentConversationId }: Conversat
           {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Conversation"
+        message="Are you sure you want to delete this conversation? This action cannot be undone."
+        variant="danger"
+      />
     </div>
   );
 }
