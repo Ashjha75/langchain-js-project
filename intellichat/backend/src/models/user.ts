@@ -243,7 +243,7 @@ const UserSchema = new Schema({
         },
         tokensLimit: {
             type: Number,
-            default: 10000, // Free tier limit
+            default: () => parseInt(process.env.DEFAULT_TOKEN_LIMIT || '10000000', 10), // Configurable via env
             min: 0
         },
         billingCycle: Date

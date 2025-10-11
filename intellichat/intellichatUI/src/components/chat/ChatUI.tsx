@@ -1,148 +1,252 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Menu, Settings, X } from 'lucide-react';
-import { ModelSelector } from '../ModelSelector_Fixed';
+import { Menu, Settings, X, AlertCircle, Coins } from 'lucide-react';
 import { ChatInput } from '../homepage/ChatInput';
 import { MessageList } from './MessageList';
 import { Message } from './types';
-
 import { Button } from '../ui/button';
+import { SimpleTooltip } from '../ui/tooltip';
+import { useChat } from '@/hooks/useChat';
+import { useRouter } from 'next/navigation';
+import chatAPI from '@/lib/chat-api';
+
 interface ChatUIProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   initialMessage: string | null;
   setRunSettingsOpen: (open: boolean) => void;
-  conversation: any;
+  conversationId?: string;
 }
 
-const mockAiResponse = `
-### Understanding React Hooks
-
-React Hooks are functions that let you “hook into” React state and lifecycle features from function components. Here are some of the most common ones:
-
-- **\`useState\`**:  Manages state in a component.
-- **\`useEffect\`**:  Performs side effects (e.g., data fetching, subscriptions).
-- **\`useContext\`**:  Accesses context directly without passing props down.
-
-#### Code Example:
-
-\`\`\`javascript
-import React, { useState, useEffect } from 'react';
-
-function Timer() {
-  const [seconds, setSeconds] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSeconds(s => s + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return <p>You've been on this page for {seconds} seconds.</p>;
-}
-\`\`\`
-
-This is a basic example, but it demonstrates the power of combining state and effects in a functional component.
-`;
-
-export function ChatUI({ sidebarOpen, setSidebarOpen, initialMessage, setRunSettingsOpen, conversation }: ChatUIProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export function ChatUI({ 
+  sidebarOpen, 
+  setSidebarOpen, 
+  initialMessage, 
+  setRunSettingsOpen,
+  conversationId 
+}: ChatUIProps) {
   const [input, setInput] = useState('');
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const router = useRouter();
 
+  // Validate conversation ID - must be a valid MongoDB ObjectId (24 hex chars)
+  const isValidConversationId = conversationId && /^[0-9a-fA-F]{24}$/.test(conversationId);
+
+  // Use the chat hook for all API interactions - Provider agnostic!
+  const {
+    conversation,
+    messages,
+    isLoading,
+    isSending,
+    isStreaming,
+    error,
+    sendMessage,
+    createNewChat,
+    clearError,
+    retryLastMessage,
+  } = useChat({
+    ...(isValidConversationId && { 
+      conversationId,
+      autoLoadMessages: true 
+    }),
+    ...(!isValidConversationId && {
+      autoLoadMessages: false
+    }),
+    streamingEnabled: true, // Works with Groq, LangChain, LangGraph - all providers
+  });
+
+  // Convert backend messages to UI format (filter out system messages)
+  const uiMessages: Message[] = messages
+    .filter(msg => msg.role !== 'system')
+    .map(msg => ({
+      id: msg._id,
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    }));
+
+  // Handle initial message (from homepage)
   useEffect(() => {
-    if (conversation) {
-      // Assuming the conversation object has a 'messages' array
-      // @ts-ignore
-      setMessages(conversation.messages || []);
-    } else if (initialMessage) {
+    if (initialMessage && !isValidConversationId) {
+      // Create new chat with the initial message
       handleSendMessage(initialMessage);
     }
-  }, [initialMessage, conversation]);
+  }, [initialMessage, isValidConversationId]);
 
-  const handleSendMessage = (message?: string) => {
+  const handleSendMessage = async (message?: string) => {
     const messageToSend = message || input;
-    if (messageToSend.trim()) {
-      const newUserMessage: Message = {
-        id: Date.now().toString(),
-        role: 'user',
-        content: messageToSend,
-      };
-      setMessages((prev) => [...prev, newUserMessage]);
-      setInput('');
-      simulateStreamingResponse();
-    }
-  };
+    if (!messageToSend.trim() || isCreatingChat) return;
 
-  const simulateStreamingResponse = () => {
-    const newAiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: '',
-    };
-    setMessages((prev) => [...prev, newAiMessage]);
+    setInput('');
 
-    let chunkIndex = 0;
-    const chunkSize = 20;
-    const interval = setInterval(() => {
-      if (chunkIndex < mockAiResponse.length) {
-        const chunk = mockAiResponse.substring(chunkIndex, chunkIndex + chunkSize);
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === newAiMessage.id ? { ...msg, content: msg.content + chunk } : msg
-          )
-        );
-        chunkIndex += chunkSize;
+    try {
+      if (!isValidConversationId) {
+        // First message: create conversation and send message in one API call
+        setIsCreatingChat(true);
+        const defaultModel = process.env.NEXT_PUBLIC_DEFAULT_MODEL || 'llama-3.1-70b-versatile';
+        
+        try {
+          const result = await chatAPI.sendNewChat({
+            content: messageToSend,
+            model: defaultModel,
+            config: {
+              temperature: 0.7,
+              maxTokens: 4096,
+              stream: false, // For first message, use non-streaming to ensure creation
+            },
+          });
+          
+          console.log('Conversation created:', result.conversation._id);
+          
+          // Navigate to the new conversation with the real MongoDB ObjectId
+          router.push(`/chat/${result.conversation._id}`);
+        } catch (err: any) {
+          console.error('Error creating conversation:', err);
+          setIsCreatingChat(false);
+          // Let error propagate to outer catch
+          throw err;
+        }
+        
+        setIsCreatingChat(false);
       } else {
-        clearInterval(interval);
+        // Existing conversation: just send message with streaming
+        await sendMessage(messageToSend);
       }
-    }, 50);
+    } catch (err: any) {
+      console.error('Error sending message:', err);
+      setIsCreatingChat(false);
+      // The error will be shown by the hook or we show it here
+    }
   };
 
   return (
     <div className="flex-1 flex flex-col bg-[#1b1c1d]">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-[#333537]">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded-lg hover:bg-[#333537] transition-colors"
+            aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <div className="flex items-center gap-2">
-            <h1 className="text-[#e8eaed] text-xl font-semibold">IntelliChat</h1>
-            <span className="text-xs px-2 py-0.5 bg-[#4285f4] text-white rounded-full">
-              PRO
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <h1 className="text-[#e8eaed] text-lg font-semibold max-w-md truncate">
+                {conversation?.title || 'New Chat'}
+              </h1>
+              <span className="text-xs px-2 py-0.5 bg-[#4285f4] text-white rounded-full font-medium">
+                PRO
+              </span>
+            </div>
+            {conversation && (
+              <>
+                <span className="text-[#5f6368]">•</span>
+                <span className="text-xs text-[#9aa0a6] font-mono">
+                  {conversation.model.split('/').pop() || conversation.model}
+                </span>
+              </>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => setRunSettingsOpen(true)} className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {conversation && conversation.totalTokens > 0 && (
+            <SimpleTooltip content={
+              <div className="text-xs space-y-1">
+                <div className="font-semibold mb-2">Token Usage</div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-[#9aa0a6]">Total tokens:</span>
+                  <span className="font-mono">{conversation.totalTokens.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-[#9aa0a6]">Messages:</span>
+                  <span className="font-mono">{conversation.messageCount}</span>
+                </div>
+                <div className="text-[#9aa0a6] pt-1 border-t border-[#333537] mt-2">
+                  Avg per message: {Math.round(conversation.totalTokens / conversation.messageCount)}
+                </div>
+              </div>
+            }>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[#2d2e30] rounded-lg hover:bg-[#333537] transition-colors cursor-help">
+                <Coins size={14} className="text-[#9aa0a6]" />
+                <span className="text-xs font-mono text-[#e8eaed]">
+                  {conversation.totalTokens.toLocaleString()}
+                </span>
+              </div>
+            </SimpleTooltip>
+          )}
+          <Button 
+            variant="ghost" 
+            onClick={() => setRunSettingsOpen(true)} 
+            className="flex items-center gap-2 hover:bg-[#333537]"
+            aria-label="Open settings"
+          >
             <Settings size={16} />
-            Settings
+            <span className="text-sm">Settings</span>
           </Button>
-          {/* <ModelSelector />
-          <button className="p-2 rounded-lg hover:bg-[#333537] transition-colors">
-            <div className="w-8 h-8 rounded-full bg-[#4285f4] flex items-center justify-center text-white font-semibold text-sm">
-              A
-            </div>
-          </button> */}
         </div>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="px-4 py-3 bg-red-900/20 border-b border-red-500/30 flex items-center justify-between animate-in slide-in-from-top">
+          <div className="flex items-center gap-3 text-red-300">
+            <AlertCircle size={18} className="flex-shrink-0" />
+            <div>
+              <div className="text-sm font-medium">Unable to connect</div>
+              <div className="text-xs text-red-400 mt-0.5">{error}</div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={retryLastMessage}
+              className="text-red-300 hover:text-red-200 hover:bg-red-900/30 text-xs px-3 py-1"
+            >
+              Retry
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearError}
+              className="text-red-300 hover:text-red-200 hover:bg-red-900/30 p-1"
+              aria-label="Dismiss error"
+            >
+              <X size={14} />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && messages.length === 0 && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-[#9aa0a6]">Loading conversation...</div>
+        </div>
+      )}
+
       {/* Message List */}
-      <MessageList messages={messages} />
+      {!isLoading || messages.length > 0 ? (
+        <MessageList messages={uiMessages} />
+      ) : null}
 
       {/* Chat Input */}
       <div className="w-full max-w-3xl mx-auto p-4">
         <ChatInput
           input={input}
           setInput={setInput}
-          handleSendMessage={handleSendMessage}
+          handleSendMessage={() => handleSendMessage()}
         />
+        {(isSending || isStreaming || isCreatingChat) && (
+          <div className="text-center text-xs text-[#9aa0a6] mt-2">
+            {isCreatingChat ? 'Creating conversation...' : isStreaming ? 'AI is responding...' : 'Sending message...'}
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+export default ChatUI;

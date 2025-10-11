@@ -1,44 +1,34 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams, useParams } from 'next/navigation';
-import { Sidebar } from '@/components/homepage/Sidebar';
+import { ConversationSidebar } from '@/components/chat/ConversationSidebar';
 import { ChatUI } from '@/components/chat/ChatUI';
-import { getConversationById } from '@/lib/conversation';
+import { RunSettingsSidebar } from '@/components/RunSettingsSidebar';
 
 export default function ChatPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [conversationSidebarOpen, setConversationSidebarOpen] = useState(true);
+  const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
   const searchParams = useSearchParams();
   const params = useParams();
   const initialMessage = searchParams.get('message');
-  const [conversation, setConversation] = useState(null);
-
-  useEffect(() => {
-    const fetchConversation = async () => {
-      try {
-        const data = await getConversationById(params.id as string);
-        setConversation(data.conversation);
-      } catch (error) {
-        console.error('Failed to fetch conversation:', error);
-      }
-    };
-
-    if (params.id) {
-      fetchConversation();
-    }
-  }, [params.id]);
-
-  const [runSettingsOpen, setRunSettingsOpen] = useState(false);
 
   return (
     <div className="bg-[#1b1c1d] text-[#e8eaed] h-screen flex font-sans">
-      <Sidebar sidebarOpen={sidebarOpen} />
+      <ConversationSidebar 
+        isOpen={conversationSidebarOpen}
+        currentConversationId={params.id as string}
+      />
       <ChatUI
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
+        sidebarOpen={conversationSidebarOpen}
+        setSidebarOpen={setConversationSidebarOpen}
         initialMessage={initialMessage}
-        conversation={conversation}
-        setRunSettingsOpen={setRunSettingsOpen}
+        conversationId={params.id as string}
+        setRunSettingsOpen={setConfigSidebarOpen}
+      />
+      <RunSettingsSidebar 
+        isOpen={configSidebarOpen}
+        onClose={() => setConfigSidebarOpen(false)}
       />
     </div>
   );

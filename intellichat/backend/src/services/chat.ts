@@ -550,6 +550,13 @@ export class ChatService {
   }
 
   private async checkTokenLimits(userId: string): Promise<void> {
+    // Check if token limit checking is enabled (can be disabled for development)
+    const enableTokenLimitCheck = process.env.ENABLE_TOKEN_LIMIT_CHECK !== 'false';
+    
+    if (!enableTokenLimitCheck) {
+      return; // Skip token limit check
+    }
+
     const user = await User.findById(userId);
     if (!user) {
       throw new NotFoundError('User not found');
