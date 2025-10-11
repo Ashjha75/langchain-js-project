@@ -26,7 +26,13 @@ export const authenticateJWT = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
+    let token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
+    
+    // For EventSource/SSE requests, check query params (EventSource can't send custom headers)
+    if (!token && req.query.token) {
+      token = req.query.token as string;
+      logger.info("Using token from query params for EventSource request");
+    }
 
     if (!token) {
       logger.securityEvent("Missing authentication token", "low", {

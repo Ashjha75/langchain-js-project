@@ -120,6 +120,12 @@ export function ChatUI({
       browserSearch: settings.builtInTools.browserSearch,
       codeInterpreter: settings.builtInTools.codeInterpreter,
     };
+    
+    console.log('📊 [ChatUI] Sending message with config:', {
+      settings: settings,
+      messageConfig: messageConfig,
+      browserSearchEnabled: settings.builtInTools.browserSearch,
+    });
 
     try {
       if (!isValidConversationId) {
