@@ -3,8 +3,8 @@
  * Comprehensive type definitions following best practices
  */
 
-import { Request } from 'express';
-import { Types } from 'mongoose';
+import type { Request } from "express";
+import { Types } from "mongoose";
 
 // ============================================================================
 // UTILITY TYPES
@@ -16,7 +16,7 @@ export interface PaginationQuery {
   page?: number;
   limit?: number;
   sort?: string;
-  order?: 'asc' | 'desc';
+  order?: "asc" | "desc";
 }
 
 export interface PaginationResult<T> {
@@ -32,7 +32,7 @@ export interface PaginationResult<T> {
 }
 
 export interface ApiResponse<T = any> {
-  status: 'success' | 'fail' | 'error';
+  status: "success" | "fail" | "error";
   message: string;
   data?: T;
   meta?: any;
@@ -50,16 +50,16 @@ export interface ErrorDetails {
 // USER TYPES
 // ============================================================================
 
-export type UserRole = 'user' | 'premium' | 'admin';
+export type UserRole = "user" | "premium" | "admin";
 
 export const UserRole = {
-  USER: 'user' as const,
-  PREMIUM: 'premium' as const,
-  ADMIN: 'admin' as const,
+  USER: "user" as const,
+  PREMIUM: "premium" as const,
+  ADMIN: "admin" as const,
 } as const;
-export type SubscriptionPlan = 'free' | 'pro' | 'enterprise';
-export type SubscriptionStatus = 'active' | 'cancelled' | 'expired';
-export type Theme = 'light' | 'dark' | 'auto';
+export type SubscriptionPlan = "free" | "pro" | "enterprise";
+export type SubscriptionStatus = "active" | "cancelled" | "expired";
+export type Theme = "light" | "dark" | "auto";
 
 export interface NotificationSettings {
   email: boolean;
@@ -146,17 +146,17 @@ export interface RegisterInput extends CreateUserInput {}
 // AUTH TYPES
 // ============================================================================
 
-export type Permission = 
-  | 'read:conversations'
-  | 'write:conversations'
-  | 'delete:conversations'
-  | 'read:messages'
-  | 'write:messages'
-  | 'delete:messages'
-  | 'read:tools'
-  | 'execute:tools'
-  | 'admin:users'
-  | 'admin:system';
+export type Permission =
+  | "read:conversations"
+  | "write:conversations"
+  | "delete:conversations"
+  | "read:messages"
+  | "write:messages"
+  | "delete:messages"
+  | "read:tools"
+  | "execute:tools"
+  | "admin:users"
+  | "admin:system";
 
 export interface AuthenticatedRequest extends Request {
   user: {
@@ -185,7 +185,7 @@ export interface IRefreshTokenPayload {
   exp: number;
 }
 
-export interface IUserWithoutPassword extends Omit<User, 'password'> {
+export interface IUserWithoutPassword extends Omit<User, "password"> {
   _id: ObjectId;
 }
 
@@ -193,7 +193,7 @@ export interface IUserWithoutPassword extends Omit<User, 'password'> {
 // CONVERSATION TYPES
 // ============================================================================
 
-export type ConversationStatus = 'active' | 'archived' | 'deleted';
+export type ConversationStatus = "active" | "archived" | "deleted";
 
 export interface ConversationSettings {
   model: string;
@@ -262,9 +262,9 @@ export interface UpdateConversationInput {
 // MESSAGE TYPES
 // ============================================================================
 
-export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
-export type ContentType = 'text' | 'markdown' | 'code' | 'image' | 'file';
-export type FinishReason = 'stop' | 'length' | 'tool_calls' | 'content_filter';
+export type MessageRole = "user" | "assistant" | "system" | "tool";
+export type ContentType = "text" | "markdown" | "code" | "image" | "file";
+export type FinishReason = "stop" | "length" | "tool_calls" | "content_filter";
 
 export interface TokenUsage {
   input: number;
@@ -304,7 +304,7 @@ export interface ToolCall {
 
 export interface UserReaction {
   userId: ObjectId;
-  type: 'like' | 'dislike' | 'love' | 'laugh' | 'angry';
+  type: "like" | "dislike" | "love" | "laugh" | "angry";
   timestamp: Date;
 }
 
@@ -358,9 +358,9 @@ export interface UpdateMessageInput {
 // TOOL TYPES
 // ============================================================================
 
-export type ToolCategory = 'search' | 'calculation' | 'code' | 'file' | 'api' | 'utility';
-export type RequiredRole = 'user' | 'premium' | 'admin';
-export type Environment = 'node' | 'browser' | 'both';
+export type ToolCategory = "search" | "calculation" | "code" | "file" | "api" | "utility";
+export type RequiredRole = "user" | "premium" | "admin";
+export type Environment = "node" | "browser" | "both";
 
 export interface RateLimit {
   maxCalls: number;
@@ -369,7 +369,7 @@ export interface RateLimit {
 
 export interface ToolParameter {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  type: "string" | "number" | "boolean" | "object" | "array";
   description: string;
   required: boolean;
   default?: any;
@@ -435,7 +435,7 @@ export interface CreateToolInput {
 // CONTEXT TYPES
 // ============================================================================
 
-export type ContextType = 'session' | 'conversation' | 'user' | 'knowledge' | 'tool' | 'temporal';
+export type ContextType = "session" | "conversation" | "user" | "knowledge" | "tool" | "temporal";
 
 export interface SessionInfo {
   sessionStart: Date;
@@ -513,7 +513,7 @@ export interface Context {
 // SESSION TYPES
 // ============================================================================
 
-export type SessionStatus = 'active' | 'inactive' | 'expired';
+export type SessionStatus = "active" | "inactive" | "expired";
 
 export interface DeviceInfo {
   userAgent: string;
@@ -538,7 +538,7 @@ export interface SessionSecurity {
 }
 
 export interface SessionPreferences {
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
   language: string;
 }
 
@@ -632,13 +632,13 @@ export interface ValidationSchema {
 // ============================================================================
 
 export interface HealthStatus {
-  status: 'healthy' | 'unhealthy' | 'degraded';
+  status: "healthy" | "unhealthy" | "degraded";
   timestamp: string;
   uptime: number;
   checks: {
-    database: 'up' | 'down';
-    redis: 'up' | 'down';
-    external: 'up' | 'down';
+    database: "up" | "down";
+    redis: "up" | "down";
+    external: "up" | "down";
   };
   details?: any;
 }
@@ -666,9 +666,8 @@ export interface SocketMessage {
 // EXPORT ALL TYPES
 // ============================================================================
 
-export type {
-  // Add any additional type exports here
-};
+export // Add any additional type exports here
+ type {};
 
 // Type guards
 export const isValidObjectId = (id: any): id is ObjectId => {
@@ -676,13 +675,13 @@ export const isValidObjectId = (id: any): id is ObjectId => {
 };
 
 export const isUser = (obj: any): obj is User => {
-  return obj && typeof obj._id !== 'undefined' && typeof obj.email === 'string';
+  return obj && typeof obj._id !== "undefined" && typeof obj.email === "string";
 };
 
 export const isMessage = (obj: any): obj is Message => {
-  return obj && typeof obj._id !== 'undefined' && typeof obj.content === 'string';
+  return obj && typeof obj._id !== "undefined" && typeof obj.content === "string";
 };
 
 export const isConversation = (obj: any): obj is Conversation => {
-  return obj && typeof obj._id !== 'undefined' && typeof obj.title === 'string';
+  return obj && typeof obj._id !== "undefined" && typeof obj.title === "string";
 };

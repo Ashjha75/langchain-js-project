@@ -125,7 +125,10 @@ export default function GeminiHomePage() {
           </div>
           
           <div className="flex items-center gap-2">
-            <ModelSelector />
+            <ModelSelector 
+              value={""} 
+              onChange={() => {}} 
+            />
             <button className="p-2 rounded-lg hover:bg-[#21262d] transition-colors">
               <MessageSquareIcon className="w-5 h-5" />
             </button>

@@ -1,7 +1,7 @@
-import winston from 'winston';
-import path from 'path';
-import fs from 'fs';
-import { CONFIG } from '@/config';
+import winston from "winston";
+import path from "path";
+import fs from "fs";
+import { CONFIG } from "@/config";
 
 /**
  * Professional Logging System for IntelliChat Backend
@@ -21,21 +21,21 @@ if (!fs.existsSync(logDir)) {
 
 // Custom log format for development
 const developmentFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.errors({ stack: true }),
   winston.format.colorize({ all: true }),
   winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
     let log = `${timestamp} [${level}]: ${message}`;
-    
+
     // Add stack trace for errors
     if (stack) {
       log += `\n${stack}`;
     }
-    
+
     // Add metadata if present
-    const metaStr = Object.keys(meta).length > 0 ? `\n${JSON.stringify(meta, null, 2)}` : '';
+    const metaStr = Object.keys(meta).length > 0 ? `\n${JSON.stringify(meta, null, 2)}` : "";
     return log + metaStr;
-  })
+  }),
 );
 
 // Custom log format for production
@@ -55,7 +55,7 @@ const productionFormat = winston.format.combine(
       logObj.stack = stack;
     }
     return JSON.stringify(logObj);
-  })
+  }),
 );
 
 // File transport for application logs
@@ -71,7 +71,7 @@ const fileTransport = new winston.transports.File({
 const errorFileTransport = new winston.transports.File({
   filename: CONFIG.logging.file.errorPath,
   format: productionFormat,
-  level: 'error',
+  level: "error",
   maxsize: 10 * 1024 * 1024, // 10MB
   maxFiles: 5,
 });
@@ -106,16 +106,16 @@ if (CONFIG.logging.file.enabled) {
 // Handle uncaught exceptions and rejections
 logger.exceptions.handle(
   new winston.transports.File({
-    filename: path.join(logDir, 'exceptions.log'),
+    filename: path.join(logDir, "exceptions.log"),
     format: productionFormat,
-  })
+  }),
 );
 
 logger.rejections.handle(
   new winston.transports.File({
-    filename: path.join(logDir, 'rejections.log'),
+    filename: path.join(logDir, "rejections.log"),
     format: productionFormat,
-  })
+  }),
 );
 
 /**
@@ -136,7 +136,7 @@ export class Logger {
   }
 
   error(message: string, error?: Error | any, meta: any = {}) {
-    this.log('error', message, {
+    this.log("error", message, {
       error: error?.message || error,
       stack: error?.stack,
       ...meta,
@@ -144,42 +144,42 @@ export class Logger {
   }
 
   warn(message: string, meta: any = {}) {
-    this.log('warn', message, meta);
+    this.log("warn", message, meta);
   }
 
   info(message: string, meta: any = {}) {
-    this.log('info', message, meta);
+    this.log("info", message, meta);
   }
 
   http(message: string, meta: any = {}) {
-    this.log('http', message, meta);
+    this.log("http", message, meta);
   }
 
   verbose(message: string, meta: any = {}) {
-    this.log('verbose', message, meta);
+    this.log("verbose", message, meta);
   }
 
   debug(message: string, meta: any = {}) {
-    this.log('debug', message, meta);
+    this.log("debug", message, meta);
   }
 
   silly(message: string, meta: any = {}) {
-    this.log('silly', message, meta);
+    this.log("silly", message, meta);
   }
 
   // Specialized logging methods
   apiRequest(req: any, meta: any = {}) {
-    this.http('API Request', {
+    this.http("API Request", {
       method: req.method,
       url: req.url,
-      userAgent: req.get('User-Agent'),
+      userAgent: req.get("User-Agent"),
       ip: req.ip,
       ...meta,
     });
   }
 
   apiResponse(req: any, res: any, responseTime: number, meta: any = {}) {
-    this.http('API Response', {
+    this.http("API Response", {
       method: req.method,
       url: req.url,
       statusCode: res.statusCode,
@@ -189,7 +189,7 @@ export class Logger {
   }
 
   databaseQuery(operation: string, collection: string, duration: number, meta: any = {}) {
-    this.debug('Database Query', {
+    this.debug("Database Query", {
       operation,
       collection,
       duration: `${duration}ms`,
@@ -198,7 +198,7 @@ export class Logger {
   }
 
   aiRequest(model: string, tokens: number, duration: number, meta: any = {}) {
-    this.info('AI Request', {
+    this.info("AI Request", {
       model,
       tokens,
       duration: `${duration}ms`,
@@ -207,7 +207,7 @@ export class Logger {
   }
 
   toolExecution(toolName: string, success: boolean, duration: number, meta: any = {}) {
-    this.info('Tool Execution', {
+    this.info("Tool Execution", {
       tool: toolName,
       success,
       duration: `${duration}ms`,
@@ -215,8 +215,8 @@ export class Logger {
     });
   }
 
-  securityEvent(event: string, severity: 'low' | 'medium' | 'high' | 'critical', meta: any = {}) {
-    const level = severity === 'critical' || severity === 'high' ? 'error' : 'warn';
+  securityEvent(event: string, severity: "low" | "medium" | "high" | "critical", meta: any = {}) {
+    const level = severity === "critical" || severity === "high" ? "error" : "warn";
     this.log(level, `Security Event: ${event}`, {
       security: true,
       severity,
@@ -225,7 +225,7 @@ export class Logger {
   }
 
   performance(operation: string, duration: number, meta: any = {}) {
-    const level = duration > CONFIG.performance.timeout.slowThreshold ? 'warn' : 'info';
+    const level = duration > CONFIG.performance.timeout.slowThreshold ? "warn" : "info";
     this.log(level, `Performance: ${operation}`, {
       performance: true,
       duration: `${duration}ms`,
@@ -273,7 +273,7 @@ export class RequestLogger extends Logger {
   }
 
   override error(message: string, error?: Error | any, meta: any = {}) {
-    this.logWithRequestId('error', message, {
+    this.logWithRequestId("error", message, {
       error: error?.message || error,
       stack: error?.stack,
       ...meta,
@@ -281,15 +281,15 @@ export class RequestLogger extends Logger {
   }
 
   override warn(message: string, meta: any = {}) {
-    this.logWithRequestId('warn', message, meta);
+    this.logWithRequestId("warn", message, meta);
   }
 
   override info(message: string, meta: any = {}) {
-    this.logWithRequestId('info', message, meta);
+    this.logWithRequestId("info", message, meta);
   }
 
   override debug(message: string, meta: any = {}) {
-    this.logWithRequestId('debug', message, meta);
+    this.logWithRequestId("debug", message, meta);
   }
 }
 

@@ -4,7 +4,7 @@
  */
 
 export interface AIMessage {
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp?: Date;
   metadata?: Record<string, any>;
@@ -51,30 +51,30 @@ export interface ConversationContext {
 export interface AIProvider {
   name: string;
   version: string;
-  
+
   // Core methods
   generateResponse(context: ConversationContext): Promise<AIResponse>;
   generateStreamResponse(context: ConversationContext): AsyncGenerator<StreamChunk, void, unknown>;
-  
+
   // Model management
   listModels(): Promise<string[]>;
   validateModel(model: string): Promise<boolean>;
-  
+
   // Health check
   healthCheck(): Promise<boolean>;
-  
+
   // Token estimation
   estimateTokens(messages: AIMessage[]): Promise<number>;
 }
 
 export enum AIProviderType {
-  GROQ = 'groq',
-  LANGCHAIN = 'langchain',
-  LANGGRAPH = 'langgraph',
-  LLAMAINDEX = 'llamaindex',
-  GOOGLE_AI = 'google-ai',
-  OPENAI = 'openai',
-  ANTHROPIC = 'anthropic'
+  GROQ = "groq",
+  LANGCHAIN = "langchain",
+  LANGGRAPH = "langgraph",
+  LLAMAINDEX = "llamaindex",
+  GOOGLE_AI = "google-ai",
+  OPENAI = "openai",
+  ANTHROPIC = "anthropic",
 }
 
 export interface ProviderFactory {
@@ -88,10 +88,10 @@ export class AIProviderError extends Error {
     message: string,
     public provider: string,
     public code?: string,
-    public details?: any
+    public details?: any,
   ) {
     super(message);
-    this.name = 'AIProviderError';
+    this.name = "AIProviderError";
   }
 }
 
@@ -100,9 +100,9 @@ export class TokenLimitError extends AIProviderError {
     message: string,
     provider: string,
     public requestedTokens: number,
-    public maxTokens: number
+    public maxTokens: number,
   ) {
-    super(message, provider, 'TOKEN_LIMIT_EXCEEDED');
+    super(message, provider, "TOKEN_LIMIT_EXCEEDED");
   }
 }
 
@@ -110,8 +110,8 @@ export class ModelNotFoundError extends AIProviderError {
   constructor(
     message: string,
     provider: string,
-    public model: string
+    public model: string,
   ) {
-    super(message, provider, 'MODEL_NOT_FOUND');
+    super(message, provider, "MODEL_NOT_FOUND");
   }
 }

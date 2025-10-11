@@ -3,20 +3,20 @@
  * Sets up Express server with all middleware, routes, and configurations
  */
 
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import { CONFIG } from '@/config';
-import { createLogger } from '@/utils/logger';
-import { globalErrorHandler } from '@/utils/errorHandler';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import { CONFIG } from "@/config";
+import { createLogger } from "@/utils/logger";
+import { globalErrorHandler } from "@/utils/errorHandler";
 
 // Routes
-import { authRoutes } from '@/routes/auth';
-import { chatRoutes } from '@/routes/chat';
-import { modelsRoutes } from '@/routes/models';
+import { authRoutes } from "@/routes/auth";
+import { chatRoutes } from "@/routes/chat";
+import { modelsRoutes } from "@/routes/models";
 
-const logger = createLogger('Application');
+const logger = createLogger("Application");
 
 class Application {
   public app: express.Application;
@@ -25,7 +25,7 @@ class Application {
   constructor() {
     this.app = express();
     this.port = CONFIG.app.port;
-    
+
     this.initializeMiddleware();
     this.initializeRoutes();
     this.initializeErrorHandling();
@@ -35,52 +35,54 @@ class Application {
     // Basic Express middleware
     this.app.use(helmet()); // Security headers
     this.app.use(compression()); // Gzip compression
-    this.app.use(express.json({ limit: '10mb' })); // JSON body parser
-    this.app.use(express.urlencoded({ extended: true, limit: '10mb' })); // URL-encoded body parser
+    this.app.use(express.json({ limit: "10mb" })); // JSON body parser
+    this.app.use(express.urlencoded({ extended: true, limit: "10mb" })); // URL-encoded body parser
 
-    // CORS configuration  
-    this.app.use(cors({
-      origin: process.env.CORS_ORIGIN || '*',
-      credentials: true,
-      optionsSuccessStatus: 200
-    }));
+    // CORS configuration
+    this.app.use(
+      cors({
+        origin: process.env.CORS_ORIGIN || "*",
+        credentials: true,
+        optionsSuccessStatus: 200,
+      }),
+    );
 
-    logger.info('Middleware initialized successfully');
+    logger.info("Middleware initialized successfully");
   }
 
   private initializeRoutes(): void {
     // Health check endpoint
-    this.app.get('/health', (_req, res) => {
+    this.app.get("/health", (_req, res) => {
       res.json({
-        status: 'healthy',
+        status: "healthy",
         timestamp: new Date().toISOString(),
-        version: process.env.npm_package_version || '1.0.0',
-        environment: CONFIG.app.env
+        version: process.env.npm_package_version || "1.0.0",
+        environment: CONFIG.app.env,
       });
     });
 
     // API routes
-    this.app.use('/api/auth', authRoutes);
-    this.app.use('/api/chat', chatRoutes);
-    this.app.use('/api/models', modelsRoutes);
+    this.app.use("/api/auth", authRoutes);
+    this.app.use("/api/chat", chatRoutes);
+    this.app.use("/api/models", modelsRoutes);
 
     // 404 handler
-    this.app.use('*', (req, res) => {
+    this.app.use("*", (req, res) => {
       res.status(404).json({
-        status: 'error',
-        message: 'Endpoint not found',
+        status: "error",
+        message: "Endpoint not found",
         statusCode: 404,
         timestamp: new Date().toISOString(),
-        path: req.originalUrl
+        path: req.originalUrl,
       });
     });
 
-    logger.info('Routes initialized successfully');
+    logger.info("Routes initialized successfully");
   }
 
   private initializeErrorHandling(): void {
     this.app.use(globalErrorHandler);
-    logger.info('Error handling initialized successfully');
+    logger.info("Error handling initialized successfully");
   }
 
   public async start(): Promise<void> {
@@ -91,17 +93,16 @@ class Application {
           port: this.port,
           environment: CONFIG.app.env,
           node_version: process.version,
-          pid: process.pid
+          pid: process.pid,
         });
       });
 
       // Graceful shutdown handling
       this.setupGracefulShutdown();
-
     } catch (error) {
-      logger.error('Failed to start application', {
+      logger.error("Failed to start application", {
         error: (error as Error).message,
-        stack: (error as Error).stack
+        stack: (error as Error).stack,
       });
       process.exit(1);
     }
@@ -113,22 +114,22 @@ class Application {
       process.exit(0);
     };
 
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
     // Handle unhandled promise rejections
-    process.on('unhandledRejection', (reason, promise) => {
-      logger.error('Unhandled Rejection at:', {
+    process.on("unhandledRejection", (reason, promise) => {
+      logger.error("Unhandled Rejection at:", {
         promise,
-        reason
+        reason,
       });
     });
 
     // Handle uncaught exceptions
-    process.on('uncaughtException', (error) => {
-      logger.error('Uncaught Exception:', {
+    process.on("uncaughtException", (error) => {
+      logger.error("Uncaught Exception:", {
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
       process.exit(1);
     });
@@ -140,9 +141,9 @@ const application = new Application();
 
 if (require.main === module) {
   application.start().catch((error) => {
-    logger.error('Application startup failed', {
+    logger.error("Application startup failed", {
       error: error.message,
-      stack: error.stack
+      stack: error.stack,
     });
     process.exit(1);
   });

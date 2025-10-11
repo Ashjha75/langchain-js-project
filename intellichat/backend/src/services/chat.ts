@@ -3,26 +3,16 @@
  * Business logic for chat operations, AI interactions, and token management
  */
 
-import { Types } from 'mongoose';
-import { createLogger } from '@/utils/logger';
-import { getCurrentProvider } from '@/ai/factory';
-import { 
-  Conversation, 
-  Message, 
-  TokenUsage, 
-  ChatHistory
-} from '@/models';
-import { User } from '@/models/user';
-import {
-  AIMessage,
-  StreamChunk,
-  ConversationContext,
-  AIConfig,
-  TokenLimitError
-} from '@/ai/interfaces';
-import { ValidationError, NotFoundError, } from '@/utils/errorHandler';
+import { Types } from "mongoose";
+import { createLogger } from "@/utils/logger";
+import { getCurrentProvider } from "@/ai/factory";
+import { Conversation, Message, TokenUsage, ChatHistory } from "@/models";
+import { User } from "@/models/user";
+import type { AIMessage, StreamChunk, ConversationContext, AIConfig } from "@/ai/interfaces";
+import { TokenLimitError } from "@/ai/interfaces";
+import { ValidationError, NotFoundError } from "@/utils/errorHandler";
 
-const logger = createLogger('ChatService');
+const logger = createLogger("ChatService");
 
 export interface CreateConversationRequest {
   userId: string;
@@ -37,7 +27,7 @@ export interface SendMessageRequest {
   userId: string;
   content: string;
   attachments?: Array<{
-    type: 'file' | 'image' | 'url';
+    type: "file" | "image" | "url";
     content: string;
     metadata?: Record<string, any>;
   }>;
@@ -47,7 +37,7 @@ export interface ConversationListOptions {
   userId: string;
   page: number;
   limit: number;
-  status?: 'active' | 'archived' | 'deleted';
+  status?: "active" | "archived" | "deleted";
   search?: string;
 }
 
@@ -69,16 +59,16 @@ export class ChatService {
 
   async createConversation(request: CreateConversationRequest): Promise<any> {
     try {
-      logger.info('Creating new conversation', {
+      logger.info("Creating new conversation", {
         userId: request.userId,
         model: request.model,
-        title: request.title
+        title: request.title,
       });
 
       // Verify user exists and has permissions
       const user = await User.findById(request.userId);
       if (!user) {
-        throw new NotFoundError('User not found');
+        throw new NotFoundError("User not found");
       }
 
       // Check if model is valid
@@ -90,15 +80,15 @@ export class ChatService {
       // Create conversation
       const conversation = new Conversation({
         userId: new Types.ObjectId(request.userId),
-        title: request.title || 'New Conversation',
+        title: request.title || "New Conversation",
         model: request.model,
         systemPrompt: request.systemPrompt,
         config: {
           temperature: request.config?.temperature ?? 0.7,
           maxTokens: request.config?.maxTokens ?? 2048,
           topP: request.config?.topP ?? 0.9,
-          stream: request.config?.stream ?? true
-        }
+          stream: request.config?.stream ?? true,
+        },
       });
 
       await conversation.save();
@@ -106,16 +96,16 @@ export class ChatService {
       // Update user's chat history
       await this.updateChatHistory(request.userId, conversation);
 
-      logger.info('Conversation created successfully', {
+      logger.info("Conversation created successfully", {
         conversationId: conversation._id,
-        userId: request.userId
+        userId: request.userId,
       });
 
       return conversation;
     } catch (error) {
-      logger.error('Error creating conversation', {
+      logger.error("Error creating conversation", {
         error: (error as Error).message,
-        userId: request.userId
+        userId: request.userId,
       });
       throw error;
     }
@@ -125,11 +115,11 @@ export class ChatService {
     const conversation = await Conversation.findOne({
       _id: conversationId,
       userId: new Types.ObjectId(userId),
-      status: { $ne: 'deleted' }
+      status: { $ne: "deleted" },
     });
 
     if (!conversation) {
-      throw new NotFoundError('Conversation not found');
+      throw new NotFoundError("Conversation not found");
     }
 
     return conversation;
@@ -141,21 +131,15 @@ export class ChatService {
     page: number;
     totalPages: number;
   }> {
-    const {
-      userId,
-      page = 1,
-      limit = 20,
-      status = 'active',
-      search
-    } = options;
+    const { userId, page = 1, limit = 20, status = "active", search } = options;
 
     const query: any = {
       userId: new Types.ObjectId(userId),
-      status
+      status,
     };
 
     if (search) {
-      query.title = { $regex: search, $options: 'i' };
+      query.title = { $regex: search, $options: "i" };
     }
 
     const skip = (page - 1) * limit;
@@ -166,34 +150,34 @@ export class ChatService {
         .skip(skip)
         .limit(limit)
         .lean(),
-      Conversation.countDocuments(query)
+      Conversation.countDocuments(query),
     ]);
 
     return {
       conversations,
       total,
       page,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
   async updateConversation(
     conversationId: string,
     userId: string,
-    updates: Partial<Pick<any, 'title' | 'systemPrompt' | 'config'>>
+    updates: Partial<Pick<any, "title" | "systemPrompt" | "config">>,
   ): Promise<any> {
     const conversation = await Conversation.findOneAndUpdate(
       {
         _id: conversationId,
         userId: new Types.ObjectId(userId),
-        status: { $ne: 'deleted' }
+        status: { $ne: "deleted" },
       },
       { $set: updates },
-      { new: true }
+      { new: true },
     );
 
     if (!conversation) {
-      throw new NotFoundError('Conversation not found');
+      throw new NotFoundError("Conversation not found");
     }
 
     return conversation;
@@ -203,13 +187,13 @@ export class ChatService {
     const result = await Conversation.findOneAndUpdate(
       {
         _id: conversationId,
-        userId: new Types.ObjectId(userId)
+        userId: new Types.ObjectId(userId),
       },
-      { $set: { status: 'deleted' } }
+      { $set: { status: "deleted" } },
     );
 
     if (!result) {
-      throw new NotFoundError('Conversation not found');
+      throw new NotFoundError("Conversation not found");
     }
 
     // Update chat history
@@ -217,8 +201,8 @@ export class ChatService {
       { userId: new Types.ObjectId(userId) },
       {
         $pull: { conversations: { conversationId: new Types.ObjectId(conversationId) } },
-        $inc: { totalConversations: -1 }
-      }
+        $inc: { totalConversations: -1 },
+      },
     );
   }
 
@@ -228,10 +212,10 @@ export class ChatService {
 
   async sendMessage(request: SendMessageRequest): Promise<any> {
     try {
-      logger.info('Processing message', {
+      logger.info("Processing message", {
         conversationId: request.conversationId,
         userId: request.userId,
-        contentLength: request.content.length
+        contentLength: request.content.length,
       });
 
       // Get conversation and verify access
@@ -243,14 +227,14 @@ export class ChatService {
       // Create user message
       const userMessage = new Message({
         conversationId: new Types.ObjectId(request.conversationId),
-        role: 'user',
+        role: "user",
         content: request.content,
         attachments: request.attachments,
         tokens: {
           prompt: 0,
           completion: 0,
-          total: 0
-        }
+          total: 0,
+        },
       });
 
       await userMessage.save();
@@ -259,10 +243,10 @@ export class ChatService {
       const messages = await this.getConversationMessages(request.conversationId);
 
       // Prepare AI context
-      const aiMessages: AIMessage[] = messages.map(msg => ({
+      const aiMessages: AIMessage[] = messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
-        timestamp: msg.createdAt
+        timestamp: msg.createdAt,
       }));
 
       const context: ConversationContext = {
@@ -275,8 +259,10 @@ export class ChatService {
           maxTokens: conversation.config.maxTokens,
           topP: conversation.config.topP,
           stream: false,
-          systemPrompt: conversation.systemPrompt || 'You are a helpful assistant. Please format your response in Markdown.'
-        }
+          systemPrompt:
+            conversation.systemPrompt ||
+            "You are a helpful assistant. Please format your response in Markdown.",
+        },
       };
 
       // Generate AI response
@@ -285,20 +271,20 @@ export class ChatService {
       // Create assistant message
       const assistantMessage = new Message({
         conversationId: new Types.ObjectId(request.conversationId),
-        role: 'assistant',
+        role: "assistant",
         content: aiResponse.content,
         tokens: {
           prompt: aiResponse.usage?.promptTokens || 0,
           completion: aiResponse.usage?.completionTokens || 0,
-          total: aiResponse.usage?.totalTokens || 0
+          total: aiResponse.usage?.totalTokens || 0,
         },
         metadata: {
           model: conversation.model,
           provider: this.aiProvider.name,
           finishReason: aiResponse.finishReason,
-          contentType: 'markdown',  // 👈 Add content type indicator
-          timestamp: new Date()
-        }
+          contentType: "markdown", // 👈 Add content type indicator
+          timestamp: new Date(),
+        },
       });
 
       await assistantMessage.save();
@@ -307,11 +293,11 @@ export class ChatService {
       await Conversation.findByIdAndUpdate(conversation._id, {
         $inc: {
           messageCount: 2,
-          totalTokens: aiResponse.usage?.totalTokens || 0
+          totalTokens: aiResponse.usage?.totalTokens || 0,
         },
         $set: {
-          lastMessageAt: new Date()
-        }
+          lastMessageAt: new Date(),
+        },
       });
 
       // Record token usage
@@ -322,48 +308,50 @@ export class ChatService {
           messageId: assistantMessage._id.toString(),
           provider: this.aiProvider.name,
           model: conversation.model,
-          operation: 'chat',
+          operation: "chat",
           tokens: aiResponse.usage,
-        metadata: {
-          model: conversation.model,
-          provider: this.aiProvider.name,
-          finishReason: aiResponse.finishReason,
-          contentType: 'markdown',
-          timestamp: new Date()
-        }
-      });
+          metadata: {
+            model: conversation.model,
+            provider: this.aiProvider.name,
+            finishReason: aiResponse.finishReason,
+            contentType: "markdown",
+            timestamp: new Date(),
+          },
+        });
       }
 
       // Update user's subscription usage
       await User.findByIdAndUpdate(request.userId, {
         $inc: {
-          'subscription.tokensUsed': aiResponse.usage?.totalTokens || 0
-        }
+          "subscription.tokensUsed": aiResponse.usage?.totalTokens || 0,
+        },
       });
 
-      logger.info('Message processed successfully', {
+      logger.info("Message processed successfully", {
         conversationId: request.conversationId,
         userMessageId: userMessage._id,
         assistantMessageId: assistantMessage._id,
-        tokensUsed: aiResponse.usage?.totalTokens
+        tokensUsed: aiResponse.usage?.totalTokens,
       });
 
       return assistantMessage;
     } catch (error) {
-      logger.error('Error processing message', {
+      logger.error("Error processing message", {
         error: (error as Error).message,
         conversationId: request.conversationId,
-        userId: request.userId
+        userId: request.userId,
       });
       throw error;
     }
   }
 
-  async* sendMessageStream(request: SendMessageRequest): AsyncGenerator<StreamChunk, void, unknown> {
+  async *sendMessageStream(
+    request: SendMessageRequest,
+  ): AsyncGenerator<StreamChunk, void, unknown> {
     try {
-      logger.info('Starting streaming message', {
+      logger.info("Starting streaming message", {
         conversationId: request.conversationId,
-        userId: request.userId
+        userId: request.userId,
       });
 
       // Get conversation and verify access
@@ -375,20 +363,20 @@ export class ChatService {
       // Create user message
       const userMessage = new Message({
         conversationId: new Types.ObjectId(request.conversationId),
-        role: 'user',
+        role: "user",
         content: request.content,
         attachments: request.attachments,
-        tokens: { prompt: 0, completion: 0, total: 0 }
+        tokens: { prompt: 0, completion: 0, total: 0 },
       });
 
       await userMessage.save();
 
       // Get conversation history
       const messages = await this.getConversationMessages(request.conversationId);
-      const aiMessages: AIMessage[] = messages.map(msg => ({
+      const aiMessages: AIMessage[] = messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
-        timestamp: msg.createdAt
+        timestamp: msg.createdAt,
       }));
 
       const context: ConversationContext = {
@@ -401,12 +389,12 @@ export class ChatService {
           maxTokens: conversation.config.maxTokens,
           topP: conversation.config.topP,
           stream: true,
-          ...(conversation.systemPrompt && { systemPrompt: conversation.systemPrompt })
-        }
+          ...(conversation.systemPrompt && { systemPrompt: conversation.systemPrompt }),
+        },
       };
 
       let assistantMessage: any | null = null;
-      let finalContent = '';
+      let finalContent = "";
 
       // Stream AI response
       for await (const chunk of this.aiProvider.generateStreamResponse(context)) {
@@ -418,18 +406,18 @@ export class ChatService {
           // Create assistant message with final content
           assistantMessage = new Message({
             conversationId: new Types.ObjectId(request.conversationId),
-            role: 'assistant',
+            role: "assistant",
             content: finalContent,
             tokens: {
               prompt: chunk.usage?.promptTokens || 0,
               completion: chunk.usage?.completionTokens || 0,
-              total: chunk.usage?.totalTokens || 0
+              total: chunk.usage?.totalTokens || 0,
             },
             metadata: {
               model: conversation.model,
               provider: this.aiProvider.name,
-              timestamp: new Date()
-            }
+              timestamp: new Date(),
+            },
           });
 
           await assistantMessage.save();
@@ -439,9 +427,9 @@ export class ChatService {
             Conversation.findByIdAndUpdate(conversation._id, {
               $inc: {
                 messageCount: 2,
-                totalTokens: chunk.usage?.totalTokens || 0
+                totalTokens: chunk.usage?.totalTokens || 0,
               },
-              $set: { lastMessageAt: new Date() }
+              $set: { lastMessageAt: new Date() },
             }),
             this.recordTokenUsage({
               userId: request.userId,
@@ -449,29 +437,29 @@ export class ChatService {
               messageId: assistantMessage._id.toString(),
               provider: this.aiProvider.name,
               model: conversation.model,
-              operation: 'chat',
+              operation: "chat",
               tokens: chunk.usage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
               metadata: {
                 requestId: (request as any).requestId,
-                timestamp: new Date()
-              }
+                timestamp: new Date(),
+              },
             }),
             User.findByIdAndUpdate(request.userId, {
-              $inc: { 'subscription.tokensUsed': chunk.usage?.totalTokens || 0 }
-            })
+              $inc: { "subscription.tokensUsed": chunk.usage?.totalTokens || 0 },
+            }),
           ]);
         }
       }
 
-      logger.info('Streaming message completed', {
+      logger.info("Streaming message completed", {
         conversationId: request.conversationId,
         messageId: assistantMessage?._id,
-        contentLength: finalContent.length
+        contentLength: finalContent.length,
       });
     } catch (error) {
-      logger.error('Error in streaming message', {
+      logger.error("Error in streaming message", {
         error: (error as Error).message,
-        conversationId: request.conversationId
+        conversationId: request.conversationId,
       });
       throw error;
     }
@@ -480,20 +468,17 @@ export class ChatService {
   async getConversationMessages(
     conversationId: string,
     limit: number = 50,
-    before?: string
+    before?: string,
   ): Promise<any[]> {
     const query: any = {
-      conversationId: new Types.ObjectId(conversationId)
+      conversationId: new Types.ObjectId(conversationId),
     };
 
     if (before) {
       query._id = { $lt: new Types.ObjectId(before) };
     }
 
-    return Message.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
+    return Message.find(query).sort({ createdAt: -1 }).limit(limit).lean();
   }
 
   // ============================================================================
@@ -503,7 +488,7 @@ export class ChatService {
   async getTokenUsageStats(userId: string): Promise<TokenUsageStats> {
     const user = await User.findById(userId);
     if (!user) {
-      throw new NotFoundError('User not found');
+      throw new NotFoundError("User not found");
     }
 
     const startOfMonth = new Date();
@@ -515,28 +500,28 @@ export class ChatService {
         {
           $match: {
             userId: new Types.ObjectId(userId),
-            createdAt: { $gte: startOfMonth }
-          }
+            createdAt: { $gte: startOfMonth },
+          },
         },
         {
           $group: {
             _id: null,
-            totalTokens: { $sum: '$tokens.total' }
-          }
-        }
+            totalTokens: { $sum: "$tokens.total" },
+          },
+        },
       ]),
       Conversation.countDocuments({
         userId: new Types.ObjectId(userId),
-        status: 'active'
+        status: "active",
       }),
       Message.countDocuments({
         conversationId: {
           $in: await Conversation.find({
             userId: new Types.ObjectId(userId),
-            status: 'active'
-          }).distinct('_id')
-        }
-      })
+            status: "active",
+          }).distinct("_id"),
+        },
+      }),
     ]);
 
     return {
@@ -545,29 +530,29 @@ export class ChatService {
       tokensRemaining: user.subscription.tokensLimit - user.subscription.tokensUsed,
       monthlyUsage: monthlyUsage[0]?.totalTokens || 0,
       conversationCount,
-      messageCount
+      messageCount,
     };
   }
 
   private async checkTokenLimits(userId: string): Promise<void> {
     // Check if token limit checking is enabled (can be disabled for development)
-    const enableTokenLimitCheck = process.env.ENABLE_TOKEN_LIMIT_CHECK !== 'false';
-    
+    const enableTokenLimitCheck = process.env.ENABLE_TOKEN_LIMIT_CHECK !== "false";
+
     if (!enableTokenLimitCheck) {
       return; // Skip token limit check
     }
 
     const user = await User.findById(userId);
     if (!user) {
-      throw new NotFoundError('User not found');
+      throw new NotFoundError("User not found");
     }
 
     if (user.subscription.tokensUsed >= user.subscription.tokensLimit) {
       throw new TokenLimitError(
-        'Token limit exceeded. Please upgrade your plan.',
-        'service',
+        "Token limit exceeded. Please upgrade your plan.",
+        "service",
         user.subscription.tokensUsed,
-        user.subscription.tokensLimit
+        user.subscription.tokensLimit,
       );
     }
   }
@@ -592,9 +577,9 @@ export class ChatService {
       tokens: {
         prompt: data.tokens.promptTokens,
         completion: data.tokens.completionTokens,
-        total: data.tokens.totalTokens
+        total: data.tokens.totalTokens,
       },
-      metadata: data.metadata
+      metadata: data.metadata,
     });
 
     await tokenUsage.save();
@@ -608,16 +593,16 @@ export class ChatService {
           conversations: {
             conversationId: conversation._id,
             title: conversation.title,
-            lastMessage: '',
+            lastMessage: "",
             lastMessageAt: new Date(),
             messageCount: 0,
-            totalTokens: 0
-          }
+            totalTokens: 0,
+          },
         },
         $inc: { totalConversations: 1 },
-        $set: { lastActivity: new Date() }
+        $set: { lastActivity: new Date() },
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 }

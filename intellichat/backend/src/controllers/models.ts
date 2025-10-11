@@ -3,11 +3,11 @@
  * Handles requests for AI model information and configuration
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { aiConfigManager } from '@/config/ai-config';
-import { createLogger } from '@/utils/logger';
+import type { Request, Response, NextFunction } from "express";
+import { aiConfigManager } from "@/config/ai-config";
+import { createLogger } from "@/utils/logger";
 
-const logger = createLogger('ModelsController');
+const logger = createLogger("ModelsController");
 
 export class ModelsController {
   /**
@@ -19,7 +19,7 @@ export class ModelsController {
 
       res.json({
         success: true,
-        data: models
+        data: models,
       });
     } catch (error) {
       next(error);
@@ -32,11 +32,11 @@ export class ModelsController {
   async getModel(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { modelId } = req.params;
-      
+
       if (!modelId) {
         res.status(400).json({
           success: false,
-          message: 'Model ID is required'
+          message: "Model ID is required",
         });
         return;
       }
@@ -46,7 +46,7 @@ export class ModelsController {
       if (!model) {
         res.status(404).json({
           success: false,
-          message: `Model ${modelId} not found`
+          message: `Model ${modelId} not found`,
         });
         return;
       }
@@ -61,8 +61,8 @@ export class ModelsController {
           enabled: model.enabled,
           config: model.config,
           features: model.features,
-          limits: model.limits
-        }
+          limits: model.limits,
+        },
       });
     } catch (error) {
       next(error);
@@ -75,11 +75,11 @@ export class ModelsController {
   async getProviderModels(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { provider } = req.params;
-      
+
       if (!provider) {
         res.status(400).json({
           success: false,
-          message: 'Provider is required'
+          message: "Provider is required",
         });
         return;
       }
@@ -89,14 +89,14 @@ export class ModelsController {
       if (models.length === 0) {
         res.status(404).json({
           success: false,
-          message: `No models found for provider: ${provider}`
+          message: `No models found for provider: ${provider}`,
         });
         return;
       }
 
       res.json({
         success: true,
-        data: models.map(model => ({
+        data: models.map((model) => ({
           id: model.modelId,
           name: model.displayName,
           description: model.description,
@@ -104,8 +104,8 @@ export class ModelsController {
           enabled: model.enabled,
           config: model.config,
           features: model.features,
-          limits: model.limits
-        }))
+          limits: model.limits,
+        })),
       });
     } catch (error) {
       next(error);
@@ -119,11 +119,11 @@ export class ModelsController {
     try {
       aiConfigManager.reloadConfig();
 
-      logger.info('Model configuration reloaded');
+      logger.info("Model configuration reloaded");
 
       res.json({
         success: true,
-        message: 'Configuration reloaded successfully'
+        message: "Configuration reloaded successfully",
       });
     } catch (error) {
       next(error);

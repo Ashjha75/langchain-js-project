@@ -3,12 +3,12 @@
  * Handles HTTP requests for chat operations and AI interactions
  */
 
-import { Request, Response, NextFunction } from 'express';
-import { chatService } from '@/services/chat';
-import { createLogger } from '@/utils/logger';
-import { ValidationError, UnauthorizedError } from '@/utils/errorHandler';
+import type { Request, Response, NextFunction } from "express";
+import { chatService } from "@/services/chat";
+import { createLogger } from "@/utils/logger";
+import { ValidationError, UnauthorizedError } from "@/utils/errorHandler";
 
-const logger = createLogger('ChatController');
+const logger = createLogger("ChatController");
 
 export class ChatController {
   // ============================================================================
@@ -22,11 +22,11 @@ export class ChatController {
       const { title, model, systemPrompt, config } = req.body;
 
       if (!userId) {
-        throw new UnauthorizedError('User not authenticated');
+        throw new UnauthorizedError("User not authenticated");
       }
 
       if (!model) {
-        throw new ValidationError('Model is required');
+        throw new ValidationError("Model is required");
       }
 
       const conversation = await chatService.createConversation({
@@ -34,20 +34,20 @@ export class ChatController {
         title,
         model,
         systemPrompt,
-        config
+        config,
       });
 
-      logger.info('Conversation created', {
+      logger.info("Conversation created", {
         conversationId: conversation._id,
         userId,
         model,
-        ip: req.ip
+        ip: req.ip,
       });
 
       res.status(201).json({
         success: true,
-        message: 'Conversation created successfully',
-        data: conversation
+        message: "Conversation created successfully",
+        data: conversation,
       });
     } catch (error) {
       next(error);
@@ -60,18 +60,18 @@ export class ChatController {
       const { conversationId } = req.params;
 
       if (!userId) {
-        throw new UnauthorizedError('User not authenticated');
+        throw new UnauthorizedError("User not authenticated");
       }
 
       if (!conversationId) {
-        throw new ValidationError('Conversation ID is required');
+        throw new ValidationError("Conversation ID is required");
       }
 
       const conversation = await chatService.getConversation(conversationId, userId);
 
       res.json({
         success: true,
-        data: conversation
+        data: conversation,
       });
     } catch (error) {
       next(error);
@@ -81,28 +81,23 @@ export class ChatController {
   async listConversations(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = (req as any).user?.id;
-      const {
-        page = '1',
-        limit = '20',
-        status = 'active',
-        search
-      } = req.query;
+      const { page = "1", limit = "20", status = "active", search } = req.query;
 
       if (!userId) {
-        throw new UnauthorizedError('User not authenticated');
+        throw new UnauthorizedError("User not authenticated");
       }
 
       const result = await chatService.listConversations({
         userId,
         page: parseInt(page as string, 10),
         limit: parseInt(limit as string, 10),
-        status: status as 'active' | 'archived' | 'deleted',
-        search: search as string
+        status: status as "active" | "archived" | "deleted",
+        search: search as string,
       });
 
       res.json({
         success: true,
-        data: result
+        data: result,
       });
     } catch (error) {
       next(error);
@@ -116,29 +111,29 @@ export class ChatController {
       const { title, systemPrompt, config } = req.body;
 
       if (!userId) {
-        throw new UnauthorizedError('User not authenticated');
+        throw new UnauthorizedError("User not authenticated");
       }
 
       if (!conversationId) {
-        throw new ValidationError('Conversation ID is required');
+        throw new ValidationError("Conversation ID is required");
       }
 
-      const conversation = await chatService.updateConversation(
-        conversationId,
-        userId,
-        { title, systemPrompt, config }
-      );
+      const conversation = await chatService.updateConversation(conversationId, userId, {
+        title,
+        systemPrompt,
+        config,
+      });
 
-      logger.info('Conversation updated', {
+      logger.info("Conversation updated", {
         conversationId,
         userId,
-        ip: req.ip
+        ip: req.ip,
       });
 
       res.json({
         success: true,
-        message: 'Conversation updated successfully',
-        data: conversation
+        message: "Conversation updated successfully",
+        data: conversation,
       });
     } catch (error) {
       next(error);
@@ -151,24 +146,24 @@ export class ChatController {
       const { conversationId } = req.params;
 
       if (!userId) {
-        throw new UnauthorizedError('User not authenticated');
+        throw new UnauthorizedError("User not authenticated");
       }
 
       if (!conversationId) {
-        throw new ValidationError('Conversation ID is required');
+        throw new ValidationError("Conversation ID is required");
       }
 
       await chatService.deleteConversation(conversationId, userId);
 
-      logger.info('Conversation deleted', {
+      logger.info("Conversation deleted", {
         conversationId,
         userId,
-        ip: req.ip
+        ip: req.ip,
       });
 
       res.json({
         success: true,
-        message: 'Conversation deleted successfully'
+        message: "Conversation deleted successfully",
       });
     } catch (error) {
       next(error);
@@ -186,15 +181,15 @@ export class ChatController {
       const { content, attachments, model, systemPrompt, config } = req.body;
 
       if (!userId) {
-        throw new UnauthorizedError('User not authenticated');
+        throw new UnauthorizedError("User not authenticated");
       }
 
       if (!model) {
-        throw new ValidationError('Model is required');
+        throw new ValidationError("Model is required");
       }
 
       if (!content || content.trim().length === 0) {
-        throw new ValidationError('Message content is required');
+        throw new ValidationError("Message content is required");
       }
 
       const conversation = await chatService.createConversation({
@@ -202,39 +197,39 @@ export class ChatController {
         title: content.substring(0, 50),
         model,
         systemPrompt,
-        config
+        config,
       });
 
       const message = await chatService.sendMessage({
         conversationId: conversation._id.toString(),
         userId,
         content: content.trim(),
-        attachments
+        attachments,
       });
 
-      logger.info('Message sent to new conversation', {
+      logger.info("Message sent to new conversation", {
         conversationId: conversation._id,
         messageId: message._id,
         userId,
-        ip: req.ip
+        ip: req.ip,
       });
 
       res.status(201).json({
         success: true,
-        message: 'Message sent and conversation created',
+        message: "Message sent and conversation created",
         data: {
           conversation,
           message: {
             ...message.toObject(),
-            contentType: 'markdown',  // 👈 Add content type at response level
+            contentType: "markdown", // 👈 Add content type at response level
             formatted: {
               isMarkdown: true,
-              hasCodeBlocks: message.content.includes('```'),
-              hasTables: message.content.includes('|'),
-              hasHeaders: message.content.includes('#')
-            }
-          }
-        }
+              hasCodeBlocks: message.content.includes("```"),
+              hasTables: message.content.includes("|"),
+              hasHeaders: message.content.includes("#"),
+            },
+          },
+        },
       });
     } catch (error) {
       next(error);
@@ -248,45 +243,45 @@ export class ChatController {
       const { content, attachments } = req.body;
 
       if (!userId) {
-        throw new UnauthorizedError('User not authenticated');
+        throw new UnauthorizedError("User not authenticated");
       }
 
       if (!conversationId) {
-        throw new ValidationError('Conversation ID is required');
+        throw new ValidationError("Conversation ID is required");
       }
 
       if (!content || content.trim().length === 0) {
-        throw new ValidationError('Message content is required');
+        throw new ValidationError("Message content is required");
       }
 
       const message = await chatService.sendMessage({
         conversationId,
         userId,
         content: content.trim(),
-        attachments
+        attachments,
       });
 
-      logger.info('Message sent', {
+      logger.info("Message sent", {
         conversationId,
         messageId: message._id,
         userId,
         contentLength: content.length,
-        ip: req.ip
+        ip: req.ip,
       });
 
       res.json({
         success: true,
-        message: 'Message sent successfully',
+        message: "Message sent successfully",
         data: {
           ...message.toObject(),
-          contentType: 'markdown',  // 👈 Add content type indicator
+          contentType: "markdown", // 👈 Add content type indicator
           formatted: {
             isMarkdown: true,
-            hasCodeBlocks: message.content.includes('```'),
-            hasTables: message.content.includes('|'),
-            hasHeaders: message.content.includes('#')
-          }
-        }
+            hasCodeBlocks: message.content.includes("```"),
+            hasTables: message.content.includes("|"),
+            hasHeaders: message.content.includes("#"),
+          },
+        },
       });
     } catch (error) {
       next(error);
@@ -300,31 +295,31 @@ export class ChatController {
       const { content, attachments } = req.body;
 
       if (!userId) {
-        throw new UnauthorizedError('User not authenticated');
+        throw new UnauthorizedError("User not authenticated");
       }
 
       if (!conversationId) {
-        throw new ValidationError('Conversation ID is required');
+        throw new ValidationError("Conversation ID is required");
       }
 
       if (!content || content.trim().length === 0) {
-        throw new ValidationError('Message content is required');
+        throw new ValidationError("Message content is required");
       }
 
       // Set headers for Server-Sent Events
       res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Cache-Control'
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Cache-Control",
       });
 
-      logger.info('Starting message stream', {
+      logger.info("Starting message stream", {
         conversationId,
         userId,
         contentLength: content.length,
-        ip: req.ip
+        ip: req.ip,
       });
 
       try {
@@ -332,26 +327,28 @@ export class ChatController {
           conversationId,
           userId,
           content: content.trim(),
-          attachments
+          attachments,
         })) {
           // Send data as Server-Sent Event
           res.write(`data: ${JSON.stringify(chunk)}\n\n`);
         }
 
         // Send completion event
-        res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
         res.end();
 
-        logger.info('Message stream completed', {
+        logger.info("Message stream completed", {
           conversationId,
-          userId
+          userId,
         });
       } catch (streamError) {
         // Send error event
-        res.write(`data: ${JSON.stringify({
-          type: 'error',
-          error: (streamError as Error).message
-        })}\n\n`);
+        res.write(
+          `data: ${JSON.stringify({
+            type: "error",
+            error: (streamError as Error).message,
+          })}\n\n`,
+        );
         res.end();
         throw streamError;
       }
@@ -359,10 +356,10 @@ export class ChatController {
       if (!res.headersSent) {
         next(error);
       } else {
-        logger.error('Stream error after headers sent', {
+        logger.error("Stream error after headers sent", {
           error: (error as Error).message,
           conversationId: req.params.conversationId,
-          userId: (req as any).user?.id
+          userId: (req as any).user?.id,
         });
       }
     }
@@ -372,14 +369,14 @@ export class ChatController {
     try {
       const userId = (req as any).user?.id;
       const { conversationId } = req.params;
-      const { limit = '50', before } = req.query;
+      const { limit = "50", before } = req.query;
 
       if (!userId) {
-        throw new UnauthorizedError('User not authenticated');
+        throw new UnauthorizedError("User not authenticated");
       }
 
       if (!conversationId) {
-        throw new ValidationError('Conversation ID is required');
+        throw new ValidationError("Conversation ID is required");
       }
 
       // Verify user has access to this conversation
@@ -388,15 +385,15 @@ export class ChatController {
       const messages = await chatService.getConversationMessages(
         conversationId,
         parseInt(limit as string, 10),
-        before as string
+        before as string,
       );
 
       res.json({
         success: true,
         data: {
           messages: messages.reverse(), // Return in chronological order
-          hasMore: messages.length === parseInt(limit as string, 10)
-        }
+          hasMore: messages.length === parseInt(limit as string, 10),
+        },
       });
     } catch (error) {
       next(error);
@@ -412,14 +409,14 @@ export class ChatController {
       const userId = (req as any).user?.id;
 
       if (!userId) {
-        throw new UnauthorizedError('User not authenticated');
+        throw new UnauthorizedError("User not authenticated");
       }
 
       const stats = await chatService.getTokenUsageStats(userId);
 
       res.json({
         success: true,
-        data: stats
+        data: stats,
       });
     } catch (error) {
       next(error);
@@ -433,8 +430,8 @@ export class ChatController {
   async healthCheck(_req: Request, res: Response): Promise<void> {
     res.json({
       success: true,
-      message: 'Chat service is healthy',
-      timestamp: new Date().toISOString()
+      message: "Chat service is healthy",
+      timestamp: new Date().toISOString(),
     });
   }
 }

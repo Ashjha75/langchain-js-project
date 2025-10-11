@@ -1,41 +1,43 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { CONFIG } from '@/config';
-import { createLogger } from '@/utils/logger';
-import { AuthenticationError, ValidationError, ForbiddenError } from '@/utils/errorHandler';
-import { 
-  IUserWithoutPassword, 
-  UserRole, 
+import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import { CONFIG } from "@/config";
+import { createLogger } from "@/utils/logger";
+import { AuthenticationError, ValidationError, ForbiddenError } from "@/utils/errorHandler";
+import type {
+  IUserWithoutPassword,
   Permission,
   ITokenPayload,
   IRefreshTokenPayload,
-  AuthenticatedRequest 
-} from '@/types';
+  AuthenticatedRequest,
+} from "@/types";
+import { UserRole } from "@/types";
 
-const logger = createLogger('AuthMiddleware');
+const logger = createLogger("AuthMiddleware");
 
 /**
  * JWT Token Validation Middleware
  * Validates JWT tokens and sets user context
  */
-export const authenticateJWT = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authenticateJWT = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.startsWith('Bearer ') 
-      ? authHeader.substring(7) 
-      : null;
+    const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
 
     if (!token) {
-      logger.securityEvent('Missing authentication token', 'low', {
+      logger.securityEvent("Missing authentication token", "low", {
         ip: (req as any).clientIP || req.ip,
-        userAgent: req.get('User-Agent'),
+        userAgent: req.get("User-Agent"),
         url: req.originalUrl,
       });
-      
-      const error = new AuthenticationError('Authentication token required');
+
+      const error = new AuthenticationError("Authentication token required");
       res.status(401).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 401,
         timestamp: new Date().toISOString(),
@@ -45,17 +47,17 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
 
     // Verify JWT token
     const decoded = jwt.verify(token, CONFIG.auth.jwt.accessSecret) as ITokenPayload;
-    
+
     // Validate token payload structure
     if (!decoded.userId || !decoded.email || !decoded.role) {
-      logger.securityEvent('Invalid token payload structure', 'medium', {
+      logger.securityEvent("Invalid token payload structure", "medium", {
         ip: (req as any).clientIP || req.ip,
         tokenId: decoded.jti,
       });
-      
-      const error = new AuthenticationError('Invalid token structure');
+
+      const error = new AuthenticationError("Invalid token structure");
       res.status(401).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 401,
         timestamp: new Date().toISOString(),
@@ -65,15 +67,15 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
 
     // Check token expiration (additional check)
     if (decoded.exp && Date.now() >= decoded.exp * 1000) {
-      logger.securityEvent('Expired token used', 'low', {
+      logger.securityEvent("Expired token used", "low", {
         ip: (req as any).clientIP || req.ip,
         userId: decoded.userId,
         expiredAt: new Date(decoded.exp * 1000),
       });
-      
-      const error = new AuthenticationError('Token has expired');
+
+      const error = new AuthenticationError("Token has expired");
       res.status(401).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 401,
         timestamp: new Date().toISOString(),
@@ -90,7 +92,7 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
       ...(decoded.jti && { tokenId: decoded.jti }),
     };
 
-    logger.info('User authenticated successfully', {
+    logger.info("User authenticated successfully", {
       userId: decoded.userId,
       email: decoded.email,
       role: decoded.role,
@@ -100,15 +102,15 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      logger.securityEvent('Invalid JWT token', 'medium', {
+      logger.securityEvent("Invalid JWT token", "medium", {
         ip: (req as any).clientIP || req.ip,
         error: error.message,
-        userAgent: req.get('User-Agent'),
+        userAgent: req.get("User-Agent"),
       });
-      
-      const authError = new AuthenticationError('Invalid authentication token');
+
+      const authError = new AuthenticationError("Invalid authentication token");
       res.status(401).json({
-        status: 'error',
+        status: "error",
         message: authError.message,
         statusCode: 401,
         timestamp: new Date().toISOString(),
@@ -116,10 +118,10 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
       return;
     }
 
-    logger.error('Authentication middleware error', { error });
-    const authError = new AuthenticationError('Authentication failed');
+    logger.error("Authentication middleware error", { error });
+    const authError = new AuthenticationError("Authentication failed");
     res.status(401).json({
-      status: 'error',
+      status: "error",
       message: authError.message,
       statusCode: 401,
       timestamp: new Date().toISOString(),
@@ -131,17 +133,19 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
  * Optional JWT Authentication Middleware
  * Sets user context if token is provided, but doesn't require it
  */
-export const optionalAuth = async (req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> => {
+export const optionalAuth = async (
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.startsWith('Bearer ') 
-      ? authHeader.substring(7) 
-      : null;
+    const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
 
     if (token) {
       try {
         const decoded = jwt.verify(token, CONFIG.auth.jwt.accessSecret) as ITokenPayload;
-        
+
         if (decoded.userId && decoded.email && decoded.role) {
           (req as any).user = {
             id: decoded.userId,
@@ -153,13 +157,13 @@ export const optionalAuth = async (req: AuthenticatedRequest, _res: Response, ne
         }
       } catch (error) {
         // Silently ignore invalid tokens in optional auth
-        logger.debug('Optional auth token validation failed', { error: (error as Error).message });
+        logger.debug("Optional auth token validation failed", { error: (error as Error).message });
       }
     }
 
     next();
   } catch (error) {
-    logger.error('Optional auth middleware error', { error });
+    logger.error("Optional auth middleware error", { error });
     next(); // Continue without authentication
   }
 };
@@ -171,9 +175,9 @@ export const optionalAuth = async (req: AuthenticatedRequest, _res: Response, ne
 export const requireRole = (roles: UserRole | UserRole[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      const error = new AuthenticationError('Authentication required');
+      const error = new AuthenticationError("Authentication required");
       res.status(401).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 401,
         timestamp: new Date().toISOString(),
@@ -182,19 +186,19 @@ export const requireRole = (roles: UserRole | UserRole[]) => {
     }
 
     const allowedRoles = Array.isArray(roles) ? roles : [roles];
-    
+
     if (!allowedRoles.includes(req.user.role)) {
-      logger.securityEvent('Insufficient role permissions', 'medium', {
+      logger.securityEvent("Insufficient role permissions", "medium", {
         userId: req.user.id,
         userRole: req.user.role,
         requiredRoles: allowedRoles,
         url: req.originalUrl,
         ip: (req as any).clientIP || req.ip,
       });
-      
-      const error = new ForbiddenError('Insufficient permissions');
+
+      const error = new ForbiddenError("Insufficient permissions");
       res.status(403).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 403,
         timestamp: new Date().toISOString(),
@@ -213,9 +217,9 @@ export const requireRole = (roles: UserRole | UserRole[]) => {
 export const requirePermission = (permissions: Permission | Permission[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      const error = new AuthenticationError('Authentication required');
+      const error = new AuthenticationError("Authentication required");
       res.status(401).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 401,
         timestamp: new Date().toISOString(),
@@ -226,22 +230,22 @@ export const requirePermission = (permissions: Permission | Permission[]) => {
     const requiredPermissions = Array.isArray(permissions) ? permissions : [permissions];
     const userPermissions = req.user.permissions || [];
 
-    const hasAllPermissions = requiredPermissions.every(permission => 
-      userPermissions.includes(permission)
+    const hasAllPermissions = requiredPermissions.every((permission) =>
+      userPermissions.includes(permission),
     );
 
     if (!hasAllPermissions) {
-      logger.securityEvent('Insufficient permissions', 'medium', {
+      logger.securityEvent("Insufficient permissions", "medium", {
         userId: req.user.id,
         userPermissions,
         requiredPermissions,
         url: req.originalUrl,
         ip: (req as any).clientIP || req.ip,
       });
-      
-      const error = new ForbiddenError('Insufficient permissions');
+
+      const error = new ForbiddenError("Insufficient permissions");
       res.status(403).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 403,
         timestamp: new Date().toISOString(),
@@ -263,12 +267,12 @@ export const requireAdmin = requireRole(UserRole.ADMIN);
  * User Ownership Validation Middleware
  * Ensures user can only access their own resources
  */
-export const requireOwnership = (userIdParam: string = 'userId') => {
+export const requireOwnership = (userIdParam: string = "userId") => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      const error = new AuthenticationError('Authentication required');
+      const error = new AuthenticationError("Authentication required");
       res.status(401).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 401,
         timestamp: new Date().toISOString(),
@@ -276,8 +280,9 @@ export const requireOwnership = (userIdParam: string = 'userId') => {
       return;
     }
 
-    const resourceUserId = req.params[userIdParam] || req.body[userIdParam] || req.query[userIdParam];
-    
+    const resourceUserId =
+      req.params[userIdParam] || req.body[userIdParam] || req.query[userIdParam];
+
     // Admin can access any resource
     if (req.user.role === UserRole.ADMIN) {
       next();
@@ -286,16 +291,16 @@ export const requireOwnership = (userIdParam: string = 'userId') => {
 
     // Check ownership
     if (resourceUserId !== req.user.id) {
-      logger.securityEvent('Unauthorized resource access attempt', 'medium', {
+      logger.securityEvent("Unauthorized resource access attempt", "medium", {
         userId: req.user.id,
         attemptedResourceUserId: resourceUserId,
         url: req.originalUrl,
         ip: (req as any).clientIP || req.ip,
       });
-      
-      const error = new ForbiddenError('Access denied: insufficient permissions');
+
+      const error = new ForbiddenError("Access denied: insufficient permissions");
       res.status(403).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 403,
         timestamp: new Date().toISOString(),
@@ -311,14 +316,18 @@ export const requireOwnership = (userIdParam: string = 'userId') => {
  * Refresh Token Validation Middleware
  * Validates refresh tokens for token renewal
  */
-export const validateRefreshToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const validateRefreshToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const { refreshToken } = req.body;
 
     if (!refreshToken) {
-      const error = new ValidationError('Refresh token required');
+      const error = new ValidationError("Refresh token required");
       res.status(400).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 400,
         timestamp: new Date().toISOString(),
@@ -328,11 +337,11 @@ export const validateRefreshToken = async (req: Request, res: Response, next: Ne
 
     // Verify refresh token
     const decoded = jwt.verify(refreshToken, CONFIG.auth.jwt.refreshSecret) as IRefreshTokenPayload;
-    
+
     if (!decoded.userId || !decoded.tokenFamily) {
-      const error = new AuthenticationError('Invalid refresh token structure');
+      const error = new AuthenticationError("Invalid refresh token structure");
       res.status(401).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 401,
         timestamp: new Date().toISOString(),
@@ -346,14 +355,14 @@ export const validateRefreshToken = async (req: Request, res: Response, next: Ne
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      logger.securityEvent('Invalid refresh token', 'medium', {
+      logger.securityEvent("Invalid refresh token", "medium", {
         ip: (req as any).clientIP || req.ip,
         error: (error as Error).message,
       });
-      
-      const authError = new AuthenticationError('Invalid refresh token');
+
+      const authError = new AuthenticationError("Invalid refresh token");
       res.status(401).json({
-        status: 'error',
+        status: "error",
         message: authError.message,
         statusCode: 401,
         timestamp: new Date().toISOString(),
@@ -361,10 +370,10 @@ export const validateRefreshToken = async (req: Request, res: Response, next: Ne
       return;
     }
 
-    logger.error('Refresh token validation error', { error });
-    const authError = new AuthenticationError('Token validation failed');
+    logger.error("Refresh token validation error", { error });
+    const authError = new AuthenticationError("Token validation failed");
     res.status(401).json({
-      status: 'error',
+      status: "error",
       message: authError.message,
       statusCode: 401,
       timestamp: new Date().toISOString(),
@@ -380,9 +389,9 @@ export const validatePassword = (req: Request, res: Response, next: NextFunction
   const { password } = req.body;
 
   if (!password) {
-    const error = new ValidationError('Password is required');
+    const error = new ValidationError("Password is required");
     res.status(400).json({
-      status: 'error',
+      status: "error",
       message: error.message,
       statusCode: 400,
       timestamp: new Date().toISOString(),
@@ -403,25 +412,25 @@ export const validatePassword = (req: Request, res: Response, next: NextFunction
   }
 
   if (requireUppercase && !/[A-Z]/.test(password)) {
-    errors.push('Password must contain at least one uppercase letter');
+    errors.push("Password must contain at least one uppercase letter");
   }
 
   if (requireLowercase && !/[a-z]/.test(password)) {
-    errors.push('Password must contain at least one lowercase letter');
+    errors.push("Password must contain at least one lowercase letter");
   }
 
   if (requireNumbers && !/\d/.test(password)) {
-    errors.push('Password must contain at least one number');
+    errors.push("Password must contain at least one number");
   }
 
   if (requireSpecialChars && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    errors.push('Password must contain at least one special character');
+    errors.push("Password must contain at least one special character");
   }
 
   if (errors.length > 0) {
-    const error = new ValidationError(`Password validation failed: ${errors.join(', ')}`);
+    const error = new ValidationError(`Password validation failed: ${errors.join(", ")}`);
     res.status(400).json({
-      status: 'error',
+      status: "error",
       message: error.message,
       details: errors,
       statusCode: 400,
@@ -437,7 +446,11 @@ export const validatePassword = (req: Request, res: Response, next: NextFunction
  * Token Blacklist Middleware
  * Checks if token is blacklisted (for logout functionality)
  */
-export const checkTokenBlacklist = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const checkTokenBlacklist = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     if (!req.user?.tokenId) {
       next();
@@ -451,15 +464,15 @@ export const checkTokenBlacklist = async (req: AuthenticatedRequest, res: Respon
     const isBlacklisted = false;
 
     if (isBlacklisted) {
-      logger.securityEvent('Blacklisted token used', 'medium', {
+      logger.securityEvent("Blacklisted token used", "medium", {
         userId: req.user.id,
         tokenId: req.user.tokenId,
         ip: (req as any).clientIP || req.ip,
       });
-      
-      const error = new AuthenticationError('Token has been revoked');
+
+      const error = new AuthenticationError("Token has been revoked");
       res.status(401).json({
-        status: 'error',
+        status: "error",
         message: error.message,
         statusCode: 401,
         timestamp: new Date().toISOString(),
@@ -469,7 +482,7 @@ export const checkTokenBlacklist = async (req: AuthenticatedRequest, res: Respon
 
     next();
   } catch (error) {
-    logger.error('Token blacklist check error', { error });
+    logger.error("Token blacklist check error", { error });
     next(); // Continue on error (fail open for availability)
   }
 };
@@ -487,7 +500,10 @@ export const hashPassword = async (password: string): Promise<string> => {
 /**
  * Compare Password Utility
  */
-export const comparePassword = async (password: string, hashedPassword: string): Promise<boolean> => {
+export const comparePassword = async (
+  password: string,
+  hashedPassword: string,
+): Promise<boolean> => {
   return bcrypt.compare(password, hashedPassword);
 };
 

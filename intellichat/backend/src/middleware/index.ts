@@ -4,10 +4,10 @@
  */
 
 // Import all middleware modules
-import requestMiddleware from './request';
-import securityMiddleware from './security';
-import authMiddleware from './auth';
-import validationMiddleware from './validation';
+import requestMiddleware from "./request";
+import securityMiddleware from "./security";
+import authMiddleware from "./auth";
+import validationMiddleware from "./validation";
 
 // Re-export all middleware with organized structure
 export {
@@ -23,7 +23,7 @@ export {
   sanitizationMiddleware as requestSanitizer,
   performanceMiddleware as performanceMonitor,
   developmentMiddleware as debugHeaders,
-} from './request';
+} from "./request";
 
 export {
   // Security Middleware
@@ -37,7 +37,7 @@ export {
   suspiciousActivityMiddleware,
   apiKeyValidationMiddleware,
   contentTypeValidationMiddleware,
-} from './security';
+} from "./security";
 
 export {
   // Authentication & Authorization Middleware
@@ -55,7 +55,7 @@ export {
   generateAccessToken,
   generateRefreshToken,
   extractUserIdFromToken,
-} from './auth';
+} from "./auth";
 
 export {
   // Validation Middleware
@@ -65,7 +65,7 @@ export {
   validateParams,
   validateMultiple,
   validateOptional,
-  
+
   // Common validations
   validateUserRegistration,
   validateUserLogin,
@@ -82,7 +82,7 @@ export {
   validateIdParam,
   validateEmail,
   validateUUID,
-  
+
   // Schemas
   userRegistrationSchema,
   userLoginSchema,
@@ -99,7 +99,7 @@ export {
   idParamSchema,
   emailSchema,
   uuidSchema,
-} from './validation';
+} from "./validation";
 
 // Export middleware groups for easier access
 export const Request = requestMiddleware;
@@ -150,10 +150,7 @@ export const protectedApiStack = [
  * Admin API Middleware Stack
  * For routes that require admin privileges
  */
-export const adminApiStack = [
-  ...protectedApiStack,
-  authMiddleware.requireAdmin,
-];
+export const adminApiStack = [...protectedApiStack, authMiddleware.requireAdmin];
 
 /**
  * Authentication Endpoints Middleware Stack
@@ -163,7 +160,7 @@ export const authEndpointStack = [
   ...basicApiStack,
   securityMiddleware.authRateLimit,
   securityMiddleware.sqlInjection,
-  securityMiddleware.contentTypeValidation(['application/json']),
+  securityMiddleware.contentTypeValidation(["application/json"]),
 ];
 
 /**
@@ -174,7 +171,7 @@ export const fileUploadStack = [
   ...basicApiStack,
   securityMiddleware.requestSizeValidation,
   authMiddleware.authenticateJWT,
-  securityMiddleware.contentTypeValidation(['multipart/form-data']),
+  securityMiddleware.contentTypeValidation(["multipart/form-data"]),
 ];
 
 /**
@@ -192,10 +189,7 @@ export const websocketStack = [
  * Development Middleware Stack
  * Additional middleware for development environment
  */
-export const developmentStack = [
-  requestMiddleware.morgan,
-  requestMiddleware.development,
-];
+export const developmentStack = [requestMiddleware.morgan, requestMiddleware.development];
 
 // Utility functions for applying middleware stacks
 
@@ -203,7 +197,7 @@ export const developmentStack = [
  * Apply a middleware stack to an Express application or router
  */
 export const applyMiddlewareStack = (app: any, stack: any[]) => {
-  stack.forEach(middleware => {
+  stack.forEach((middleware) => {
     app.use(middleware);
   });
 };
@@ -245,10 +239,7 @@ export const productionMiddleware = {
     requestMiddleware.sanitization,
     requestMiddleware.performance,
   ],
-  auth: [
-    authMiddleware.authenticateJWT,
-    authMiddleware.checkTokenBlacklist,
-  ],
+  auth: [authMiddleware.authenticateJWT, authMiddleware.checkTokenBlacklist],
 };
 
 /**
@@ -256,27 +247,16 @@ export const productionMiddleware = {
  */
 export const developmentMiddleware = {
   ...productionMiddleware,
-  development: [
-    requestMiddleware.morgan,
-    requestMiddleware.development,
-  ],
+  development: [requestMiddleware.morgan, requestMiddleware.development],
 };
 
 /**
  * Testing Middleware Configuration
  */
 export const testingMiddleware = {
-  request: [
-    requestMiddleware.requestId,
-    requestMiddleware.ipExtraction,
-  ],
-  security: [
-    securityMiddleware.cors,
-    securityMiddleware.inputSanitization,
-  ],
-  auth: [
-    authMiddleware.authenticateJWT,
-  ],
+  request: [requestMiddleware.requestId, requestMiddleware.ipExtraction],
+  security: [securityMiddleware.cors, securityMiddleware.inputSanitization],
+  auth: [authMiddleware.authenticateJWT],
 };
 
 // Export default middleware collection
@@ -285,7 +265,7 @@ export default {
   Security: securityMiddleware,
   Auth: authMiddleware,
   Validation: validationMiddleware,
-  
+
   // Middleware stacks
   basicApiStack,
   publicApiStack,
@@ -295,12 +275,12 @@ export default {
   fileUploadStack,
   websocketStack,
   developmentStack,
-  
+
   // Utilities
   applyMiddlewareStack,
   combineStacks,
   conditionalMiddleware,
-  
+
   // Environment configurations
   productionMiddleware,
   developmentMiddleware,

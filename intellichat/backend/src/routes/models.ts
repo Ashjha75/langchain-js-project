@@ -3,9 +3,9 @@
  * API endpoints for AI model configuration
  */
 
-import { Router } from 'express';
-import { modelsController } from '@/controllers/models';
-import { authenticateJWT } from '@/middleware/auth';
+import { Router } from "express";
+import { modelsController } from "@/controllers/models";
+import { authenticateJWT } from "@/middleware/auth";
 
 const router = Router();
 
@@ -16,21 +16,21 @@ const router = Router();
  * @desc    Get all available AI models
  * @access  Public
  */
-router.get('/', modelsController.listModels);
+router.get("/", modelsController.listModels);
 
 /**
  * @route   GET /api/models/:modelId
  * @desc    Get specific model configuration
  * @access  Public
  */
-router.get('/:modelId', modelsController.getModel);
+router.get("/:modelId", modelsController.getModel);
 
 /**
  * @route   GET /api/models/provider/:provider
  * @desc    Get models for a specific provider
  * @access  Public
  */
-router.get('/provider/:provider', modelsController.getProviderModels);
+router.get("/provider/:provider", modelsController.getProviderModels);
 
 // Admin routes (require authentication and admin role)
 
@@ -39,6 +39,6 @@ router.get('/provider/:provider', modelsController.getProviderModels);
  * @desc    Reload model configuration from file
  * @access  Admin
  */
-router.post('/reload', authenticateJWT, modelsController.reloadConfig);
+router.post("/reload", authenticateJWT, modelsController.reloadConfig);
 
 export { router as modelsRoutes };

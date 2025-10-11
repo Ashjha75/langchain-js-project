@@ -3,11 +3,11 @@
  * Single source of truth for all AI model configurations
  */
 
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import { createLogger } from '@/utils/logger';
+import { readFileSync } from "fs";
+import { join } from "path";
+import { createLogger } from "@/utils/logger";
 
-const logger = createLogger('AIConfig');
+const logger = createLogger("AIConfig");
 
 export interface ModelFeatures {
   jsonMode: boolean;
@@ -26,7 +26,7 @@ export interface ModelConfig {
   maxTokens: number;
   topP: number;
   stream: boolean;
-  reasoning?: 'low' | 'medium' | 'high';
+  reasoning?: "low" | "medium" | "high";
   seed?: number | null;
   stopSequence?: string;
 }
@@ -57,7 +57,7 @@ class AIConfigManager {
   private configPath: string;
 
   constructor() {
-    this.configPath = join(__dirname, 'ai-models.json');
+    this.configPath = join(__dirname, "ai-models.json");
     this.loadConfig();
   }
 
@@ -66,19 +66,19 @@ class AIConfigManager {
    */
   private loadConfig(): void {
     try {
-      const configFile = readFileSync(this.configPath, 'utf-8');
+      const configFile = readFileSync(this.configPath, "utf-8");
       this.config = JSON.parse(configFile);
-      logger.info('AI models configuration loaded successfully', {
+      logger.info("AI models configuration loaded successfully", {
         totalModels: this.getTotalModelsCount(),
         defaultModel: this.config?.defaultModel,
-        defaultProvider: this.config?.defaultProvider
+        defaultProvider: this.config?.defaultProvider,
       });
     } catch (error) {
-      logger.error('Failed to load AI models configuration', {
+      logger.error("Failed to load AI models configuration", {
         error: (error as Error).message,
-        path: this.configPath
+        path: this.configPath,
       });
-      throw new Error('Failed to load AI models configuration');
+      throw new Error("Failed to load AI models configuration");
     }
   }
 
@@ -86,7 +86,7 @@ class AIConfigManager {
    * Reload configuration from file (useful for hot-reloading)
    */
   public reloadConfig(): void {
-    logger.info('Reloading AI models configuration');
+    logger.info("Reloading AI models configuration");
     this.loadConfig();
   }
 
@@ -95,7 +95,7 @@ class AIConfigManager {
    */
   public getModelConfig(modelId: string, provider?: string): ModelDefinition | null {
     if (!this.config) {
-      throw new Error('AI configuration not loaded');
+      throw new Error("AI configuration not loaded");
     }
 
     // If provider is specified, search in that provider only
@@ -134,7 +134,7 @@ class AIConfigManager {
     }
 
     const enabledModels: ModelDefinition[] = [];
-    
+
     for (const provider in this.config.models) {
       const providerModels = this.config.models[provider];
       if (providerModels) {
@@ -159,7 +159,7 @@ class AIConfigManager {
     }
 
     const modelIds: string[] = [];
-    
+
     for (const provider in this.config.models) {
       const providerModels = this.config.models[provider];
       if (providerModels) {
@@ -186,21 +186,15 @@ class AIConfigManager {
       return null;
     }
 
-    return this.getModelConfig(
-      this.config.defaultModel,
-      this.config.defaultProvider
-    );
+    return this.getModelConfig(this.config.defaultModel, this.config.defaultProvider);
   }
 
   /**
    * Get merged configuration (user config + model defaults)
    */
-  public getMergedConfig(
-    modelId: string,
-    userConfig?: Partial<ModelConfig>
-  ): ModelConfig {
+  public getMergedConfig(modelId: string, userConfig?: Partial<ModelConfig>): ModelConfig {
     const modelDef = this.getModelConfig(modelId);
-    
+
     if (!modelDef) {
       throw new Error(`Model ${modelId} not found in configuration`);
     }
@@ -216,10 +210,10 @@ class AIConfigManager {
       // Ensure values are within limits
       maxTokens: Math.min(
         userConfig?.maxTokens || modelDef.config.maxTokens,
-        modelDef.limits.maxCompletionTokens
+        modelDef.limits.maxCompletionTokens,
       ),
       temperature: Math.max(0, Math.min(2, userConfig?.temperature || modelDef.config.temperature)),
-      topP: Math.max(0, Math.min(1, userConfig?.topP || modelDef.config.topP))
+      topP: Math.max(0, Math.min(1, userConfig?.topP || modelDef.config.topP)),
     };
   }
 
@@ -262,17 +256,17 @@ class AIConfigManager {
    */
   public exportConfig() {
     return {
-      models: this.getEnabledModels().map(model => ({
+      models: this.getEnabledModels().map((model) => ({
         id: model.modelId,
         name: model.displayName,
         description: model.description,
         provider: model.provider,
         config: model.config,
         features: model.features,
-        limits: model.limits
+        limits: model.limits,
       })),
       defaultModel: this.config?.defaultModel,
-      defaultProvider: this.config?.defaultProvider
+      defaultProvider: this.config?.defaultProvider,
     };
   }
 }
@@ -281,14 +275,12 @@ class AIConfigManager {
 export const aiConfigManager = new AIConfigManager();
 
 // Export for convenience
-export const getModelConfig = (modelId: string, provider?: string) => 
+export const getModelConfig = (modelId: string, provider?: string) =>
   aiConfigManager.getModelConfig(modelId, provider);
 
 export const getMergedConfig = (modelId: string, userConfig?: Partial<ModelConfig>) =>
   aiConfigManager.getMergedConfig(modelId, userConfig);
 
-export const isValidModel = (modelId: string) =>
-  aiConfigManager.isValidModel(modelId);
+export const isValidModel = (modelId: string) => aiConfigManager.isValidModel(modelId);
 
-export const getEnabledModels = () =>
-  aiConfigManager.getEnabledModels();
+export const getEnabledModels = () => aiConfigManager.getEnabledModels();
