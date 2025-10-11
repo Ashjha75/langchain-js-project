@@ -46,7 +46,26 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
   const [copied, setCopied] = useState(false);
 
   // System instructions edit state
-  const [isEditingInstructions, setIsEditingInstructions] = useState(false);
+  const [isEditingInstructions, setIsEditingInstructions] = useState(
+    !settings.systemInstructions
+  );
+  const [tempInstructions, setTempInstructions] = useState(
+    settings.systemInstructions
+  );
+
+  useEffect(() => {
+    setTempInstructions(settings.systemInstructions);
+    setIsEditingInstructions(!settings.systemInstructions);
+  }, [settings.systemInstructions]);
+
+  const handleSaveInstructions = () => {
+    updateSetting('systemInstructions', tempInstructions);
+    setIsEditingInstructions(false);
+  };
+
+  const handleEditInstructions = () => {
+    setIsEditingInstructions(true);
+  };
 
   // Update parent component whenever settings change
   useEffect(() => {
@@ -172,8 +191,8 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setIsEditingInstructions(false)}
-                  disabled={!settings.systemInstructions}
+                  onClick={handleSaveInstructions}
+                  disabled={!tempInstructions}
                 >
                   <Save className="h-5 w-5" />
                 </Button>
@@ -183,8 +202,7 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setIsEditingInstructions(true)}
-                  disabled={!settings.systemInstructions}
+                  onClick={handleEditInstructions}
                 >
                   <Pencil className="h-5 w-5" />
                 </Button>
@@ -195,10 +213,10 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
         <Textarea
           id="system-instructions"
           placeholder="Optional tone and style instructions for the model"
-          value={settings.systemInstructions}
-          onChange={(e) => updateSetting('systemInstructions', e.target.value)}
+          value={tempInstructions}
+          onChange={(e) => setTempInstructions(e.target.value)}
           className="min-h-[100px] mt-2 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg"
-          disabled={!isEditingInstructions && !!settings.systemInstructions}
+          disabled={!isEditingInstructions}
         />
       </div>
 

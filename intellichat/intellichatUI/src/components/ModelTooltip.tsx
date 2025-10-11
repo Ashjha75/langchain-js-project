@@ -43,9 +43,12 @@ export const ModelTooltip: FC<ModelTooltipProps> = ({ model }) => {
           <p className="font-bold text-base text-[#e8eaed] mb-1">{model.metadata.display_name}</p>
           <p className="text-xs text-[#9aa0a6] break-words">{model.id}</p>
         </div>
-        {/* Placeholder for logo */}
-        <div className="w-8 h-8 bg-[#2c2c2c] rounded-md ml-3 flex-shrink-0 flex items-center justify-center">
-          <span className="text-xs text-[#9aa0a6]">📦</span>
+        <div className="w-8 h-8 bg-[#2c2c2c] rounded-md ml-3 flex-shrink-0 flex items-center justify-center overflow-hidden">
+          <img
+            src="/images/aigif.webp"
+            alt="Model animation"
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
 

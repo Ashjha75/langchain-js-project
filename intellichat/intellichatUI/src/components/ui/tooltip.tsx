@@ -60,19 +60,19 @@ interface SimpleTooltipProps {
   sideOffset?: number;
 }
 
-export const SimpleTooltip: FC<SimpleTooltipProps> = ({ content, children, side = 'bottom', sideOffset = 0 }) => {
+export const SimpleTooltip: FC<SimpleTooltipProps> = ({ content, children, side = 'right', sideOffset = 8 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <div 
+    <div
       className="relative inline-block"
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
     >
       {children}
       {isVisible && (
-        <div 
-          className={`absolute z-50 pointer-events-none rounded-md bg-gray-900 px-3 py-1.5 text-xs text-white shadow-lg ${
+        <div
+          className={`absolute z-50 pointer-events-none rounded-md px-3 py-1.5 text-xs shadow-lg bg-[#0d1117] text-white border border-[#30363d] ${
             side === 'top' ? 'bottom-full left-1/2 -translate-x-1/2 mb-2' :
             side === 'bottom' ? 'top-full left-1/2 -translate-x-1/2 mt-2' :
             side === 'left' ? 'right-full top-1/2 -translate-y-1/2 mr-2' :
@@ -83,14 +83,6 @@ export const SimpleTooltip: FC<SimpleTooltipProps> = ({ content, children, side 
           }}
         >
           {content}
-          <div 
-            className={`absolute w-0 h-0 ${
-              side === 'top' ? 'top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900' :
-              side === 'bottom' ? 'bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-gray-900' :
-              side === 'left' ? 'left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900' :
-              'right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900'
-            }`}
-          />
         </div>
       )}
     </div>

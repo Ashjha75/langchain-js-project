@@ -1,6 +1,8 @@
 'use client';
 
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Settings } from 'lucide-react';
 import RunSettingsSidebar from '@/components/RunSettingsSidebar';
 
 interface ChatLayoutProps {
@@ -8,6 +10,8 @@ interface ChatLayoutProps {
 }
 
 export const ChatLayout: FC<ChatLayoutProps> = ({ children }) => {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(true);
+
   return (
     <div className="flex h-screen bg-background">
       {/* Left Sidebar - Conversations */}
@@ -24,6 +28,9 @@ export const ChatLayout: FC<ChatLayoutProps> = ({ children }) => {
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
           <h1 className="text-xl font-semibold">IntelliChat Pro</h1>
+          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(!isSettingsOpen)}>
+            <Settings className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Chat content */}
@@ -33,7 +40,10 @@ export const ChatLayout: FC<ChatLayoutProps> = ({ children }) => {
       </div>
 
       {/* Right Sidebar - Run Settings */}
-      <RunSettingsSidebar />
+      <RunSettingsSidebar 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 };
