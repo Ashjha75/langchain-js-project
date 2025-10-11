@@ -1,13 +1,14 @@
 /**
  * Groq AI Provider Implementation
  * Handles all Groq API interactions with streaming support and web search integration
+ * NOW USING MODULAR CLIENT WITH FULL UI CONFIG SUPPORT
  */
 
-import Groq from "groq-sdk";
 import { CONFIG } from "@/config";
 import { createLogger } from "@/utils/logger";
 import { aiConfigManager } from "@/config/ai-config";
 import { tavilySearch } from "@/tools/tavilySearch";
+import { GroqClient, GroqUIConfig, GroqMessage } from "./groqClient";
 import type {
   AIProvider,
   AIMessage,
@@ -21,22 +22,21 @@ const logger = createLogger("GroqProvider");
 
 export class GroqProvider implements AIProvider {
   public readonly name = "groq";
-  public readonly version = "1.0.0";
+  public readonly version = "2.0.0";
 
-  private client: Groq;
+  private groqClient: GroqClient;
 
   constructor() {
     if (!CONFIG.ai.groq.apiKey) {
       throw new AIProviderError("Groq API key is required", "groq", "MISSING_API_KEY");
     }
 
-    this.client = new Groq({
-      apiKey: CONFIG.ai.groq.apiKey,
-    });
+    // Initialize modular Groq client
+    this.groqClient = new GroqClient(CONFIG.ai.groq.apiKey);
 
     const enabledModels = aiConfigManager.getProviderModels("groq").filter((m) => m.enabled);
 
-    logger.info("Groq provider initialized", {
+    logger.info("Groq provider initialized with modular client", {
       model: CONFIG.ai.groq.model,
       availableModels: enabledModels.length,
       models: enabledModels.map((m) => m.modelId),
@@ -120,75 +120,119 @@ export class GroqProvider implements AIProvider {
     }
   }
 
+  /**
+   * Convert ConversationContext config to GroqUIConfig
+   * Maps backend config to UI config format
+   */
+  private contextToUIConfig(context: ConversationContext): GroqUIConfig {
+    // Get merged configuration from central config
+    const modelConfig = aiConfigManager.getMergedConfig(
+      context.config.model || CONFIG.ai.groq.model,
+      context.config,
+    );
+
+    // Build UI config from context - NO DEFAULTS, use what's provided
+    const uiConfig: GroqUIConfig = {
+      model: context.config.model || CONFIG.ai.groq.model,
+      temperature: modelConfig.temperature,
+      maxCompletionTokens: modelConfig.maxTokens,
+      stream: context.config.stream !== undefined ? context.config.stream : true,
+      jsonMode: false,
+    };
+    console.log("UI Config:", uiConfig);
+
+    // Add advanced config if available
+    const advanced: any = {
+      topP: modelConfig.topP,
+      seed: modelConfig.seed || null,
+      moderation: false,
+      template: false
+    };
+
+    // Only add stopSequence if it's a string
+    if (typeof modelConfig.stopSequence === 'string' && modelConfig.stopSequence) {
+      advanced.stopSequence = modelConfig.stopSequence;
+    }
+
+    uiConfig.advanced = advanced;
+
+    // Add system instructions if available
+    if (context.config.systemPrompt) {
+      uiConfig.systemInstructions = context.config.systemPrompt;
+    }
+
+    logger.debug("Converted context to UI config", {
+      model: uiConfig.model,
+      temperature: uiConfig.temperature,
+      maxTokens: uiConfig.maxCompletionTokens,
+      stream: uiConfig.stream
+    });
+
+    return uiConfig;
+  }
+
+  /**
+   * Convert AIMessage to GroqMessage format
+   */
+  private convertMessages(messages: AIMessage[]): GroqMessage[] {
+    return messages.map(msg => ({
+      role: msg.role as any,
+      content: msg.content
+    }));
+  }
+
   async generateResponse(context: ConversationContext): Promise<AIResponse> {
     try {
       // Check if web search is needed and enhance context
       const { enhanced, searchResults } = await this.enhanceWithWebSearch(context);
 
-      // Get merged configuration from central config
-      const modelConfig = aiConfigManager.getMergedConfig(
-        context.config.model || CONFIG.ai.groq.model,
-        context.config,
-      );
+      // Convert context to UI config
+      const uiConfig = this.contextToUIConfig(context);
 
-      logger.info("Generating response with Groq", {
-        conversationId: context.conversationId,
-        model: context.config.model,
-        messageCount: context.messages.length,
-        webSearchUsed: enhanced,
-        config: modelConfig,
-      });
-
-      // Enhance system prompt with web search results if available
-      let systemPrompt = context.config.systemPrompt || "You are a helpful assistant.";
+      // Enhance system instructions with web search results if available
       if (enhanced && searchResults) {
-        systemPrompt += `\n\n# Real-time Web Search Results\n\n${searchResults}\n\nUse the above web search results to provide accurate, up-to-date information. Cite sources when possible.`;
+        const enhancedInstructions = (uiConfig.systemInstructions || "You are a helpful assistant.") +
+          `\n\n# Real-time Web Search Results\n\n${searchResults}\n\nUse the above web search results to provide accurate, up-to-date information. Cite sources when possible.`;
+        uiConfig.systemInstructions = enhancedInstructions;
       }
 
-      const messages = this.formatMessages(context.messages, systemPrompt);
-
-      const completion = await this.client.chat.completions.create({
-        model: context.config.model || CONFIG.ai.groq.model,
-        messages: messages as any,
-        temperature: modelConfig.temperature,
-        max_tokens: modelConfig.maxTokens,
-        top_p: modelConfig.topP,
-        stream: false,
-        response_format: { type: "json_object" },
-        ...(modelConfig.seed && { seed: modelConfig.seed }),
-        ...(modelConfig.stopSequence && { stop: modelConfig.stopSequence }),
+      logger.info("Generating response with Groq (modular client)", {
+        conversationId: context.conversationId,
+        model: uiConfig.model,
+        messageCount: context.messages.length,
+        webSearchUsed: enhanced,
       });
 
-      const responseContent = JSON.parse(completion.choices[0]?.message?.content || "{}");
+      // Convert messages and call modular Groq client
+      const groqMessages = this.convertMessages(context.messages);
+      const response = await this.groqClient.generateResponse(uiConfig, groqMessages);
 
-      const response: AIResponse = {
-        content: responseContent.markdown || responseContent.content || "",
-        ...(completion.usage && {
-          usage: {
-            promptTokens: completion.usage.prompt_tokens || 0,
-            completionTokens: completion.usage.completion_tokens || 0,
-            totalTokens: completion.usage.total_tokens || 0,
-          },
-        }),
-        ...(completion.choices[0]?.finish_reason && {
-          finishReason: completion.choices[0].finish_reason,
-        }),
+      // Convert to AIResponse format
+      const aiResponse: any = {
+        content: response.content,
         metadata: {
-          model: completion.model,
-          provider: "groq",
+          ...response.metadata,
           webSearchUsed: enhanced,
-          timestamp: new Date().toISOString(),
         },
       };
 
+      // Add optional fields if available
+      if (response.finishReason) {
+        aiResponse.finishReason = response.finishReason;
+      }
+
+      if (response.usage) {
+        aiResponse.usage = response.usage;
+      }
+
       logger.info("Response generated successfully", {
         conversationId: context.conversationId,
-        contentLength: response.content.length,
-        tokensUsed: response.usage?.totalTokens,
+        contentLength: aiResponse.content.length,
+        tokensUsed: aiResponse.usage?.totalTokens,
         webSearchUsed: enhanced,
       });
 
-      return response;
+      return aiResponse as AIResponse;
     } catch (error: any) {
       logger.error("Error generating response", {
         error: error.message,
@@ -222,55 +266,52 @@ export class GroqProvider implements AIProvider {
     context: ConversationContext,
   ): AsyncGenerator<StreamChunk, void, unknown> {
     try {
-      // Get merged configuration from central config
-      const modelConfig = aiConfigManager.getMergedConfig(
-        context.config.model || CONFIG.ai.groq.model,
-        context.config,
-      );
+      // Check if web search is needed and enhance context
+      const { enhanced, searchResults } = await this.enhanceWithWebSearch(context);
 
-      logger.info("Starting streaming response with Groq", {
+      // Convert context to UI config
+      const uiConfig = this.contextToUIConfig(context);
+      uiConfig.stream = true; // Force streaming
+
+      // Enhance system instructions with web search results if available
+      if (enhanced && searchResults) {
+        const enhancedInstructions = (uiConfig.systemInstructions || "You are a helpful assistant.") +
+          `\n\n# Real-time Web Search Results\n\n${searchResults}\n\nUse the above web search results to provide accurate, up-to-date information. Cite sources when possible.`;
+        uiConfig.systemInstructions = enhancedInstructions;
+      }
+
+      logger.info("Starting streaming response with Groq (modular client)", {
         conversationId: context.conversationId,
-        model: context.config.model,
-        config: modelConfig,
+        model: uiConfig.model,
+        webSearchUsed: enhanced,
       });
 
-      const messages = this.formatMessages(context.messages, context.config.systemPrompt);
-
-      const stream = await this.client.chat.completions.create({
-        model: context.config.model || CONFIG.ai.groq.model,
-        messages: messages as any,
-        temperature: modelConfig.temperature,
-        max_tokens: modelConfig.maxTokens,
-        top_p: modelConfig.topP,
-        stream: true,
-        ...(modelConfig.seed && { seed: modelConfig.seed }),
-        ...(modelConfig.stopSequence && { stop: modelConfig.stopSequence }),
-      });
+      // Convert messages and call modular Groq client's streaming method
+      const groqMessages = this.convertMessages(context.messages);
+      const stream = this.groqClient.generateStreamResponse(uiConfig, groqMessages);
 
       let fullContent = "";
       let tokenCount = 0;
 
+      // Process each chunk from the modular client
       for await (const chunk of stream) {
-        const delta = chunk.choices[0]?.delta?.content || "";
-
-        if (delta) {
-          fullContent += delta;
+        if (chunk.type === 'token' && chunk.content) {
+          fullContent += chunk.content;
           tokenCount++;
 
-          // Send delta only (not full content) for real-time streaming effect
+          // Yield delta for word-by-word streaming
           const streamChunk: StreamChunk = {
-            content: delta, // Send only the new token, not full content
-            delta,
+            content: chunk.content, // Send only the new token
+            delta: chunk.content,
             isComplete: false,
           };
 
           yield streamChunk;
         }
 
-        // Check if stream is complete
-        if (chunk.choices[0]?.finish_reason) {
+        if (chunk.type === 'done') {
           const finalChunk: StreamChunk = {
-            content: fullContent, // Send full content in final chunk
+            content: fullContent,
             delta: "",
             isComplete: true,
             usage: {
@@ -283,12 +324,16 @@ export class GroqProvider implements AIProvider {
           yield finalChunk;
           break;
         }
+
+        if (chunk.type === 'error') {
+          throw new Error(chunk.error || 'Streaming error');
+        }
       }
 
       logger.info("Streaming response completed", {
         conversationId: context.conversationId,
         contentLength: fullContent.length,
-        estimatedTokens: tokenCount,
+        tokenCount,
       });
     } catch (error: any) {
       logger.error("Error in streaming response", {
@@ -322,20 +367,24 @@ export class GroqProvider implements AIProvider {
   }
 
   async validateModel(model: string): Promise<boolean> {
-    return aiConfigManager.isValidModel(model);
+    return this.groqClient.validateModel(model);
   }
 
   async healthCheck(): Promise<boolean> {
     try {
-      // Simple health check by making a minimal request
-      const testContext: ConversationContext = {
-        conversationId: "health-check",
-        userId: "system",
-        messages: [{ role: "user", content: "test" }],
-        config: { model: CONFIG.ai.groq.model, maxTokens: 1 },
+      // Use the modular client for health check
+      const testConfig: GroqUIConfig = {
+        model: CONFIG.ai.groq.model,
+        temperature: 0.7,
+        maxCompletionTokens: 5,
+        stream: false
       };
 
-      await this.generateResponse(testContext);
+      const testMessages: GroqMessage[] = [
+        { role: 'user', content: 'test' }
+      ];
+
+      await this.groqClient.generateResponse(testConfig, testMessages);
       return true;
     } catch (error) {
       logger.warn("Health check failed", { error: (error as Error).message });
@@ -348,33 +397,5 @@ export class GroqProvider implements AIProvider {
     // This is a basic estimation; for production, consider using tiktoken
     const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
     return Math.ceil(totalChars / 4);
-  }
-
-  private formatMessages(messages: AIMessage[], systemPrompt?: string): any[] {
-    const formattedMessages = [];
-
-    const markdownPrompt = `
-      Please format your entire response in Markdown.
-      Return a single JSON object with a key "markdown" containing the Markdown content.
-      ${systemPrompt || ""}
-    `;
-
-    // Add system prompt if provided
-    if (markdownPrompt) {
-      formattedMessages.push({
-        role: "system",
-        content: markdownPrompt.trim(),
-      });
-    }
-
-    // Add conversation messages
-    formattedMessages.push(
-      ...messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-    );
-
-    return formattedMessages;
   }
 }

@@ -122,9 +122,9 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
 
   // Log state changes for debugging
   useEffect(() => {
-    console.log('📊 Current Settings:', settings);
-    console.log('🔄 Changed Settings (for API):', changedSettings);
-    console.log('✨ Has Changes:', hasChanges);
+    // console.log('📊 Current Settings:', settings);
+    // console.log('🔄 Changed Settings (for API):', changedSettings);
+    // console.log('✨ Has Changes:', hasChanges);
   }, [settings, changedSettings, hasChanges]);
 
   if (!isOpen) return null;

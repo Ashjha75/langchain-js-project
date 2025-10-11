@@ -38,15 +38,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       const match = /language-(\w+)/.exec(className || '');
       
       // Debug logging
-      console.log('🔍 Code block debug:', {
-        inline,
-        className,
-        childrenType: typeof children,
-        isArray: Array.isArray(children),
-        children: children,
-        match: match ? match[1] : null
-      });
-      
+    
       // Convert children to string safely - handle all cases
       let codeString = '';
       if (Array.isArray(children)) {
