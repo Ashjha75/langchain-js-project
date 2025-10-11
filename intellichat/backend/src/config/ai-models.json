@@ -25,9 +25,9 @@
           "contextWindow": 32768
         }
       },
-      "llama-3.1-70b-versatile": {
+      "openai/gpt-oss-120b": {
         "provider": "groq",
-        "modelId": "llama-3.1-70b-versatile",
+        "modelId": "openai/gpt-oss-120b",
         "displayName": "LLaMA 3.1 70B",
         "description": "High-performance general-purpose model",
         "enabled": true,
@@ -149,6 +149,6 @@
       }
     }
   },
-  "defaultModel": "llama-3.1-70b-versatile",
+  "defaultModel": "openai/gpt-oss-120b",
   "defaultProvider": "groq"
 }

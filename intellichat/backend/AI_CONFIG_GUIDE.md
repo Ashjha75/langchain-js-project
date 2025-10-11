@@ -66,7 +66,7 @@ src/
       }
     }
   },
-  "defaultModel": "llama-3.1-70b-versatile",
+  "defaultModel": "openai/gpt-oss-120b",
   "defaultProvider": "groq"
 }
 ```
@@ -121,7 +121,7 @@ Response:
   "data": {
     "models": [
       {
-        "id": "llama-3.1-70b-versatile",
+        "id": "openai/gpt-oss-120b",
         "name": "LLaMA 3.1 70B",
         "description": "High-performance general-purpose model",
         "provider": "groq",
@@ -130,7 +130,7 @@ Response:
         "limits": { ... }
       }
     ],
-    "defaultModel": "llama-3.1-70b-versatile",
+    "defaultModel": "openai/gpt-oss-120b",
     "defaultProvider": "groq"
   }
 }

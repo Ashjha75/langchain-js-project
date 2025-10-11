@@ -32,7 +32,7 @@ The backend now returns AI responses in **Markdown format** with metadata indica
       "total": 2130
     },
     "metadata": {
-      "model": "llama-3.1-70b-versatile",
+      "model": "openai/gpt-oss-120b",
       "provider": "groq",
       "contentType": "markdown"
     }
@@ -279,7 +279,7 @@ fetch('http://localhost:3002/api/chat/send', {
   },
   body: JSON.stringify({
     content: "Explain machine learning",
-    model: "llama-3.1-70b-versatile"
+    model: "openai/gpt-oss-120b"
   })
 })
 .then(res => res.json())

@@ -187,7 +187,7 @@ export const models = [
         "can_run": true
     },
     {
-        "id": "llama-3.3-70b-versatile",
+        "id": "openai/gpt-oss-120b",
         "object": "model",
         "created": 1733447754,
         "owned_by": "Meta",
@@ -209,7 +209,7 @@ export const models = [
             "display_name": "Llama 3.3 70B",
             "model_price": {
                 "batch": {
-                    "Model": "llama-3.3-70b-versatile",
+                    "Model": "openai/gpt-oss-120b",
                     "PriceInTokens": "0.000000295",
                     "PriceOutTokens": "0.000000395",
                     "PriceAudioInSeconds": null,
@@ -225,7 +225,7 @@ export const models = [
                     "AudioInSecondsFloor": null
                 },
                 "on_demand": {
-                    "Model": "llama-3.3-70b-versatile",
+                    "Model": "openai/gpt-oss-120b",
                     "PriceInTokens": "0.00000044",
                     "PriceOutTokens": "0.00000067",
                     "PriceAudioInSeconds": null,

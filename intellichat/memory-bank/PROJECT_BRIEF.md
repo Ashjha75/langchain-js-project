@@ -470,10 +470,10 @@ interface CacheStrategy {
 ```typescript
 interface GroqConfig {
   models: {
-    default: "llama-3.1-70b-versatile";
+    default: "openai/gpt-oss-120b";
     fast: "llama-3.1-8b-instant";
     creative: "mixtral-8x7b-32768";
-    coding: "llama-3.1-70b-versatile";
+    coding: "openai/gpt-oss-120b";
   };
   parameters: {
     temperature: 0.7;
@@ -1026,7 +1026,7 @@ class ContextSummarizer {
     
     // 4. Create hierarchical summary
     const summary = await this.groqClient.chat.completions.create({
-      model: "llama-3.1-70b-versatile",
+      model: "openai/gpt-oss-120b",
       messages: [{
         role: "system",
         content: `Create a comprehensive conversation summary focusing on:
@@ -1493,7 +1493,7 @@ REDIS_URL=redis://localhost:6379
 
 # AI Services
 GROQ_API_KEY=your_groq_api_key
-GROQ_MODEL=llama-3.1-70b-versatile
+GROQ_MODEL=openai/gpt-oss-120b
 TAVILY_API_KEY=your_tavily_api_key
 
 # Authentication

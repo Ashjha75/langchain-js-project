@@ -117,7 +117,7 @@ const envSchema = z.object({
 
   // AI Services
   GROQ_API_KEY: z.string(),
-  GROQ_MODEL_DEFAULT: z.string().default("llama-3.1-70b-versatile"),
+  GROQ_MODEL_DEFAULT: z.string().default("openai/gpt-oss-120b"),
   GROQ_MAX_TOKENS: z
     .string()
     .transform((val) => parseInt(val, 10))

@@ -174,7 +174,7 @@ export const ConfigSidebar: FC<ConfigSidebarProps> = ({ isOpen, onClose }) => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="openai/gpt-oss-120b">GPT OSS 120B</SelectItem>
-                      <SelectItem value="llama-3.1-70b-versatile">Llama 3.1 70B</SelectItem>
+                      <SelectItem value="openai/gpt-oss-120b">Llama 3.1 70B</SelectItem>
                       <SelectItem value="mixtral-8x7b-32768">Mixtral 8x7B</SelectItem>
                       <SelectItem value="gemma-7b-it">Gemma 7B</SelectItem>
                     </SelectContent>

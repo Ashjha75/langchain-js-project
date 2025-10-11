@@ -218,7 +218,7 @@ eventSource.onmessage = (event) => {
 ### Frontend Environment Variables
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3002
-NEXT_PUBLIC_DEFAULT_MODEL=llama-3.1-70b-versatile
+NEXT_PUBLIC_DEFAULT_MODEL=openai/gpt-oss-120b
 ```
 
 ### Backend Environment Variables

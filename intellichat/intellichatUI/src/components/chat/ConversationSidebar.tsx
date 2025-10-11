@@ -35,14 +35,16 @@ export function ConversationSidebar({ isOpen, currentConversationId }: Conversat
     try {
       setIsLoading(true);
       const data = await getConversations(1, 50);
-      // Map API conversations to component format
-      const mappedConversations: Conversation[] = data.conversations.map(conv => ({
-        _id: conv._id,
-        title: conv.title,
-        model: conv.model,
-        lastMessageAt: conv.lastMessageAt || conv.createdAt,
-        messageCount: conv.messageCount || 0,
-      }));
+      // Map API conversations to component format and filter out empty conversations
+      const mappedConversations: Conversation[] = data.conversations
+        .filter(conv => conv.messageCount > 0) // Only show conversations with messages
+        .map(conv => ({
+          _id: conv._id,
+          title: conv.title,
+          model: conv.model,
+          lastMessageAt: conv.lastMessageAt || conv.createdAt,
+          messageCount: conv.messageCount || 0,
+        }));
       setConversations(mappedConversations);
     } catch (error) {
       console.error('Failed to load conversations:', error);

@@ -203,7 +203,7 @@ const UserSchema = new Schema(
       chatSettings: {
         defaultModel: {
           type: String,
-          default: "llama-3.1-70b-versatile",
+          default: "openai/gpt-oss-120b",
         },
         temperature: {
           type: Number,

@@ -40,7 +40,7 @@ Authorization: Bearer YOUR_TOKEN
 
 {
   "content": "Hello",
-  "model": "llama-3.1-70b-versatile"
+  "model": "openai/gpt-oss-120b"
 }
 ```
 
@@ -68,7 +68,7 @@ The endpoint requires specific fields in the request body.
 ```json
 {
   "content": "What is TypeScript?",
-  "model": "llama-3.1-70b-versatile",
+  "model": "openai/gpt-oss-120b",
   "systemPrompt": "You are a helpful programming assistant",
   "config": {
     "temperature": 0.7,
@@ -114,7 +114,7 @@ curl -X POST http://localhost:3002/api/auth/login \
 ```json
 {
   "content": "Hello, how are you?",
-  "model": "llama-3.1-70b-versatile"
+  "model": "openai/gpt-oss-120b"
 }
 ```
 
@@ -157,7 +157,7 @@ curl -X POST http://localhost:3002/api/chat/send \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
     "content": "Hello",
-    "model": "llama-3.1-70b-versatile"
+    "model": "openai/gpt-oss-120b"
   }'
 ```
 
@@ -175,7 +175,7 @@ curl -X POST http://localhost:3002/api/chat/conversations \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
     "title": "My Chat",
-    "model": "llama-3.1-70b-versatile"
+    "model": "openai/gpt-oss-120b"
   }'
 
 # Returns: { "data": { "_id": "CONVERSATION_ID", ... } }
@@ -213,13 +213,13 @@ When you make a request, check the terminal where server is running:
 ## Valid Models
 
 Make sure you're using one of these models:
-- `llama-3.1-70b-versatile` ✅ (recommended)
+- `openai/gpt-oss-120b` ✅ (recommended)
 - `llama-3.1-8b-instant`
 - `llama-3.2-1b-preview`
 - `llama-3.2-3b-preview`
 - `llama-3.2-11b-vision-preview`
 - `llama-3.2-90b-vision-preview`
-- `llama-3.3-70b-versatile`
+- `openai/gpt-oss-120b`
 - `mixtral-8x7b-32768`
 - `gemma-7b-it`
 - `gemma2-9b-it`

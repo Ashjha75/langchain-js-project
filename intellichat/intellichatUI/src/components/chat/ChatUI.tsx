@@ -28,10 +28,22 @@ export function ChatUI({
 }: ChatUIProps) {
   const [input, setInput] = useState('');
   const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const router = useRouter();
 
   // Validate conversation ID - must be a valid MongoDB ObjectId (24 hex chars)
   const isValidConversationId = conversationId && /^[0-9a-fA-F]{24}$/.test(conversationId);
+
+  // Set transitioning state immediately when conversationId changes
+  useEffect(() => {
+    if (isValidConversationId) {
+      setIsTransitioning(true);
+      // Clear transitioning state after a short delay to let the hook's isLoading take over
+      const timer = setTimeout(() => setIsTransitioning(false), 300);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [conversationId, isValidConversationId]);
 
   // Use the chat hook for all API interactions - Provider agnostic!
   const {
@@ -83,7 +95,7 @@ export function ChatUI({
       if (!isValidConversationId) {
         // First message: create conversation and send message in one API call
         setIsCreatingChat(true);
-        const defaultModel = process.env.NEXT_PUBLIC_DEFAULT_MODEL || 'llama-3.1-70b-versatile';
+        const defaultModel = process.env.NEXT_PUBLIC_DEFAULT_MODEL || 'openai/gpt-oss-120b';
         
         try {
           const result = await chatAPI.sendNewChat({
@@ -221,14 +233,33 @@ export function ChatUI({
       )}
 
       {/* Loading State */}
-      {isLoading && messages.length === 0 && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-[#9aa0a6]">Loading conversation...</div>
+      {(isLoading || isTransitioning) && messages.length === 0 && (
+        <div className="flex-1 flex flex-col gap-4 p-6 overflow-y-auto">
+          {/* Animated Loading Messages */}
+          {[
+            { delay: '0ms', text: 'Opening conversation...' },
+            { delay: '400ms', text: 'Loading messages...' },
+            { delay: '800ms', text: 'Almost there...' }
+          ].map((item, idx) => (
+            <div 
+              key={idx}
+              className="flex gap-3 animate-in fade-in slide-in-from-bottom-2"
+              style={{ animationDelay: item.delay, animationDuration: '400ms' }}
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex-shrink-0 flex items-center justify-center">
+                <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 animate-pulse" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-[#2d2e30] rounded animate-pulse w-32" />
+                <div className="h-3 bg-[#2d2e30] rounded animate-pulse w-48" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Message List */}
-      {!isLoading || messages.length > 0 ? (
+      {(!isLoading && !isTransitioning) || messages.length > 0 ? (
         <MessageList messages={uiMessages} />
       ) : null}
 

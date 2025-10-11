@@ -118,7 +118,7 @@ DEFAULT_TOKEN_LIMIT=100000          # Free tier
 POST http://localhost:3002/api/chat/send
 {
     "content": "Explain quantum computing in simple terms",
-    "model": "llama-3.1-70b-versatile",
+    "model": "openai/gpt-oss-120b",
     "config": {
         "temperature": 0.7,
         "maxTokens": 4096,
@@ -192,7 +192,7 @@ ENABLE_TOKEN_LIMIT_CHECK=false        # Enable/disable limit checking
 
 # Groq Configuration (Related)
 GROQ_MAX_TOKENS=4096                  # Max tokens per request
-GROQ_MODEL_DEFAULT=llama-3.1-70b-versatile
+GROQ_MODEL_DEFAULT=openai/gpt-oss-120b
 ```
 
 ## ✅ Verification Checklist

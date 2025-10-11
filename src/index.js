@@ -12,7 +12,7 @@ const groq = new Groq({
     }
 });
 const sessionStats = {
-  model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+  model: process.env.GROQ_MODEL || "openai/gpt-oss-120b",
   totalTokens: 0,
   totalRequests: 0,
   toolUsage: {},     // e.g. { searchWeb: 2, trackProgress: 1 }
