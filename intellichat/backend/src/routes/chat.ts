@@ -44,6 +44,8 @@ const updateConversationBodySchema = z.object({
 
 const sendMessageBodySchema = z.object({
   content: z.string().min(1).max(10000),
+  model: z.string().min(1).optional(), // ✅ Allow model override
+  systemPrompt: z.string().max(2000).optional(), // ✅ Allow system prompt override
   attachments: z
     .array(
       z.object({

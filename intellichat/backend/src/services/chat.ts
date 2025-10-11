@@ -26,6 +26,8 @@ export interface SendMessageRequest {
   conversationId: string;
   userId: string;
   content: string;
+  model?: string; // ✅ Allow model override per message
+  systemPrompt?: string; // ✅ Allow system prompt override per message
   attachments?: Array<{
     type: "file" | "image" | "url";
     content: string;
@@ -293,12 +295,13 @@ export class ChatService {
 
       // Merge conversation config with per-message config (per-message takes priority)
       const effectiveConfig: AIConfig = {
-        model: conversation.model,
+        model: request.model || conversation.model, // ✅ Allow model override
         temperature: effectiveRequestConfig?.temperature ?? conversation.config.temperature,
         maxTokens: effectiveRequestConfig?.maxTokens ?? conversation.config.maxTokens,
         topP: effectiveRequestConfig?.topP ?? conversation.config.topP,
         stream: false,
         systemPrompt:
+          request.systemPrompt || // ✅ Allow system prompt override
           conversation.systemPrompt ||
           "You are a helpful assistant. Please format your response in Markdown.",
         browserSearch: effectiveRequestConfig?.browserSearch ?? false,
@@ -309,6 +312,8 @@ export class ChatService {
         conversationId: request.conversationId,
         config: effectiveConfig,
         perMessageConfig: effectiveRequestConfig,
+        modelOverride: request.model ? `${conversation.model} → ${request.model}` : 'none',
+        systemPromptOverride: request.systemPrompt ? 'yes' : 'no',
       });
 
       const context: ConversationContext = {
@@ -343,8 +348,8 @@ export class ChatService {
 
       await assistantMessage.save();
 
-      // Update conversation stats
-      await Conversation.findByIdAndUpdate(conversation._id, {
+      // ✅ UPDATE: If model or config changed, update the conversation
+      const conversationUpdates: any = {
         $inc: {
           messageCount: 2,
           totalTokens: aiResponse.usage?.totalTokens || 0,
@@ -352,7 +357,54 @@ export class ChatService {
         $set: {
           lastMessageAt: new Date(),
         },
-      });
+      };
+
+      // If model was overridden, update conversation model
+      if (request.model && request.model !== conversation.model) {
+        conversationUpdates.$set.model = request.model;
+        logger.info("Updating conversation model", {
+          conversationId: request.conversationId,
+          oldModel: conversation.model,
+          newModel: request.model,
+        });
+      }
+
+      // If system prompt was overridden, update it
+      if (request.systemPrompt && request.systemPrompt !== conversation.systemPrompt) {
+        conversationUpdates.$set.systemPrompt = request.systemPrompt;
+        logger.info("Updating conversation system prompt", {
+          conversationId: request.conversationId,
+        });
+      }
+
+      // If config was provided and differs, update it
+      if (effectiveRequestConfig) {
+        const configChanged = 
+          effectiveRequestConfig.temperature !== undefined && effectiveRequestConfig.temperature !== conversation.config.temperature ||
+          effectiveRequestConfig.maxTokens !== undefined && effectiveRequestConfig.maxTokens !== conversation.config.maxTokens ||
+          effectiveRequestConfig.topP !== undefined && effectiveRequestConfig.topP !== conversation.config.topP ||
+          effectiveRequestConfig.stream !== undefined && effectiveRequestConfig.stream !== conversation.config.stream ||
+          effectiveRequestConfig.browserSearch !== undefined ||
+          effectiveRequestConfig.codeInterpreter !== undefined;
+
+        if (configChanged) {
+          conversationUpdates.$set.config = {
+            temperature: effectiveRequestConfig.temperature ?? conversation.config.temperature,
+            maxTokens: effectiveRequestConfig.maxTokens ?? conversation.config.maxTokens,
+            topP: effectiveRequestConfig.topP ?? conversation.config.topP,
+            stream: effectiveRequestConfig.stream ?? conversation.config.stream,
+            browserSearch: effectiveRequestConfig.browserSearch ?? conversation.config.browserSearch,
+            codeInterpreter: effectiveRequestConfig.codeInterpreter ?? conversation.config.codeInterpreter,
+          };
+          logger.info("Updating conversation config", {
+            conversationId: request.conversationId,
+            newConfig: conversationUpdates.$set.config,
+          });
+        }
+      }
+
+      // Update conversation stats and config
+      await Conversation.findByIdAndUpdate(conversation._id, conversationUpdates);
 
       // Record token usage
       if (aiResponse.usage) {
@@ -447,12 +499,15 @@ export class ChatService {
 
       // Merge conversation config with per-message config (per-message takes priority)
       const effectiveConfig: AIConfig = {
-        model: conversation.model,
+        model: request.model || conversation.model, // ✅ Allow model override
         temperature: effectiveRequestConfig?.temperature ?? conversation.config.temperature,
         maxTokens: effectiveRequestConfig?.maxTokens ?? conversation.config.maxTokens,
         topP: effectiveRequestConfig?.topP ?? conversation.config.topP,
         stream: true,
-        systemPrompt: conversation.systemPrompt,
+        systemPrompt:
+          request.systemPrompt || // ✅ Allow system prompt override
+          conversation.systemPrompt ||
+          "You are a helpful assistant. Please format your response in Markdown.",
         browserSearch: effectiveRequestConfig?.browserSearch ?? false,
         codeInterpreter: effectiveRequestConfig?.codeInterpreter ?? false,
       };
@@ -460,7 +515,9 @@ export class ChatService {
       logger.info("Using effective config for stream", {
         conversationId: request.conversationId,
         config: effectiveConfig,
-        perMessageConfig: request.config,
+        perMessageConfig: effectiveRequestConfig,
+        modelOverride: request.model ? `${conversation.model} → ${request.model}` : 'none',
+        systemPromptOverride: request.systemPrompt ? 'yes' : 'no',
       });
 
       const context: ConversationContext = {
@@ -500,15 +557,64 @@ export class ChatService {
 
           await assistantMessage.save();
 
+          // ✅ UPDATE: If model or config changed, update the conversation
+          const conversationUpdates: any = {
+            $inc: {
+              messageCount: 2,
+              totalTokens: chunk.usage?.totalTokens || 0,
+            },
+            $set: {
+              lastMessageAt: new Date(),
+            },
+          };
+
+          // If model was overridden, update conversation model
+          if (request.model && request.model !== conversation.model) {
+            conversationUpdates.$set.model = request.model;
+            logger.info("Updating conversation model (stream)", {
+              conversationId: request.conversationId,
+              oldModel: conversation.model,
+              newModel: request.model,
+            });
+          }
+
+          // If system prompt was overridden, update it
+          if (request.systemPrompt && request.systemPrompt !== conversation.systemPrompt) {
+            conversationUpdates.$set.systemPrompt = request.systemPrompt;
+            logger.info("Updating conversation system prompt (stream)", {
+              conversationId: request.conversationId,
+            });
+          }
+
+          // If config was provided and differs, update it
+          if (effectiveRequestConfig) {
+            const configChanged = 
+              effectiveRequestConfig.temperature !== undefined && effectiveRequestConfig.temperature !== conversation.config.temperature ||
+              effectiveRequestConfig.maxTokens !== undefined && effectiveRequestConfig.maxTokens !== conversation.config.maxTokens ||
+              effectiveRequestConfig.topP !== undefined && effectiveRequestConfig.topP !== conversation.config.topP ||
+              effectiveRequestConfig.stream !== undefined && effectiveRequestConfig.stream !== conversation.config.stream ||
+              effectiveRequestConfig.browserSearch !== undefined ||
+              effectiveRequestConfig.codeInterpreter !== undefined;
+
+            if (configChanged) {
+              conversationUpdates.$set.config = {
+                temperature: effectiveRequestConfig.temperature ?? conversation.config.temperature,
+                maxTokens: effectiveRequestConfig.maxTokens ?? conversation.config.maxTokens,
+                topP: effectiveRequestConfig.topP ?? conversation.config.topP,
+                stream: effectiveRequestConfig.stream ?? conversation.config.stream,
+                browserSearch: effectiveRequestConfig.browserSearch ?? conversation.config.browserSearch,
+                codeInterpreter: effectiveRequestConfig.codeInterpreter ?? conversation.config.codeInterpreter,
+              };
+              logger.info("Updating conversation config (stream)", {
+                conversationId: request.conversationId,
+                newConfig: conversationUpdates.$set.config,
+              });
+            }
+          }
+
           // Update conversation and record usage
           await Promise.all([
-            Conversation.findByIdAndUpdate(conversation._id, {
-              $inc: {
-                messageCount: 2,
-                totalTokens: chunk.usage?.totalTokens || 0,
-              },
-              $set: { lastMessageAt: new Date() },
-            }),
+            Conversation.findByIdAndUpdate(conversation._id, conversationUpdates),
             this.recordTokenUsage({
               userId: request.userId,
               conversationId: request.conversationId,

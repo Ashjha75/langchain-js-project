@@ -21,6 +21,8 @@ export interface ConversationSchema {
     maxTokens: number;
     topP: number;
     stream: boolean;
+    browserSearch?: boolean;
+    codeInterpreter?: boolean;
   };
   status: "active" | "archived" | "deleted";
   messageCount: number;
@@ -77,6 +79,14 @@ const ConversationSchema = new Schema(
       stream: {
         type: Boolean,
         default: true,
+      },
+      browserSearch: {
+        type: Boolean,
+        default: false,
+      },
+      codeInterpreter: {
+        type: Boolean,
+        default: false,
       },
     },
     status: {

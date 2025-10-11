@@ -19,6 +19,10 @@ interface RunSettingsContextType {
   resetSettings: () => void;
   hasChanges: boolean;
   getApiPayload: () => Partial<RunSettingsConfig>;
+  // ✅ NEW: Sync settings with conversation config
+  syncWithConversationConfig: (config: Partial<RunSettingsConfig>) => void;
+  // ✅ NEW: Batch update multiple settings at once
+  updateMultipleSettings: (updates: Partial<RunSettingsConfig>) => void;
 }
 
 const RunSettingsContext = createContext<RunSettingsContextType | undefined>(undefined);

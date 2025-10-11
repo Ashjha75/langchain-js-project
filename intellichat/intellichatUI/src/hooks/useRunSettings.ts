@@ -28,6 +28,12 @@ interface UseRunSettingsReturn {
   
   // Get API payload (only non-default values)
   getApiPayload: () => Partial<RunSettingsConfig>;
+  
+  // ✅ NEW: Sync settings with conversation config
+  syncWithConversationConfig: (config: Partial<RunSettingsConfig>) => void;
+  
+  // ✅ NEW: Batch update multiple settings at once
+  updateMultipleSettings: (updates: Partial<RunSettingsConfig>) => void;
 }
 
 export const useRunSettings = (): UseRunSettingsReturn => {
@@ -89,6 +95,67 @@ export const useRunSettings = (): UseRunSettingsReturn => {
     return changedSettings;
   }, [changedSettings]);
 
+  // ✅ NEW: Batch update multiple settings at once
+  const updateMultipleSettings = useCallback((updates: Partial<RunSettingsConfig>) => {
+    setSettings((prev) => {
+      const newSettings = { ...prev } as RunSettingsConfig;
+      
+      // Apply all updates with proper type handling
+      (Object.keys(updates) as Array<keyof RunSettingsConfig>).forEach((key) => {
+        const value = updates[key];
+        if (value !== undefined) {
+          // Handle nested objects properly
+          if (key === 'builtInTools' && typeof value === 'object') {
+            newSettings.builtInTools = {
+              ...prev.builtInTools,
+              ...(value as Partial<typeof prev.builtInTools>),
+            };
+          } else if (key === 'advanced' && typeof value === 'object') {
+            newSettings.advanced = {
+              ...prev.advanced,
+              ...(value as Partial<typeof prev.advanced>),
+            };
+          } else {
+            (newSettings as any)[key] = value;
+          }
+        }
+      });
+      
+      return newSettings;
+    });
+
+    // Update changed settings tracking
+    setChangedSettings((prev) => {
+      const newChanged = { ...prev } as Partial<RunSettingsConfig>;
+      
+      (Object.keys(updates) as Array<keyof RunSettingsConfig>).forEach((key) => {
+        const value = updates[key];
+        if (value !== undefined) {
+          const defaultValue = DEFAULT_RUN_SETTINGS[key];
+          
+          // Check if value differs from default
+          if (JSON.stringify(value) !== JSON.stringify(defaultValue)) {
+            (newChanged as any)[key] = value;
+          } else {
+            delete (newChanged as any)[key];
+          }
+        }
+      });
+      
+      return newChanged;
+    });
+  }, []);
+
+  // ✅ NEW: Sync settings with conversation config (loads conversation's saved settings into UI)
+  const syncWithConversationConfig = useCallback((config: Partial<RunSettingsConfig>) => {
+    console.log('🔄 [RunSettings] Syncing with conversation config:', config);
+    
+    // Update settings with conversation config
+    updateMultipleSettings(config);
+    
+    console.log('✅ [RunSettings] Synced successfully');
+  }, [updateMultipleSettings]);
+
   const hasChanges = Object.keys(changedSettings).length > 0;
 
   return {
@@ -98,5 +165,7 @@ export const useRunSettings = (): UseRunSettingsReturn => {
     resetSettings,
     hasChanges,
     getApiPayload,
+    syncWithConversationConfig,
+    updateMultipleSettings,
   };
 };

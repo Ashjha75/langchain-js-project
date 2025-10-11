@@ -240,7 +240,7 @@ export class ChatController {
     try {
       const userId = (req as any).user?.id;
       const { conversationId } = req.params;
-      const { content, attachments, config } = req.body;
+      const { content, attachments, config, model, systemPrompt } = req.body;
 
       if (!userId) {
         throw new UnauthorizedError("User not authenticated");
@@ -259,6 +259,8 @@ export class ChatController {
         userId,
         contentLength: content.length,
         config,
+        model,
+        systemPrompt: systemPrompt ? 'provided' : 'none',
         ip: req.ip,
       });
 
@@ -268,6 +270,8 @@ export class ChatController {
         content: content.trim(),
         attachments,
         config,
+        model,
+        systemPrompt,
       });
 
       logger.info("Message sent", {
@@ -315,6 +319,8 @@ export class ChatController {
           ? JSON.parse(req.query.config as string)
           : undefined
         : req.body.config;
+      const model = isGet ? (req.query.model as string) : req.body.model;
+      const systemPrompt = isGet ? (req.query.systemPrompt as string) : req.body.systemPrompt;
 
       if (!userId) {
         throw new UnauthorizedError("User not authenticated");
@@ -343,6 +349,8 @@ export class ChatController {
         method: req.method,
         contentLength: content.length,
         config,
+        model,
+        systemPrompt: systemPrompt ? 'provided' : 'none',
         ip: req.ip,
       });
 
@@ -353,6 +361,8 @@ export class ChatController {
           content: content.trim(),
           attachments,
           config,
+          model,
+          systemPrompt,
         })) {
           // Send data as Server-Sent Event
           res.write(`data: ${JSON.stringify(chunk)}\n\n`);

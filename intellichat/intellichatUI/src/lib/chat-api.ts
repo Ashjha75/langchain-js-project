@@ -43,6 +43,8 @@ export interface CreateConversationRequest {
 
 export interface SendMessageRequest {
   content: string;
+  model?: string; // ✅ Allow model override per message
+  systemPrompt?: string; // ✅ Allow system prompt override per message
   attachments?: Array<{
     type: 'file' | 'image' | 'url';
     content: string;
@@ -63,7 +65,14 @@ export interface Conversation {
   title: string;
   model: string;
   systemPrompt?: string;
-  config: ConversationConfig;
+  config: {
+    temperature: number;
+    maxTokens: number;
+    topP: number;
+    stream: boolean;
+    browserSearch?: boolean;
+    codeInterpreter?: boolean;
+  };
   status: 'active' | 'archived' | 'deleted';
   messageCount: number;
   totalTokens: number;
@@ -345,6 +354,16 @@ export const sendMessageStream = (
   
   // Encode message content in URL (not ideal but EventSource limitation)
   url.searchParams.set('content', request.content);
+  
+  if (request.model) {
+    url.searchParams.set('model', request.model);
+    console.log('📤 [API] Sending model override:', request.model);
+  }
+  
+  if (request.systemPrompt) {
+    url.searchParams.set('systemPrompt', request.systemPrompt);
+    console.log('📤 [API] Sending system prompt override');
+  }
   
   if (request.attachments) {
     url.searchParams.set('attachments', JSON.stringify(request.attachments));

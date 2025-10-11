@@ -30,7 +30,13 @@ export interface UseChatReturn {
   error: string | null;
   
   // Actions
-  sendMessage: (content: string, attachments?: any[], config?: ConversationConfig) => Promise<void>;
+  sendMessage: (
+    content: string, 
+    attachments?: any[], 
+    config?: ConversationConfig,
+    model?: string,
+    systemPrompt?: string
+  ) => Promise<void>;
   createNewChat: (model: string, config?: ConversationConfig) => Promise<string>;
   loadMessages: () => Promise<void>;
   loadConversation: (id: string) => Promise<void>;
@@ -160,7 +166,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const sendMessageNonStreaming = useCallback(async (
     content: string,
     attachments?: any[],
-    config?: ConversationConfig
+    config?: ConversationConfig,
+    model?: string,
+    systemPrompt?: string
   ) => {
     if (!conversationId) {
       throw new Error('No conversation selected');
@@ -181,6 +189,12 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
     // Send to backend
     const payload: SendMessageRequest = { content };
+    if (model) {
+      payload.model = model;
+    }
+    if (systemPrompt) {
+      payload.systemPrompt = systemPrompt;
+    }
     if (config) {
       payload.config = config;
     }
@@ -204,7 +218,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const sendMessageStreaming = useCallback(async (
     content: string,
     attachments?: any[],
-    config?: ConversationConfig
+    config?: ConversationConfig,
+    model?: string,
+    systemPrompt?: string
   ) => {
     if (!conversationId) {
       throw new Error('No conversation selected');
@@ -244,6 +260,12 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
     // Prepare request payload
     const payload: SendMessageRequest = { content };
+    if (model) {
+      payload.model = model;
+    }
+    if (systemPrompt) {
+      payload.systemPrompt = systemPrompt;
+    }
     if (config) {
       payload.config = config;
     }
@@ -308,7 +330,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const sendMessage = useCallback(async (
     content: string,
     attachments?: any[],
-    config?: ConversationConfig
+    config?: ConversationConfig,
+    model?: string,
+    systemPrompt?: string
   ) => {
     if (!content.trim()) return;
 
@@ -317,9 +341,9 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       setError(null);
 
       if (streamingEnabled && conversation?.config?.stream !== false) {
-        await sendMessageStreaming(content, attachments, config);
+        await sendMessageStreaming(content, attachments, config, model, systemPrompt);
       } else {
-        await sendMessageNonStreaming(content, attachments, config);
+        await sendMessageNonStreaming(content, attachments, config, model, systemPrompt);
       }
 
       // Update conversation's last message time

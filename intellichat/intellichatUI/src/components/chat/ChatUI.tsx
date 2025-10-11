@@ -11,6 +11,7 @@ import { useChat } from '@/hooks/useChat';
 import { useRouter } from 'next/navigation';
 import chatAPI from '@/lib/chat-api';
 import { useRunSettingsContext } from '@/contexts/RunSettingsContext';
+import { useConversationConfig } from '@/hooks/useConversationConfig';
 
 interface ChatUIProps {
   sidebarOpen: boolean;
@@ -34,10 +35,54 @@ export function ChatUI({
   const router = useRouter();
   
   // Get run settings from context
-  const { settings } = useRunSettingsContext();
+  const { settings, syncWithConversationConfig } = useRunSettingsContext();
 
   // Validate conversation ID - must be a valid MongoDB ObjectId (24 hex chars)
   const isValidConversationId = conversationId && /^[0-9a-fA-F]{24}$/.test(conversationId);
+
+  // ✅ NEW: Load and sync conversation-specific config
+  const { conversationConfig, isLoading: isLoadingConfig } = useConversationConfig({
+    ...(isValidConversationId && conversationId ? { conversationId } : {}),
+    enabled: !!isValidConversationId,
+  });
+
+  // ✅ NEW: Check if current settings differ from conversation's saved config
+  const [hasUnappliedChanges, setHasUnappliedChanges] = useState(false);
+
+  // ✅ NEW: Sync settings when conversation config loads
+  useEffect(() => {
+    if (conversationConfig && isValidConversationId) {
+      console.log('🔄 [ChatUI] Syncing settings with conversation config:', {
+        conversationId,
+        model: conversationConfig.model,
+        temperature: conversationConfig.temperature,
+        browserSearch: conversationConfig.builtInTools?.browserSearch,
+      });
+      
+      syncWithConversationConfig(conversationConfig);
+      setHasUnappliedChanges(false); // Reset change indicator when loading
+    }
+  }, [conversationConfig, isValidConversationId, conversationId, syncWithConversationConfig]);
+
+  // ✅ NEW: Detect when user changes settings
+  useEffect(() => {
+    if (!conversationConfig || !isValidConversationId) {
+      setHasUnappliedChanges(false);
+      return;
+    }
+
+    // Check if any setting differs from conversation's saved config
+    const configsDiffer = 
+      settings.model !== conversationConfig.model ||
+      settings.systemInstructions !== (conversationConfig.systemInstructions || '') ||
+      settings.temperature !== conversationConfig.temperature ||
+      settings.maxCompletionTokens !== conversationConfig.maxCompletionTokens ||
+      settings.advanced.topP !== conversationConfig.advanced?.topP ||
+      settings.builtInTools.browserSearch !== conversationConfig.builtInTools?.browserSearch ||
+      settings.builtInTools.codeInterpreter !== conversationConfig.builtInTools?.codeInterpreter;
+
+    setHasUnappliedChanges(configsDiffer);
+  }, [settings, conversationConfig, isValidConversationId]);
 
   // Set transitioning state immediately when conversationId changes
   useEffect(() => {
@@ -111,7 +156,7 @@ export function ChatUI({
 
     setInput('');
 
-    // Prepare config from run settings
+    // Prepare config from run settings - READ FRESH ON EVERY SEND
     const messageConfig = {
       temperature: settings.temperature,
       maxTokens: settings.maxCompletionTokens,
@@ -121,26 +166,28 @@ export function ChatUI({
       codeInterpreter: settings.builtInTools.codeInterpreter,
     };
     
-    console.log('📊 [ChatUI] Sending message with config:', {
-      settings: settings,
+    console.log('📊 [ChatUI] Sending message with CURRENT settings:', {
+      model: settings.model,
+      systemInstructions: settings.systemInstructions,
       messageConfig: messageConfig,
-      browserSearchEnabled: settings.builtInTools.browserSearch,
+      browserSearch: settings.builtInTools.browserSearch,
+      fullSettings: settings,
     });
 
     try {
       if (!isValidConversationId) {
-        // First message: create conversation and send message in one API call
+        // First message: create conversation with CURRENT model and settings
         setIsCreatingChat(true);
-        const defaultModel = process.env.NEXT_PUBLIC_DEFAULT_MODEL || 'openai/gpt-oss-120b';
         
         try {
           const result = await chatAPI.sendNewChat({
             content: messageToSend,
-            model: defaultModel,
+            model: settings.model, // ✅ USE MODEL FROM SETTINGS
+            systemPrompt: settings.systemInstructions, // ✅ USE SYSTEM INSTRUCTIONS
             config: messageConfig,
           });
           
-          console.log('Conversation created:', result.conversation._id);
+          console.log('✅ Conversation created with model:', settings.model, result.conversation._id);
           
           // Navigate to the new conversation with the real MongoDB ObjectId
           router.push(`/chat/${result.conversation._id}`);
@@ -153,11 +200,18 @@ export function ChatUI({
         
         setIsCreatingChat(false);
       } else {
-        // Existing conversation: send message with current run settings
-        await sendMessage(messageToSend, undefined, messageConfig);
+        // Existing conversation: send message with current run settings INCLUDING model and system prompt
+        console.log('📤 Sending to existing conversation - Model:', settings.model, 'Browser:', messageConfig.browserSearch);
+        await sendMessage(
+          messageToSend, 
+          undefined, 
+          messageConfig,
+          settings.model, // ✅ PASS MODEL
+          settings.systemInstructions // ✅ PASS SYSTEM INSTRUCTIONS
+        );
       }
     } catch (err: any) {
-      console.error('Error sending message:', err);
+      console.error('❌ Error sending message:', err);
       setIsCreatingChat(false);
       // The error will be shown by the hook or we show it here
     }
@@ -264,15 +318,35 @@ export function ChatUI({
               </TooltipContent>
             </Tooltip>
           )}
-          <Button 
-            variant="ghost" 
-            onClick={() => setRunSettingsOpen(true)} 
-            className="flex items-center gap-2 hover:bg-[#333537]"
-            aria-label="Open settings"
-          >
-            <Settings size={16} />
-            <span className="text-sm">Settings</span>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                onClick={() => setRunSettingsOpen(true)} 
+                className="flex items-center gap-2 hover:bg-[#333537] relative"
+                aria-label="Open settings"
+              >
+                <Settings size={16} />
+                <span className="text-sm">Settings</span>
+                {hasUnappliedChanges && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-[#1b1c1d]" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {hasUnappliedChanges ? (
+                <div className="text-xs">
+                  <div className="font-semibold mb-1">⚠️ Settings Changed</div>
+                  <div className="text-[#9aa0a6]">
+                    Your next message will use the new settings.<br />
+                    The conversation config will be updated automatically.
+                  </div>
+                </div>
+              ) : (
+                <p>Configure run settings</p>
+              )}
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
