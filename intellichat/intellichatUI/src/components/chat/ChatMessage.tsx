@@ -21,10 +21,11 @@ import 'katex/dist/katex.min.css';
 interface ChatMessageProps {
   message: Message;
   isLoading: boolean;
-  onRetry?: () => void;
+  isRetrying?: boolean;
+  onRetry?: (messageContent: string) => void;
 }
 
-export function ChatMessage({ message, isLoading, onRetry }: ChatMessageProps) {
+export function ChatMessage({ message, isLoading, isRetrying = false, onRetry }: ChatMessageProps) {
   const { role, content } = message;
   const isUser = role === 'user';
   const [copied, setCopied] = useState(false);
@@ -42,10 +43,15 @@ export function ChatMessage({ message, isLoading, onRetry }: ChatMessageProps) {
   };
 
   const handleRetry = async () => {
-    if (!onRetry) return;
+    if (!onRetry || isLoading || isRetrying) return;
+    
+    console.log('🔄 [ChatMessage] Retry clicked for message:', content.substring(0, 50));
+    
     try {
       setRetrying(true);
-      await onRetry();
+      await onRetry(content); // Pass the message content to retry
+    } catch (err) {
+      console.error('❌ [ChatMessage] Retry failed:', err);
     } finally {
       setRetrying(false);
     }
@@ -214,19 +220,19 @@ export function ChatMessage({ message, isLoading, onRetry }: ChatMessageProps) {
             </Tooltip>
           </TooltipProvider>
 
-          {/* Retry (AI only) */}
-          {!isUser && (
+          {/* Retry (User messages only) */}
+          {isUser && onRetry && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    disabled={retrying}
+                    disabled={retrying || isLoading || isRetrying}
                     onClick={handleRetry}
                     className="h-7 w-7 bg-transparent hover:bg-[#2d2d2d]"
                   >
-                    {retrying ? (
+                    {(retrying || isRetrying) ? (
                       <RefreshCw size={14} className="animate-spin text-blue-400" />
                     ) : (
                       <RefreshCw size={14} />
@@ -234,7 +240,7 @@ export function ChatMessage({ message, isLoading, onRetry }: ChatMessageProps) {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{retrying ? 'Retrying...' : 'Retry response'}</p>
+                  <p>{(retrying || isRetrying) ? 'Retrying...' : 'Retry message'}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

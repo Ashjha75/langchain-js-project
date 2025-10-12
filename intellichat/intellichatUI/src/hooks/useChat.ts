@@ -202,13 +202,19 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       payload.attachments = attachments;
     }
     
+    console.log('📤 [Non-Streaming] Sending message to backend...');
+    
     const response = await chatAPI.sendMessage(conversationId, payload);
+
+    console.log('✅ [Non-Streaming] Message sent successfully, reloading messages...');
 
     // Replace temp message with real one
     setMessages((prev) => prev.filter((msg) => msg._id !== userMessage._id));
     
-    // Reload messages to get both user and assistant messages
+    // 🔥 CRITICAL FIX: Reload messages to get both user and assistant messages from backend
     await loadMessages();
+    
+    console.log('✅ [Non-Streaming] Messages reloaded from backend');
   }, [conversationId, loadMessages]);
 
   // ============================================================================
@@ -242,6 +248,8 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     setMessages((prev) => [...prev, userMessage]);
     setIsStreaming(true);
 
+    console.log('📡 [Streaming] Starting stream connection...');
+
     // Close any existing stream
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
@@ -262,62 +270,113 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       payload.attachments = attachments;
     }
 
-    // Start new stream
-    eventSourceRef.current = chatAPI.sendMessageStream(
-      conversationId,
-      payload,
-      
-      // onChunk
-      (chunk: StreamChunk) => {
-        if (chunk.type === 'token' && chunk.content) {
-          setMessages((prev) => {
-            const lastMessage = prev[prev.length - 1];
-            if (lastMessage && lastMessage.role === 'assistant') {
-              return prev.map((msg, index) =>
-                index === prev.length - 1
-                  ? { ...msg, content: msg.content + chunk.content }
-                  : msg
-              );
-            } else {
-              const newAssistantMessage: Message = {
-                _id: `assistant-${Date.now()}`,
-                conversationId,
-                role: 'assistant',
-                content: chunk.content,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              };
-              return [...prev, newAssistantMessage];
-            }
-          });
-        } else if (chunk.type === 'metadata' && chunk.message) {
-          // Update with final message data
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg._id.startsWith('assistant-')
-                ? { ...msg, ...chunk.message }
-                : msg
-            )
-          );
-        }
-      },
-      
-      // onError
-      (err: Error) => {
-        console.error('Streaming error:', err);
-        setError(err.message || 'Streaming failed');
+    // 🔥 Add timeout fallback in case stream hangs
+    let streamTimeout: NodeJS.Timeout | null = null;
+    let streamStarted = false;
+
+    const cleanupStream = () => {
+      if (streamTimeout) {
+        clearTimeout(streamTimeout);
+        streamTimeout = null;
+      }
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+
+    // Set timeout: if no data received in 10 seconds, fallback to reload
+    streamTimeout = setTimeout(async () => {
+      if (!streamStarted) {
+        console.warn('⚠️ [Streaming] No data received in 10s, falling back to reload...');
+        cleanupStream();
         setIsStreaming(false);
         
-        // Remove incomplete assistant message
-        setMessages((prev) => prev.filter((msg) => msg._id.startsWith('assistant-')));
-      },
-      
-      // onComplete
-      () => {
-        setIsStreaming(false);
-        streamingMessageRef.current = '';
+        // Reload messages from backend as fallback
+        await loadMessages();
+        console.log('✅ [Streaming Fallback] Messages reloaded from backend');
       }
-    );
+    }, 10000);
+
+    // Start new stream
+    try {
+      eventSourceRef.current = chatAPI.sendMessageStream(
+        conversationId,
+        payload,
+        
+        // onChunk
+        (chunk: StreamChunk) => {
+          streamStarted = true; // Mark that we received data
+          
+          if (chunk.type === 'token' && chunk.content) {
+            setMessages((prev) => {
+              const lastMessage = prev[prev.length - 1];
+              if (lastMessage && lastMessage.role === 'assistant') {
+                return prev.map((msg, index) =>
+                  index === prev.length - 1
+                    ? { ...msg, content: msg.content + chunk.content }
+                    : msg
+                );
+              } else {
+                const newAssistantMessage: Message = {
+                  _id: `assistant-${Date.now()}`,
+                  conversationId,
+                  role: 'assistant',
+                  content: chunk.content ?? '',
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                };
+                return [...prev, newAssistantMessage];
+              }
+            });
+          } else if (chunk.type === 'metadata' && chunk.message) {
+            // Update with final message data
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg._id.startsWith('assistant-')
+                  ? { ...msg, ...chunk.message }
+                  : msg
+              )
+            );
+          }
+        },
+        
+        // onError
+        async (err: Error) => {
+          console.error('❌ [Streaming] Error:', err);
+          setError(err.message || 'Streaming failed');
+          setIsStreaming(false);
+          cleanupStream();
+          
+          // 🔥 CRITICAL FIX: On error, reload messages from backend as fallback
+          console.log('🔄 [Streaming Error] Reloading messages from backend...');
+          await loadMessages();
+          console.log('✅ [Streaming Error Recovery] Messages reloaded');
+        },
+        
+        // onComplete
+        async () => {
+          console.log('✅ [Streaming] Stream completed');
+          setIsStreaming(false);
+          streamingMessageRef.current = '';
+          cleanupStream();
+          
+          // 🔥 CRITICAL FIX: Always reload messages after stream completes
+          // This ensures we have the final, saved message with proper IDs from DB
+          console.log('🔄 [Streaming Complete] Reloading messages from backend...');
+          await loadMessages();
+          console.log('✅ [Streaming Complete] Messages reloaded with final data');
+        }
+      );
+    } catch (err) {
+      console.error('❌ [Streaming] Failed to start stream:', err);
+      cleanupStream();
+      setIsStreaming(false);
+      setError('Failed to start streaming');
+      
+      // Fallback: reload messages
+      await loadMessages();
+    }
   }, [conversationId, loadMessages]);
 
   // ============================================================================
@@ -337,9 +396,19 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       setIsSending(true);
       setError(null);
 
-      if (streamingEnabled && conversation?.config?.stream !== false) {
+      // The decision to stream is now based purely on the config passed with the message
+      console.log('📨 [useChat] sendMessage called with config:', { 
+        stream: config?.stream, 
+        model, 
+        hasSystemPrompt: !!systemPrompt,
+        conversationId 
+      });
+
+      if (config?.stream) {
+        console.log('🌊 [useChat] Using STREAMING mode');
         await sendMessageStreaming(content, attachments, config, model, systemPrompt);
       } else {
+        console.log('📮 [useChat] Using NON-STREAMING mode');
         await sendMessageNonStreaming(content, attachments, config, model, systemPrompt);
       }
 
@@ -351,13 +420,15 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           messageCount: conversation.messageCount + 2, // user + assistant
         });
       }
+
+      console.log('✅ [useChat] sendMessage completed successfully');
     } catch (err: any) {
-      console.error('Error sending message:', err);
+      console.error('❌ [useChat] Error sending message:', err);
       setError(err.response?.data?.message || err.message || 'Failed to send message');
     } finally {
       setIsSending(false);
     }
-  }, [conversation, streamingEnabled, sendMessageStreaming, sendMessageNonStreaming]);
+  }, [conversation, sendMessageStreaming, sendMessageNonStreaming]);
 
   // ============================================================================
   // UPDATE & DELETE

@@ -33,6 +33,7 @@ export function ChatUI({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [initialMessageSent, setInitialMessageSent] = useState(false);
   const router = useRouter();
   
   const { currentChatConfig: settings, actions } = useAppStore();
@@ -131,11 +132,12 @@ export function ChatUI({
 
   // Handle initial message (from homepage)
   useEffect(() => {
-    if (initialMessage && !isValidConversationId) {
+    if (initialMessage && !isValidConversationId && !initialMessageSent) {
       // Create new chat with the initial message
+      setInitialMessageSent(true);
       handleSendMessage(initialMessage);
     }
-  }, [initialMessage, isValidConversationId]);
+  }, [initialMessage, isValidConversationId, initialMessageSent]);
 
   const handleSendMessage = async (message?: string) => {
     const messageToSend = message || input;
@@ -224,11 +226,19 @@ export function ChatUI({
   };
 
   const handleRetryMessage = async (messageContent: string) => {
-    if (isRetrying || isSending || isStreaming) return;
+    if (isRetrying || isSending || isStreaming) {
+      console.log('⚠️ [ChatUI] Retry blocked - already processing');
+      return;
+    }
+    
+    console.log('🔄 [ChatUI] Retry initiated with message:', messageContent.substring(0, 50));
     
     setIsRetrying(true);
     try {
       await handleSendMessage(messageContent);
+      console.log('✅ [ChatUI] Retry completed successfully');
+    } catch (err) {
+      console.error('❌ [ChatUI] Retry failed:', err);
     } finally {
       setIsRetrying(false);
     }
