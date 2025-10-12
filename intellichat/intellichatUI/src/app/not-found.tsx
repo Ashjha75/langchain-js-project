@@ -1,3 +1,5 @@
+'use client';
+
 import { FileQuestion, Home } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
