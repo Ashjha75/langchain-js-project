@@ -8,7 +8,8 @@ import { CONFIG } from "@/config";
 import { createLogger } from "@/utils/logger";
 import { aiConfigManager } from "@/config/ai-config";
 import { tavilySearch } from "@/tools/tavilySearch";
-import { GroqClient, GroqUIConfig, GroqMessage } from "./groqClient";
+import type { GroqUIConfig, GroqMessage } from "./groqClient";
+import { GroqClient } from "./groqClient";
 import type {
   AIProvider,
   AIMessage,
@@ -167,11 +168,11 @@ export class GroqProvider implements AIProvider {
       topP: modelConfig.topP,
       seed: modelConfig.seed || null,
       moderation: false,
-      template: false
+      template: false,
     };
 
     // Only add stopSequence if it's a string
-    if (typeof modelConfig.stopSequence === 'string' && modelConfig.stopSequence) {
+    if (typeof modelConfig.stopSequence === "string" && modelConfig.stopSequence) {
       advanced.stopSequence = modelConfig.stopSequence;
     }
 
@@ -188,7 +189,7 @@ export class GroqProvider implements AIProvider {
       maxTokens: uiConfig.maxCompletionTokens,
       stream: uiConfig.stream,
       browserSearch: uiConfig.builtInTools?.browserSearch,
-      codeInterpreter: uiConfig.builtInTools?.codeInterpreter
+      codeInterpreter: uiConfig.builtInTools?.codeInterpreter,
     });
 
     return uiConfig;
@@ -198,9 +199,9 @@ export class GroqProvider implements AIProvider {
    * Convert AIMessage to GroqMessage format
    */
   private convertMessages(messages: AIMessage[]): GroqMessage[] {
-    return messages.map(msg => ({
+    return messages.map((msg) => ({
       role: msg.role as any,
-      content: msg.content
+      content: msg.content,
     }));
   }
 
@@ -226,14 +227,15 @@ export class GroqProvider implements AIProvider {
           jsonMode: uiConfig.jsonMode,
           reasoning: uiConfig.reasoning,
           advanced: uiConfig.advanced,
-          systemInstructions: uiConfig.systemInstructions?.substring(0, 100) + '...'
+          systemInstructions: uiConfig.systemInstructions?.substring(0, 100) + "...",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Enhance system instructions with web search results if available
       if (enhanced && searchResults) {
-        const enhancedInstructions = (uiConfig.systemInstructions || "You are a helpful assistant.") +
+        const enhancedInstructions =
+          (uiConfig.systemInstructions || "You are a helpful assistant.") +
           `\n\n# Real-time Web Search Results\n\n${searchResults}\n\nUse the above web search results to provide accurate, up-to-date information. Cite sources when possible.`;
         uiConfig.systemInstructions = enhancedInstructions;
       }
@@ -267,7 +269,7 @@ export class GroqProvider implements AIProvider {
         tokensUsed: aiResponse.usage?.totalTokens,
         webSearchUsed: enhanced,
         finishReason: aiResponse.finishReason,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       return aiResponse as AIResponse;
@@ -277,7 +279,7 @@ export class GroqProvider implements AIProvider {
         conversationId: context.conversationId,
         model: context.config.model,
         stack: error.stack?.substring(0, 200),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       if (error.status === 400 && error.message?.includes("token")) {
@@ -327,14 +329,15 @@ export class GroqProvider implements AIProvider {
           jsonMode: uiConfig.jsonMode,
           reasoning: uiConfig.reasoning,
           advanced: uiConfig.advanced,
-          systemInstructions: uiConfig.systemInstructions?.substring(0, 100) + '...'
+          systemInstructions: uiConfig.systemInstructions?.substring(0, 100) + "...",
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Enhance system instructions with web search results if available
       if (enhanced && searchResults) {
-        const enhancedInstructions = (uiConfig.systemInstructions || "You are a helpful assistant.") +
+        const enhancedInstructions =
+          (uiConfig.systemInstructions || "You are a helpful assistant.") +
           `\n\n# Real-time Web Search Results\n\n${searchResults}\n\nUse the above web search results to provide accurate, up-to-date information. Cite sources when possible.`;
         uiConfig.systemInstructions = enhancedInstructions;
       }
@@ -348,7 +351,7 @@ export class GroqProvider implements AIProvider {
 
       // Process each chunk from the modular client
       for await (const chunk of stream) {
-        if (chunk.type === 'token' && chunk.content) {
+        if (chunk.type === "token" && chunk.content) {
           fullContent += chunk.content;
           tokenCount++;
 
@@ -362,7 +365,7 @@ export class GroqProvider implements AIProvider {
           yield streamChunk;
         }
 
-        if (chunk.type === 'done') {
+        if (chunk.type === "done") {
           const finalChunk: StreamChunk = {
             content: fullContent,
             delta: "",
@@ -380,20 +383,20 @@ export class GroqProvider implements AIProvider {
             contentLength: fullContent.length,
             tokenCount,
             webSearchUsed: enhanced,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
           yield finalChunk;
           break;
         }
 
-        if (chunk.type === 'error') {
+        if (chunk.type === "error") {
           logger.error("❌ [GROQ API STREAMING ERROR] Stream error", {
             conversationId: context.conversationId,
             error: chunk.error,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
-          throw new Error(chunk.error || 'Streaming error');
+          throw new Error(chunk.error || "Streaming error");
         }
       }
 
@@ -444,12 +447,10 @@ export class GroqProvider implements AIProvider {
         model: CONFIG.ai.groq.model,
         temperature: 0.7,
         maxCompletionTokens: 5,
-        stream: false
+        stream: false,
       };
 
-      const testMessages: GroqMessage[] = [
-        { role: 'user', content: 'test' }
-      ];
+      const testMessages: GroqMessage[] = [{ role: "user", content: "test" }];
 
       await this.groqClient.generateResponse(testConfig, testMessages);
       return true;

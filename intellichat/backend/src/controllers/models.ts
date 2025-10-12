@@ -6,6 +6,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { AIModel } from "@/models/aiModel";
 import { createLogger } from "@/utils/logger";
+import { aiConfigManager } from "@/config/ai-config";
 
 const logger = createLogger("ModelsController");
 
@@ -15,14 +16,20 @@ export class ModelsController {
    */
   async listModels(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      // Fetch all active models from DB
       const models = await AIModel.find({ active: true, can_run: true })
-        .select('-__v -createdAt -updatedAt')
-        .sort({ 'metadata.display_name': 1 });
+        .select("-__v -createdAt -updatedAt")
+        .sort({ "metadata.display_name": 1 });
+
+      // Filter models to only those supported by backend config across all providers
+      const allowedModelIds = new Set(aiConfigManager.getEnabledModels().map((m) => m.modelId));
+
+      const filtered = models.filter((m: any) => allowedModelIds.has(m.modelId));
 
       res.json({
         success: true,
-        count: models.length,
-        data: models,
+        count: filtered.length,
+        data: filtered,
       });
     } catch (error) {
       logger.error("Error fetching models:", error);
@@ -45,13 +52,23 @@ export class ModelsController {
         return;
       }
 
-      const model = await AIModel.findOne({ modelId })
-        .select('-__v -createdAt -updatedAt');
+      const model = await AIModel.findOne({ modelId }).select("-__v -createdAt -updatedAt");
+
+      // Ensure model is supported by backend config
+      const allowed = !!aiConfigManager.getModelConfig(modelId);
 
       if (!model) {
         res.status(404).json({
           success: false,
           message: `Model ${modelId} not found`,
+        });
+        return;
+      }
+
+      if (!allowed) {
+        res.status(404).json({
+          success: false,
+          message: `Model ${modelId} is not supported by backend`,
         });
         return;
       }
@@ -81,13 +98,22 @@ export class ModelsController {
         return;
       }
 
-      const models = await AIModel.find({ 
-        owned_by: new RegExp(provider, 'i'),
+      // Map provider param to backend-configured provider keys
+      const providerKey = provider.toLowerCase();
+      const allowedIds = new Set(
+        aiConfigManager
+          .getProviderModels(providerKey)
+          .filter((m) => m.enabled)
+          .map((m) => m.modelId),
+      );
+
+      const models = await AIModel.find({
+        modelId: { $in: Array.from(allowedIds) },
         active: true,
-        can_run: true
+        can_run: true,
       })
-        .select('-__v -createdAt -updatedAt')
-        .sort({ 'metadata.display_name': 1 });
+        .select("-__v -createdAt -updatedAt")
+        .sort({ "metadata.display_name": 1 });
 
       if (models.length === 0) {
         res.status(404).json({

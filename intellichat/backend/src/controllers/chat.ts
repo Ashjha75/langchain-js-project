@@ -260,7 +260,7 @@ export class ChatController {
         contentLength: content.length,
         config,
         model,
-        systemPrompt: systemPrompt ? 'provided' : 'none',
+        systemPrompt: systemPrompt ? "provided" : "none",
         ip: req.ip,
       });
 
@@ -350,7 +350,7 @@ export class ChatController {
         contentLength: content.length,
         config,
         model,
-        systemPrompt: systemPrompt ? 'provided' : 'none',
+        systemPrompt: systemPrompt ? "provided" : "none",
         ip: req.ip,
       });
 

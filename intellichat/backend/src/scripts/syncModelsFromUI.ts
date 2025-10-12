@@ -20,9 +20,7 @@ async function syncModels() {
     // Connect to MongoDB
     const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
     if (!mongoUri) {
-      throw new Error(
-        "MONGODB_URI or MONGO_URI not found in environment variables"
-      );
+      throw new Error("MONGODB_URI or MONGO_URI not found in environment variables");
     }
 
     logger.info("Connecting to MongoDB...");
@@ -30,10 +28,7 @@ async function syncModels() {
     logger.info("Connected to MongoDB");
 
     // Read models from UI config
-    const uiModelsPath = path.join(
-      __dirname,
-      "../../../intellichatUI/src/config/models.ts"
-    );
+    const uiModelsPath = path.join(__dirname, "../../../intellichatUI/src/config/models.ts");
     logger.info(`Reading models from: ${uiModelsPath}`);
 
     if (!fs.existsSync(uiModelsPath)) {
@@ -81,11 +76,14 @@ async function syncModels() {
     logger.info(`Successfully inserted ${dbModels.length} models`);
 
     // Show summary
-    const summary = dbModels.reduce((acc: any, model: any) => {
-      const provider = model.owned_by;
-      acc[provider] = (acc[provider] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const summary = dbModels.reduce(
+      (acc: any, model: any) => {
+        const provider = model.owned_by;
+        acc[provider] = (acc[provider] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     logger.info("Models by provider:", summary);
 

@@ -22,7 +22,7 @@ export interface GroqUIConfig {
   // Core Parameters
   temperature: number;
   maxCompletionTokens: number;
-  reasoning?: 'low' | 'medium' | 'high';
+  reasoning?: "low" | "medium" | "high";
 
   // Modes
   stream: boolean;
@@ -53,14 +53,14 @@ export interface GroqUIConfig {
   tools?: Array<any>;
   toolChoice?: string | any;
   user?: string;
-  responseFormat?: { type: 'text' | 'json_object' };
+  responseFormat?: { type: "text" | "json_object" };
 }
 
 /**
  * Message format (OpenAI-compatible)
  */
 export interface GroqMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool';
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
   name?: string;
   tool_call_id?: string;
@@ -89,7 +89,7 @@ export interface GroqResponse {
  * Stream chunk for real-time responses
  */
 export interface GroqStreamChunk {
-  type: 'start' | 'token' | 'done' | 'error';
+  type: "start" | "token" | "done" | "error";
   content?: string;
   metadata?: any;
   error?: string;
@@ -105,20 +105,20 @@ export class GroqClient {
 
   constructor(apiKey: string) {
     if (!apiKey) {
-      throw new Error('Groq API key is required');
+      throw new Error("Groq API key is required");
     }
     this.client = new Groq({ apiKey });
-    logger.info('Groq client initialized');
+    logger.info("Groq client initialized");
   }
 
   /**
    * Map reasoning effort to Groq-compatible values
    */
-  private mapReasoningEffort(reasoning?: 'low' | 'medium' | 'high'): string | undefined {
+  private mapReasoningEffort(reasoning?: "low" | "medium" | "high"): string | undefined {
     const reasoningMap = {
-      low: 'low',
-      medium: 'medium',
-      high: 'high'
+      low: "low",
+      medium: "medium",
+      high: "high",
     };
     return reasoning ? reasoningMap[reasoning] : undefined;
   }
@@ -128,15 +128,15 @@ export class GroqClient {
    */
   private buildMessages(messages: GroqMessage[], systemInstructions?: string): GroqMessage[] {
     const messagesCopy = [...messages];
-    
+
     // Add system instructions if provided and not already present
-    if (systemInstructions && !messagesCopy.some(m => m.role === 'system')) {
+    if (systemInstructions && !messagesCopy.some((m) => m.role === "system")) {
       messagesCopy.unshift({
-        role: 'system',
-        content: systemInstructions
+        role: "system",
+        content: systemInstructions,
       });
     }
-    
+
     return messagesCopy;
   }
 
@@ -144,13 +144,10 @@ export class GroqClient {
    * Generate non-streaming response
    * All configuration comes from uiConfig parameter
    */
-  async generateResponse(
-    uiConfig: GroqUIConfig,
-    messages: GroqMessage[]
-  ): Promise<GroqResponse> {
+  async generateResponse(uiConfig: GroqUIConfig, messages: GroqMessage[]): Promise<GroqResponse> {
     for (let i = 0; i < this.maxRetries; i++) {
       try {
-        logger.info('Generating Groq response', {
+        logger.info("Generating Groq response", {
           model: uiConfig.model,
           temperature: uiConfig.temperature,
           maxTokens: uiConfig.maxCompletionTokens,
@@ -165,7 +162,7 @@ export class GroqClient {
           messages: builtMessages,
           model: uiConfig.model,
           temperature: uiConfig.temperature,
-          max_tokens: uiConfig.maxCompletionTokens,  // Use max_tokens instead of max_completion_tokens
+          max_tokens: uiConfig.maxCompletionTokens, // Use max_tokens instead of max_completion_tokens
           stream: false,
         };
 
@@ -179,7 +176,7 @@ export class GroqClient {
         }
 
         if (uiConfig.advanced?.stopSequence) {
-          requestParams.stop = uiConfig.advanced.stopSequence.split(',').map(s => s.trim());
+          requestParams.stop = uiConfig.advanced.stopSequence.split(",").map((s) => s.trim());
         }
 
         if (uiConfig.frequencyPenalty !== undefined) {
@@ -195,7 +192,7 @@ export class GroqClient {
         }
 
         if (uiConfig.responseFormat || uiConfig.jsonMode) {
-          requestParams.response_format = uiConfig.responseFormat || { type: 'json_object' };
+          requestParams.response_format = uiConfig.responseFormat || { type: "json_object" };
         }
 
         if (uiConfig.tools && uiConfig.tools.length > 0) {
@@ -225,17 +222,17 @@ export class GroqClient {
           requestParams.user = uiConfig.user;
         }
 
-        logger.debug('Groq request parameters', requestParams);
+        logger.debug("Groq request parameters", requestParams);
 
         const completion = await this.client.chat.completions.create(requestParams);
 
         const response: any = {
-          content: completion.choices[0]?.message?.content || '',
+          content: completion.choices[0]?.message?.content || "",
           metadata: {
-            model: completion.model || 'unknown',
+            model: completion.model || "unknown",
             timestamp: new Date().toISOString(),
-            provider: 'groq'
-          }
+            provider: "groq",
+          },
         };
 
         // Add optional fields
@@ -243,7 +240,7 @@ export class GroqClient {
           response.usage = {
             promptTokens: completion.usage.prompt_tokens || 0,
             completionTokens: completion.usage.completion_tokens || 0,
-            totalTokens: completion.usage.total_tokens || 0
+            totalTokens: completion.usage.total_tokens || 0,
           };
         }
 
@@ -251,14 +248,14 @@ export class GroqClient {
           response.finishReason = completion.choices[0].finish_reason;
         }
 
-        logger.info('Groq response generated', {
+        logger.info("Groq response generated", {
           contentLength: response.content.length,
-          totalTokens: response.usage?.totalTokens
+          totalTokens: response.usage?.totalTokens,
         });
 
         return response as GroqResponse;
       } catch (error: any) {
-        logger.error('Groq API error', {
+        logger.error("Groq API error", {
           error: error.message,
           status: error.status,
           code: error.code,
@@ -267,10 +264,10 @@ export class GroqClient {
         if (i === this.maxRetries - 1) {
           throw error;
         }
-        await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+        await new Promise((res) => setTimeout(res, 1000 * (i + 1)));
       }
     }
-    throw new Error('Groq API request failed after multiple retries');
+    throw new Error("Groq API request failed after multiple retries");
   }
 
   /**
@@ -279,18 +276,18 @@ export class GroqClient {
    */
   async *generateStreamResponse(
     uiConfig: GroqUIConfig,
-    messages: GroqMessage[]
+    messages: GroqMessage[],
   ): AsyncGenerator<GroqStreamChunk, void, unknown> {
     for (let i = 0; i < this.maxRetries; i++) {
       try {
-        logger.info('Starting Groq streaming response', {
+        logger.info("Starting Groq streaming response", {
           model: uiConfig.model,
           temperature: uiConfig.temperature,
           maxTokens: uiConfig.maxCompletionTokens,
           attempt: i + 1,
         });
 
-        yield { type: 'start' };
+        yield { type: "start" };
 
         const builtMessages = this.buildMessages(messages, uiConfig.systemInstructions);
 
@@ -299,7 +296,7 @@ export class GroqClient {
           messages: builtMessages,
           model: uiConfig.model,
           temperature: uiConfig.temperature,
-          max_tokens: uiConfig.maxCompletionTokens,  // Use max_tokens instead of max_completion_tokens
+          max_tokens: uiConfig.maxCompletionTokens, // Use max_tokens instead of max_completion_tokens
           stream: true,
         };
 
@@ -313,7 +310,7 @@ export class GroqClient {
         }
 
         if (uiConfig.advanced?.stopSequence) {
-          requestParams.stop = uiConfig.advanced.stopSequence.split(',').map(s => s.trim());
+          requestParams.stop = uiConfig.advanced.stopSequence.split(",").map((s) => s.trim());
         }
 
         if (uiConfig.frequencyPenalty !== undefined) {
@@ -329,7 +326,7 @@ export class GroqClient {
         }
 
         if (uiConfig.responseFormat || uiConfig.jsonMode) {
-          requestParams.response_format = uiConfig.responseFormat || { type: 'json_object' };
+          requestParams.response_format = uiConfig.responseFormat || { type: "json_object" };
         }
 
         if (uiConfig.tools && uiConfig.tools.length > 0) {
@@ -340,50 +337,50 @@ export class GroqClient {
           requestParams.tool_choice = uiConfig.toolChoice;
         }
 
-        logger.debug('Groq streaming request parameters', requestParams);
+        logger.debug("Groq streaming request parameters", requestParams);
 
         const streamResponse: any = await this.client.chat.completions.create(requestParams);
 
-        let fullContent = '';
+        let fullContent = "";
 
         for await (const chunk of streamResponse) {
-          const content = chunk.choices[0]?.delta?.content || '';
-          
+          const content = chunk.choices[0]?.delta?.content || "";
+
           if (content) {
             fullContent += content;
-            
+
             // Yield each token/word individually for smooth streaming
             yield {
-              type: 'token',
+              type: "token",
               content: content,
               metadata: {
                 model: chunk.model,
-                finishReason: chunk.choices[0]?.finish_reason
-              }
+                finishReason: chunk.choices[0]?.finish_reason,
+              },
             };
           }
 
           // Check for completion
           if (chunk.choices[0]?.finish_reason) {
-            logger.info('Groq stream completed', {
+            logger.info("Groq stream completed", {
               finishReason: chunk.choices[0].finish_reason,
-              contentLength: fullContent.length
+              contentLength: fullContent.length,
             });
 
             yield {
-              type: 'done',
+              type: "done",
               content: fullContent,
               metadata: {
                 model: chunk.model,
                 finishReason: chunk.choices[0].finish_reason,
-                timestamp: new Date().toISOString()
-              }
+                timestamp: new Date().toISOString(),
+              },
             };
           }
         }
         return;
       } catch (error: any) {
-        logger.error('Groq streaming error', {
+        logger.error("Groq streaming error", {
           error: error.message,
           status: error.status,
           attempt: i + 1,
@@ -391,28 +388,23 @@ export class GroqClient {
 
         if (i === this.maxRetries - 1) {
           yield {
-            type: 'error',
-            error: error.message
+            type: "error",
+            error: error.message,
           };
           throw error;
         }
-        await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+        await new Promise((res) => setTimeout(res, 1000 * (i + 1)));
       }
     }
-    throw new Error('Groq API streaming request failed after multiple retries');
+    throw new Error("Groq API streaming request failed after multiple retries");
   }
 
   /**
    * LangChain-compatible wrapper
    * Can be used to integrate with LangChain's ChatGroq or custom LLM wrapper
    */
-  async callAsLangChainLLM(
-    uiConfig: GroqUIConfig,
-    prompt: string
-  ): Promise<string> {
-    const messages: GroqMessage[] = [
-      { role: 'user', content: prompt }
-    ];
+  async callAsLangChainLLM(uiConfig: GroqUIConfig, prompt: string): Promise<string> {
+    const messages: GroqMessage[] = [{ role: "user", content: prompt }];
 
     const response = await this.generateResponse(uiConfig, messages);
     return response.content;
@@ -426,9 +418,9 @@ export class GroqClient {
       // Try a simple request to validate model
       await this.client.chat.completions.create({
         model: modelId,
-        messages: [{ role: 'user', content: 'test' }],
+        messages: [{ role: "user", content: "test" }],
         max_tokens: 5,
-        stream: false
+        stream: false,
       });
       return true;
     } catch (error: any) {

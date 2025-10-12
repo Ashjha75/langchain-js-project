@@ -69,7 +69,7 @@ export class ChatService {
       const lastMessage = await Message.findOne({ conversationId })
         .sort({ createdAt: -1 })
         .limit(1);
-      
+
       if (lastMessage && lastMessage.config) {
         logger.info("Retrieved last message config", {
           conversationId,
@@ -77,7 +77,7 @@ export class ChatService {
         });
         return lastMessage.config;
       }
-      
+
       return null;
     } catch (error) {
       logger.error("Error retrieving last message config", { error, conversationId });
@@ -308,12 +308,21 @@ export class ChatService {
         codeInterpreter: effectiveRequestConfig?.codeInterpreter ?? false,
       };
 
+      // Validate the selected model against backend supported models to avoid runtime errors
+      try {
+        // This will throw if model is not in ai-config or disabled
+        const { getMergedConfig } = await import("@/config/ai-config");
+        getMergedConfig(effectiveConfig.model);
+      } catch (e: any) {
+        throw new ValidationError(`Invalid or unsupported model: ${effectiveConfig.model}`);
+      }
+
       logger.info("Using effective config for message", {
         conversationId: request.conversationId,
         config: effectiveConfig,
         perMessageConfig: effectiveRequestConfig,
-        modelOverride: request.model ? `${conversation.model} → ${request.model}` : 'none',
-        systemPromptOverride: request.systemPrompt ? 'yes' : 'no',
+        modelOverride: request.model ? `${conversation.model} → ${request.model}` : "none",
+        systemPromptOverride: request.systemPrompt ? "yes" : "no",
       });
 
       const context: ConversationContext = {
@@ -386,11 +395,15 @@ export class ChatService {
 
       // If config was provided and differs, update it
       if (effectiveRequestConfig) {
-        const configChanged = 
-          effectiveRequestConfig.temperature !== undefined && effectiveRequestConfig.temperature !== conversation.config.temperature ||
-          effectiveRequestConfig.maxTokens !== undefined && effectiveRequestConfig.maxTokens !== conversation.config.maxTokens ||
-          effectiveRequestConfig.topP !== undefined && effectiveRequestConfig.topP !== conversation.config.topP ||
-          effectiveRequestConfig.stream !== undefined && effectiveRequestConfig.stream !== conversation.config.stream ||
+        const configChanged =
+          (effectiveRequestConfig.temperature !== undefined &&
+            effectiveRequestConfig.temperature !== conversation.config.temperature) ||
+          (effectiveRequestConfig.maxTokens !== undefined &&
+            effectiveRequestConfig.maxTokens !== conversation.config.maxTokens) ||
+          (effectiveRequestConfig.topP !== undefined &&
+            effectiveRequestConfig.topP !== conversation.config.topP) ||
+          (effectiveRequestConfig.stream !== undefined &&
+            effectiveRequestConfig.stream !== conversation.config.stream) ||
           effectiveRequestConfig.browserSearch !== undefined ||
           effectiveRequestConfig.codeInterpreter !== undefined;
 
@@ -400,8 +413,10 @@ export class ChatService {
             maxTokens: effectiveRequestConfig.maxTokens ?? conversation.config.maxTokens,
             topP: effectiveRequestConfig.topP ?? conversation.config.topP,
             stream: effectiveRequestConfig.stream ?? conversation.config.stream,
-            browserSearch: effectiveRequestConfig.browserSearch ?? conversation.config.browserSearch,
-            codeInterpreter: effectiveRequestConfig.codeInterpreter ?? conversation.config.codeInterpreter,
+            browserSearch:
+              effectiveRequestConfig.browserSearch ?? conversation.config.browserSearch,
+            codeInterpreter:
+              effectiveRequestConfig.codeInterpreter ?? conversation.config.codeInterpreter,
           };
           logger.info("Updating conversation config", {
             conversationId: request.conversationId,
@@ -519,12 +534,20 @@ export class ChatService {
         codeInterpreter: effectiveRequestConfig?.codeInterpreter ?? false,
       };
 
+      // Validate the selected model against backend supported models
+      try {
+        const { getMergedConfig } = await import("@/config/ai-config");
+        getMergedConfig(effectiveConfig.model);
+      } catch (e: any) {
+        throw new ValidationError(`Invalid or unsupported model: ${effectiveConfig.model}`);
+      }
+
       logger.info("Using effective config for stream", {
         conversationId: request.conversationId,
         config: effectiveConfig,
         perMessageConfig: effectiveRequestConfig,
-        modelOverride: request.model ? `${conversation.model} → ${request.model}` : 'none',
-        systemPromptOverride: request.systemPrompt ? 'yes' : 'no',
+        modelOverride: request.model ? `${conversation.model} → ${request.model}` : "none",
+        systemPromptOverride: request.systemPrompt ? "yes" : "no",
       });
 
       const context: ConversationContext = {
@@ -602,11 +625,15 @@ export class ChatService {
 
           // If config was provided and differs, update it
           if (effectiveRequestConfig) {
-            const configChanged = 
-              effectiveRequestConfig.temperature !== undefined && effectiveRequestConfig.temperature !== conversation.config.temperature ||
-              effectiveRequestConfig.maxTokens !== undefined && effectiveRequestConfig.maxTokens !== conversation.config.maxTokens ||
-              effectiveRequestConfig.topP !== undefined && effectiveRequestConfig.topP !== conversation.config.topP ||
-              effectiveRequestConfig.stream !== undefined && effectiveRequestConfig.stream !== conversation.config.stream ||
+            const configChanged =
+              (effectiveRequestConfig.temperature !== undefined &&
+                effectiveRequestConfig.temperature !== conversation.config.temperature) ||
+              (effectiveRequestConfig.maxTokens !== undefined &&
+                effectiveRequestConfig.maxTokens !== conversation.config.maxTokens) ||
+              (effectiveRequestConfig.topP !== undefined &&
+                effectiveRequestConfig.topP !== conversation.config.topP) ||
+              (effectiveRequestConfig.stream !== undefined &&
+                effectiveRequestConfig.stream !== conversation.config.stream) ||
               effectiveRequestConfig.browserSearch !== undefined ||
               effectiveRequestConfig.codeInterpreter !== undefined;
 
@@ -616,8 +643,10 @@ export class ChatService {
                 maxTokens: effectiveRequestConfig.maxTokens ?? conversation.config.maxTokens,
                 topP: effectiveRequestConfig.topP ?? conversation.config.topP,
                 stream: effectiveRequestConfig.stream ?? conversation.config.stream,
-                browserSearch: effectiveRequestConfig.browserSearch ?? conversation.config.browserSearch,
-                codeInterpreter: effectiveRequestConfig.codeInterpreter ?? conversation.config.codeInterpreter,
+                browserSearch:
+                  effectiveRequestConfig.browserSearch ?? conversation.config.browserSearch,
+                codeInterpreter:
+                  effectiveRequestConfig.codeInterpreter ?? conversation.config.codeInterpreter,
               };
               logger.info("Updating conversation config (stream)", {
                 conversationId: request.conversationId,

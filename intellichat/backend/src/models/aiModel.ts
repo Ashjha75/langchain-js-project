@@ -3,7 +3,8 @@
  * Stores AI model configurations in MongoDB
  */
 
-import mongoose, { Document, Schema } from "mongoose";
+import type { Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 // Model Feature flags
 interface IModelFeatures {
@@ -94,7 +95,7 @@ const ModelFeaturesSchema = new Schema<IModelFeatures>(
     audio_translation: { type: Boolean, required: true },
     is_batch_enabled: { type: Boolean, required: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const ModelPriceSchema = new Schema<IModelPrice>(
@@ -114,7 +115,7 @@ const ModelPriceSchema = new Schema<IModelPrice>(
     ServiceTier: { type: String, required: true },
     AudioInSecondsFloor: { type: Number, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const ModelLimitsSchema = new Schema<IModelLimits>(
@@ -127,7 +128,7 @@ const ModelLimitsSchema = new Schema<IModelLimits>(
     tokens_per_day: { type: Number, required: true },
     max_file_size: { type: Number, required: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const ModelMetadataSchema = new Schema<IModelMetadata>(
@@ -142,16 +143,16 @@ const ModelMetadataSchema = new Schema<IModelMetadata>(
     release_stage: { type: String, required: true },
     limits: { type: ModelLimitsSchema, required: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const AIModelSchema = new Schema<IAIModelDocument>(
   {
-    modelId: { 
-      type: String, 
-      required: true, 
+    modelId: {
+      type: String,
+      required: true,
       unique: true,
-      index: true 
+      index: true,
     },
     object: { type: String, required: true },
     created: { type: Number, required: true },
@@ -172,7 +173,7 @@ const AIModelSchema = new Schema<IAIModelDocument>(
   {
     timestamps: true,
     collection: "ai_models",
-  }
+  },
 );
 
 // Indexes
@@ -186,10 +187,10 @@ AIModelSchema.statics.findActiveModels = function () {
 };
 
 AIModelSchema.statics.findByProvider = function (provider: string) {
-  return this.find({ 
-    owned_by: new RegExp(provider, 'i'), 
-    active: true, 
-    can_run: true 
+  return this.find({
+    owned_by: new RegExp(provider, "i"),
+    active: true,
+    can_run: true,
   });
 };
 
