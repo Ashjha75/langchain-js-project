@@ -9,7 +9,8 @@ import type {
   ChatUIState, 
   LoadingState, 
   ErrorState,
-  UserPreferences 
+  UserPreferences,
+  ConversationSettings
 } from '@/types';
 
 // Main application state interface
@@ -25,6 +26,9 @@ interface AppState {
   // Messages
   messages: Record<string, Message[]>;
   
+  // Chat Config
+  currentChatConfig: ConversationSettings;
+
   // UI state
   ui: ChatUIState;
   
@@ -59,6 +63,10 @@ interface AppState {
     updateMessage: (conversationId: string, messageId: string, updates: Partial<Message>) => void;
     deleteMessage: (conversationId: string, messageId: string) => void;
     clearMessages: (conversationId: string) => void;
+
+    // Config actions
+    setCurrentChatConfig: (config: Partial<ConversationSettings>) => void;
+    resetCurrentChatConfig: () => void;
     
     // UI actions
     toggleSidebar: () => void;
@@ -97,6 +105,32 @@ const initialState = {
   conversations: [],
   currentConversationId: null,
   messages: {},
+  currentChatConfig: {
+    model: 'llama-3.1-8b-instant',
+    temperature: 0.7,
+    maxTokens: 1024,
+    systemInstructions: '',
+    systemPrompt: '',
+    enableTools: false,
+    enableMemory: true,
+    contextWindow: 10,
+    maxCompletionTokens: 8192,
+    reasoning: 'medium' as 'low' | 'medium' | 'high',
+    stream: true,
+    jsonMode: false,
+    builtInTools: {
+      browserSearch: false,
+      codeInterpreter: false,
+    },
+    mcpServers: [],
+    advanced: {
+      moderation: false,
+      topP: 1.0,
+      seed: null,
+      stopSequence: '',
+      template: false,
+    },
+  },
   ui: {
     sidebarOpen: true,
     currentConversationId: null,
@@ -128,6 +162,8 @@ const initialState = {
 };
 
 // Create the store
+import { models } from '@/config/models';
+
 export const useAppStore = create<AppState>()(
   devtools(
     persist(
@@ -172,9 +208,9 @@ export const useAppStore = create<AppState>()(
           }),
           
           updateConversation: (id, updates) => set((state) => {
-            const index = state.conversations.findIndex((c: any) => c.id === id);
-            if (index !== -1) {
-              state.conversations[index] = { ...state.conversations[index], ...updates };
+            const conversation = state.conversations.find((c) => c.id === id);
+            if (conversation) {
+              Object.assign(conversation, updates);
             }
           }),
           
@@ -192,6 +228,15 @@ export const useAppStore = create<AppState>()(
             state.ui.currentConversationId = id;
           }),
           
+          // Config actions
+          setCurrentChatConfig: (config) => set((state) => {
+            state.currentChatConfig = { ...state.currentChatConfig, ...config };
+          }),
+
+          resetCurrentChatConfig: () => set((state) => {
+            state.currentChatConfig = initialState.currentChatConfig;
+          }),
+
           // Message actions
           setMessages: (conversationId, messages) => set((state) => {
             state.messages[conversationId] = messages;
@@ -214,9 +259,9 @@ export const useAppStore = create<AppState>()(
           updateMessage: (conversationId, messageId, updates) => set((state) => {
             const messages = state.messages[conversationId];
             if (messages) {
-              const index = messages.findIndex((m: any) => m.id === messageId);
-              if (index !== -1) {
-                messages[index] = { ...messages[index], ...updates };
+              const message = messages.find((m) => m.id === messageId);
+              if (message) {
+                Object.assign(message, updates);
               }
             }
           }),
@@ -324,6 +369,7 @@ export const useAppStore = create<AppState>()(
         partialize: (state) => ({
           user: state.user,
           isAuthenticated: state.isAuthenticated,
+          currentChatConfig: state.currentChatConfig,
           ui: {
             sidebarOpen: state.ui.sidebarOpen,
             filterStatus: state.ui.filterStatus,
@@ -331,6 +377,14 @@ export const useAppStore = create<AppState>()(
             sortOrder: state.ui.sortOrder,
           },
         }),
+        onRehydrateStorage: () => (state, error) => {
+          if (state) {
+            const availableModels = models.flatMap((provider: any) => provider.models.map((model: any) => model.id));
+            if (!availableModels.includes(state.currentChatConfig.model)) {
+              state.currentChatConfig.model = 'llama-3.1-8b-instant';
+            }
+          }
+        },
       }
     ),
     {

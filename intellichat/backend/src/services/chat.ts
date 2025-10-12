@@ -326,6 +326,13 @@ export class ChatService {
       // Generate AI response
       const aiResponse = await this.aiProvider.generateResponse(context);
 
+      if (!aiResponse.content) {
+        logger.info("AI response is empty, not saving message", {
+          conversationId: request.conversationId,
+        });
+        return;
+      }
+
       // Create assistant message
       const assistantMessage = new Message({
         conversationId: new Types.ObjectId(request.conversationId),
@@ -536,6 +543,13 @@ export class ChatService {
 
         if (chunk.isComplete) {
           finalContent = chunk.content;
+
+          if (!finalContent) {
+            logger.info("AI response is empty, not saving message", {
+              conversationId: request.conversationId,
+            });
+            return;
+          }
 
           // Create assistant message with final content
           assistantMessage = new Message({

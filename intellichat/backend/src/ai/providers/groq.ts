@@ -66,8 +66,6 @@ export class GroqProvider implements AIProvider {
       "web",
       "internet",
       "online",
-      "2024",
-      "2025",
       "this year",
       "now",
       "update",

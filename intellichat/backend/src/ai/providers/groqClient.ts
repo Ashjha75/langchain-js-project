@@ -101,6 +101,7 @@ export interface GroqStreamChunk {
  */
 export class GroqClient {
   private client: Groq;
+  private maxRetries = 10;
 
   constructor(apiKey: string) {
     if (!apiKey) {
@@ -147,121 +148,129 @@ export class GroqClient {
     uiConfig: GroqUIConfig,
     messages: GroqMessage[]
   ): Promise<GroqResponse> {
-    try {
-      logger.info('Generating Groq response', {
-        model: uiConfig.model,
-        temperature: uiConfig.temperature,
-        maxTokens: uiConfig.maxCompletionTokens,
-        messageCount: messages.length
-      });
+    for (let i = 0; i < this.maxRetries; i++) {
+      try {
+        logger.info('Generating Groq response', {
+          model: uiConfig.model,
+          temperature: uiConfig.temperature,
+          maxTokens: uiConfig.maxCompletionTokens,
+          messageCount: messages.length,
+          attempt: i + 1,
+        });
 
-      const builtMessages = this.buildMessages(messages, uiConfig.systemInstructions);
+        const builtMessages = this.buildMessages(messages, uiConfig.systemInstructions);
 
-      // Build request parameters - EVERYTHING from UI config
-      const requestParams: any = {
-        messages: builtMessages,
-        model: uiConfig.model,
-        temperature: uiConfig.temperature,
-        max_tokens: uiConfig.maxCompletionTokens,  // Use max_tokens instead of max_completion_tokens
-        stream: false,
-      };
-
-      // Add advanced parameters if provided
-      if (uiConfig.advanced?.topP !== undefined) {
-        requestParams.top_p = uiConfig.advanced.topP;
-      }
-
-      if (uiConfig.advanced?.seed !== null && uiConfig.advanced?.seed !== undefined) {
-        requestParams.seed = uiConfig.advanced.seed;
-      }
-
-      if (uiConfig.advanced?.stopSequence) {
-        requestParams.stop = uiConfig.advanced.stopSequence.split(',').map(s => s.trim());
-      }
-
-      if (uiConfig.frequencyPenalty !== undefined) {
-        requestParams.frequency_penalty = uiConfig.frequencyPenalty;
-      }
-
-      if (uiConfig.presencePenalty !== undefined) {
-        requestParams.presence_penalty = uiConfig.presencePenalty;
-      }
-
-      if (uiConfig.reasoning) {
-        requestParams.reasoning_effort = this.mapReasoningEffort(uiConfig.reasoning);
-      }
-
-      if (uiConfig.responseFormat || uiConfig.jsonMode) {
-        requestParams.response_format = uiConfig.responseFormat || { type: 'json_object' };
-      }
-
-      if (uiConfig.tools && uiConfig.tools.length > 0) {
-        requestParams.tools = uiConfig.tools;
-      }
-
-      if (uiConfig.toolChoice) {
-        requestParams.tool_choice = uiConfig.toolChoice;
-      }
-
-      if (uiConfig.logitBias) {
-        requestParams.logit_bias = uiConfig.logitBias;
-      }
-
-      if (uiConfig.logprobs) {
-        requestParams.logprobs = uiConfig.logprobs;
-        if (uiConfig.topLogprobs) {
-          requestParams.top_logprobs = uiConfig.topLogprobs;
-        }
-      }
-
-      if (uiConfig.n) {
-        requestParams.n = uiConfig.n;
-      }
-
-      if (uiConfig.user) {
-        requestParams.user = uiConfig.user;
-      }
-
-      logger.debug('Groq request parameters', requestParams);
-
-      const completion = await this.client.chat.completions.create(requestParams);
-
-      const response: any = {
-        content: completion.choices[0]?.message?.content || '',
-        metadata: {
-          model: completion.model || 'unknown',
-          timestamp: new Date().toISOString(),
-          provider: 'groq'
-        }
-      };
-
-      // Add optional fields
-      if (completion.usage) {
-        response.usage = {
-          promptTokens: completion.usage.prompt_tokens || 0,
-          completionTokens: completion.usage.completion_tokens || 0,
-          totalTokens: completion.usage.total_tokens || 0
+        // Build request parameters - EVERYTHING from UI config
+        const requestParams: any = {
+          messages: builtMessages,
+          model: uiConfig.model,
+          temperature: uiConfig.temperature,
+          max_tokens: uiConfig.maxCompletionTokens,  // Use max_tokens instead of max_completion_tokens
+          stream: false,
         };
+
+        // Add advanced parameters if provided
+        if (uiConfig.advanced?.topP !== undefined) {
+          requestParams.top_p = uiConfig.advanced.topP;
+        }
+
+        if (uiConfig.advanced?.seed !== null && uiConfig.advanced?.seed !== undefined) {
+          requestParams.seed = uiConfig.advanced.seed;
+        }
+
+        if (uiConfig.advanced?.stopSequence) {
+          requestParams.stop = uiConfig.advanced.stopSequence.split(',').map(s => s.trim());
+        }
+
+        if (uiConfig.frequencyPenalty !== undefined) {
+          requestParams.frequency_penalty = uiConfig.frequencyPenalty;
+        }
+
+        if (uiConfig.presencePenalty !== undefined) {
+          requestParams.presence_penalty = uiConfig.presencePenalty;
+        }
+
+        if (uiConfig.reasoning) {
+          requestParams.reasoning_effort = this.mapReasoningEffort(uiConfig.reasoning);
+        }
+
+        if (uiConfig.responseFormat || uiConfig.jsonMode) {
+          requestParams.response_format = uiConfig.responseFormat || { type: 'json_object' };
+        }
+
+        if (uiConfig.tools && uiConfig.tools.length > 0) {
+          requestParams.tools = uiConfig.tools;
+        }
+
+        if (uiConfig.toolChoice) {
+          requestParams.tool_choice = uiConfig.toolChoice;
+        }
+
+        if (uiConfig.logitBias) {
+          requestParams.logit_bias = uiConfig.logitBias;
+        }
+
+        if (uiConfig.logprobs) {
+          requestParams.logprobs = uiConfig.logprobs;
+          if (uiConfig.topLogprobs) {
+            requestParams.top_logprobs = uiConfig.topLogprobs;
+          }
+        }
+
+        if (uiConfig.n) {
+          requestParams.n = uiConfig.n;
+        }
+
+        if (uiConfig.user) {
+          requestParams.user = uiConfig.user;
+        }
+
+        logger.debug('Groq request parameters', requestParams);
+
+        const completion = await this.client.chat.completions.create(requestParams);
+
+        const response: any = {
+          content: completion.choices[0]?.message?.content || '',
+          metadata: {
+            model: completion.model || 'unknown',
+            timestamp: new Date().toISOString(),
+            provider: 'groq'
+          }
+        };
+
+        // Add optional fields
+        if (completion.usage) {
+          response.usage = {
+            promptTokens: completion.usage.prompt_tokens || 0,
+            completionTokens: completion.usage.completion_tokens || 0,
+            totalTokens: completion.usage.total_tokens || 0
+          };
+        }
+
+        if (completion.choices[0]?.finish_reason) {
+          response.finishReason = completion.choices[0].finish_reason;
+        }
+
+        logger.info('Groq response generated', {
+          contentLength: response.content.length,
+          totalTokens: response.usage?.totalTokens
+        });
+
+        return response as GroqResponse;
+      } catch (error: any) {
+        logger.error('Groq API error', {
+          error: error.message,
+          status: error.status,
+          code: error.code,
+          attempt: i + 1,
+        });
+        if (i === this.maxRetries - 1) {
+          throw error;
+        }
+        await new Promise(res => setTimeout(res, 1000 * (i + 1)));
       }
-
-      if (completion.choices[0]?.finish_reason) {
-        response.finishReason = completion.choices[0].finish_reason;
-      }
-
-      logger.info('Groq response generated', {
-        contentLength: response.content.length,
-        totalTokens: response.usage?.totalTokens
-      });
-
-      return response as GroqResponse;
-    } catch (error: any) {
-      logger.error('Groq API error', {
-        error: error.message,
-        status: error.status,
-        code: error.code
-      });
-      throw error;
     }
+    throw new Error('Groq API request failed after multiple retries');
   }
 
   /**
@@ -272,117 +281,125 @@ export class GroqClient {
     uiConfig: GroqUIConfig,
     messages: GroqMessage[]
   ): AsyncGenerator<GroqStreamChunk, void, unknown> {
-    try {
-      logger.info('Starting Groq streaming response', {
-        model: uiConfig.model,
-        temperature: uiConfig.temperature,
-        maxTokens: uiConfig.maxCompletionTokens
-      });
+    for (let i = 0; i < this.maxRetries; i++) {
+      try {
+        logger.info('Starting Groq streaming response', {
+          model: uiConfig.model,
+          temperature: uiConfig.temperature,
+          maxTokens: uiConfig.maxCompletionTokens,
+          attempt: i + 1,
+        });
 
-      yield { type: 'start' };
+        yield { type: 'start' };
 
-      const builtMessages = this.buildMessages(messages, uiConfig.systemInstructions);
+        const builtMessages = this.buildMessages(messages, uiConfig.systemInstructions);
 
-      // Build request parameters - EVERYTHING from UI config
-      const requestParams: any = {
-        messages: builtMessages,
-        model: uiConfig.model,
-        temperature: uiConfig.temperature,
-        max_tokens: uiConfig.maxCompletionTokens,  // Use max_tokens instead of max_completion_tokens
-        stream: true,
-      };
+        // Build request parameters - EVERYTHING from UI config
+        const requestParams: any = {
+          messages: builtMessages,
+          model: uiConfig.model,
+          temperature: uiConfig.temperature,
+          max_tokens: uiConfig.maxCompletionTokens,  // Use max_tokens instead of max_completion_tokens
+          stream: true,
+        };
 
-      // Add advanced parameters if provided (same as non-streaming)
-      if (uiConfig.advanced?.topP !== undefined) {
-        requestParams.top_p = uiConfig.advanced.topP;
-      }
+        // Add advanced parameters if provided (same as non-streaming)
+        if (uiConfig.advanced?.topP !== undefined) {
+          requestParams.top_p = uiConfig.advanced.topP;
+        }
 
-      if (uiConfig.advanced?.seed !== null && uiConfig.advanced?.seed !== undefined) {
-        requestParams.seed = uiConfig.advanced.seed;
-      }
+        if (uiConfig.advanced?.seed !== null && uiConfig.advanced?.seed !== undefined) {
+          requestParams.seed = uiConfig.advanced.seed;
+        }
 
-      if (uiConfig.advanced?.stopSequence) {
-        requestParams.stop = uiConfig.advanced.stopSequence.split(',').map(s => s.trim());
-      }
+        if (uiConfig.advanced?.stopSequence) {
+          requestParams.stop = uiConfig.advanced.stopSequence.split(',').map(s => s.trim());
+        }
 
-      if (uiConfig.frequencyPenalty !== undefined) {
-        requestParams.frequency_penalty = uiConfig.frequencyPenalty;
-      }
+        if (uiConfig.frequencyPenalty !== undefined) {
+          requestParams.frequency_penalty = uiConfig.frequencyPenalty;
+        }
 
-      if (uiConfig.presencePenalty !== undefined) {
-        requestParams.presence_penalty = uiConfig.presencePenalty;
-      }
+        if (uiConfig.presencePenalty !== undefined) {
+          requestParams.presence_penalty = uiConfig.presencePenalty;
+        }
 
-      if (uiConfig.reasoning) {
-        requestParams.reasoning_effort = this.mapReasoningEffort(uiConfig.reasoning);
-      }
+        if (uiConfig.reasoning) {
+          requestParams.reasoning_effort = this.mapReasoningEffort(uiConfig.reasoning);
+        }
 
-      if (uiConfig.responseFormat || uiConfig.jsonMode) {
-        requestParams.response_format = uiConfig.responseFormat || { type: 'json_object' };
-      }
+        if (uiConfig.responseFormat || uiConfig.jsonMode) {
+          requestParams.response_format = uiConfig.responseFormat || { type: 'json_object' };
+        }
 
-      if (uiConfig.tools && uiConfig.tools.length > 0) {
-        requestParams.tools = uiConfig.tools;
-      }
+        if (uiConfig.tools && uiConfig.tools.length > 0) {
+          requestParams.tools = uiConfig.tools;
+        }
 
-      if (uiConfig.toolChoice) {
-        requestParams.tool_choice = uiConfig.toolChoice;
-      }
+        if (uiConfig.toolChoice) {
+          requestParams.tool_choice = uiConfig.toolChoice;
+        }
 
-      logger.debug('Groq streaming request parameters', requestParams);
+        logger.debug('Groq streaming request parameters', requestParams);
 
-      const streamResponse: any = await this.client.chat.completions.create(requestParams);
+        const streamResponse: any = await this.client.chat.completions.create(requestParams);
 
-      let fullContent = '';
+        let fullContent = '';
 
-      for await (const chunk of streamResponse) {
-        const content = chunk.choices[0]?.delta?.content || '';
-        
-        if (content) {
-          fullContent += content;
+        for await (const chunk of streamResponse) {
+          const content = chunk.choices[0]?.delta?.content || '';
           
-          // Yield each token/word individually for smooth streaming
-          yield {
-            type: 'token',
-            content: content,
-            metadata: {
-              model: chunk.model,
-              finishReason: chunk.choices[0]?.finish_reason
-            }
-          };
-        }
+          if (content) {
+            fullContent += content;
+            
+            // Yield each token/word individually for smooth streaming
+            yield {
+              type: 'token',
+              content: content,
+              metadata: {
+                model: chunk.model,
+                finishReason: chunk.choices[0]?.finish_reason
+              }
+            };
+          }
 
-        // Check for completion
-        if (chunk.choices[0]?.finish_reason) {
-          logger.info('Groq stream completed', {
-            finishReason: chunk.choices[0].finish_reason,
-            contentLength: fullContent.length
-          });
-
-          yield {
-            type: 'done',
-            content: fullContent,
-            metadata: {
-              model: chunk.model,
+          // Check for completion
+          if (chunk.choices[0]?.finish_reason) {
+            logger.info('Groq stream completed', {
               finishReason: chunk.choices[0].finish_reason,
-              timestamp: new Date().toISOString()
-            }
-          };
-        }
-      }
-    } catch (error: any) {
-      logger.error('Groq streaming error', {
-        error: error.message,
-        status: error.status
-      });
+              contentLength: fullContent.length
+            });
 
-      yield {
-        type: 'error',
-        error: error.message
-      };
-      
-      throw error;
+            yield {
+              type: 'done',
+              content: fullContent,
+              metadata: {
+                model: chunk.model,
+                finishReason: chunk.choices[0].finish_reason,
+                timestamp: new Date().toISOString()
+              }
+            };
+          }
+        }
+        return;
+      } catch (error: any) {
+        logger.error('Groq streaming error', {
+          error: error.message,
+          status: error.status,
+          attempt: i + 1,
+        });
+
+        if (i === this.maxRetries - 1) {
+          yield {
+            type: 'error',
+            error: error.message
+          };
+          throw error;
+        }
+        await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+      }
     }
+    throw new Error('Groq API streaming request failed after multiple retries');
   }
 
   /**

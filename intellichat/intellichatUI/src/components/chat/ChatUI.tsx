@@ -10,8 +10,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { useChat } from '@/hooks/useChat';
 import { useRouter } from 'next/navigation';
 import chatAPI from '@/lib/chat-api';
-import { useRunSettingsContext } from '@/contexts/RunSettingsContext';
-import { useConversationConfig } from '@/hooks/useConversationConfig';
+import { useAppStore } from '@/stores/app-store';
+import { useToast } from '@/components/ui/toast';
 
 interface ChatUIProps {
   sidebarOpen: boolean;
@@ -34,66 +34,15 @@ export function ChatUI({
   const [copied, setCopied] = useState(false);
   const router = useRouter();
   
-  // Get run settings from context
-  const { settings, syncWithConversationConfig } = useRunSettingsContext();
+  const { currentChatConfig: settings, actions } = useAppStore();
+  const { setCurrentChatConfig } = actions;
+  const { showToast } = useToast();
 
   // Validate conversation ID - must be a valid MongoDB ObjectId (24 hex chars)
   const isValidConversationId = conversationId && /^[0-9a-fA-F]{24}$/.test(conversationId);
 
-  // ✅ NEW: Load and sync conversation-specific config
-  const { conversationConfig, isLoading: isLoadingConfig } = useConversationConfig({
-    ...(isValidConversationId && conversationId ? { conversationId } : {}),
-    enabled: !!isValidConversationId,
-  });
-
   // ✅ NEW: Check if current settings differ from conversation's saved config
   const [hasUnappliedChanges, setHasUnappliedChanges] = useState(false);
-
-  // ✅ NEW: Sync settings when conversation config loads
-  useEffect(() => {
-    if (conversationConfig && isValidConversationId) {
-      console.log('🔄 [ChatUI] Syncing settings with conversation config:', {
-        conversationId,
-        model: conversationConfig.model,
-        temperature: conversationConfig.temperature,
-        browserSearch: conversationConfig.builtInTools?.browserSearch,
-      });
-      
-      syncWithConversationConfig(conversationConfig);
-      setHasUnappliedChanges(false); // Reset change indicator when loading
-    }
-  }, [conversationConfig, isValidConversationId, conversationId, syncWithConversationConfig]);
-
-  // ✅ NEW: Detect when user changes settings
-  useEffect(() => {
-    if (!conversationConfig || !isValidConversationId) {
-      setHasUnappliedChanges(false);
-      return;
-    }
-
-    // Check if any setting differs from conversation's saved config
-    const configsDiffer = 
-      settings.model !== conversationConfig.model ||
-      settings.systemInstructions !== (conversationConfig.systemInstructions || '') ||
-      settings.temperature !== conversationConfig.temperature ||
-      settings.maxCompletionTokens !== conversationConfig.maxCompletionTokens ||
-      settings.advanced.topP !== conversationConfig.advanced?.topP ||
-      settings.builtInTools.browserSearch !== conversationConfig.builtInTools?.browserSearch ||
-      settings.builtInTools.codeInterpreter !== conversationConfig.builtInTools?.codeInterpreter;
-
-    setHasUnappliedChanges(configsDiffer);
-  }, [settings, conversationConfig, isValidConversationId]);
-
-  // Set transitioning state immediately when conversationId changes
-  useEffect(() => {
-    if (isValidConversationId) {
-      setIsTransitioning(true);
-      // Clear transitioning state after a short delay to let the hook's isLoading take over
-      const timer = setTimeout(() => setIsTransitioning(false), 300);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [conversationId, isValidConversationId]);
 
   // Use the chat hook for all API interactions - Provider agnostic!
   const {
@@ -117,6 +66,43 @@ export function ChatUI({
     }),
     streamingEnabled: true, // Works with Groq, LangChain, LangGraph - all providers
   });
+
+  // ✅ NEW: Detect when user changes settings
+  useEffect(() => {
+    if (error === 'Max retries exceeded.') {
+      showToast('Failed to get a response from the server. Please try again later.', 'error');
+    }
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (!conversation || !isValidConversationId) {
+      setHasUnappliedChanges(false);
+      return;
+    }
+
+    // Check if any setting differs from conversation's saved config
+    const configsDiffer = 
+      settings.model !== conversation.model ||
+      settings.systemInstructions !== (conversation.systemPrompt || '') ||
+      settings.temperature !== conversation.config.temperature ||
+      settings.maxCompletionTokens !== conversation.config.maxTokens ||
+      settings.advanced.topP !== conversation.config.topP ||
+      settings.builtInTools.browserSearch !== conversation.config.browserSearch ||
+      settings.builtInTools.codeInterpreter !== conversation.config.codeInterpreter;
+
+    setHasUnappliedChanges(configsDiffer);
+  }, [settings, conversation, isValidConversationId]);
+
+  // Set transitioning state immediately when conversationId changes
+  useEffect(() => {
+    if (isValidConversationId) {
+      setIsTransitioning(true);
+      // Clear transitioning state after a short delay to let the hook's isLoading take over
+      const timer = setTimeout(() => setIsTransitioning(false), 300);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [conversationId, isValidConversationId]);
 
   // Convert backend messages to UI format (filter out system messages)
   const uiMessages: Message[] = messages
@@ -414,6 +400,7 @@ export function ChatUI({
           messages={uiMessages} 
           isLoading={isSending}
           isStreaming={isStreaming}
+          onRetry={retryLastMessage}
         />
       ) : null}
 

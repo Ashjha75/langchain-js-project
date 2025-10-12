@@ -26,6 +26,7 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('password', password);
     try {
       await login({ email, password });
       toast.success('Login successful!');

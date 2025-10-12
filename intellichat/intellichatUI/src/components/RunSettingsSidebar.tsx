@@ -1,6 +1,7 @@
 'use client';
 
 import { FC, useState, useEffect } from 'react';
+import { useAppStore } from '@/stores/app-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,8 +38,8 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
   onClose,
   onSettingsChange 
 }) => {
-  // Initialize with default settings
-  const [settings, setSettings] = useState<RunSettingsConfig>(DEFAULT_RUN_SETTINGS);
+  const { currentChatConfig: settings, actions } = useAppStore();
+  const { setCurrentChatConfig } = actions;
   
   // Track changes (only modified values)
   const [changedSettings, setChangedSettings] = useState<Partial<RunSettingsConfig>>({});
@@ -80,7 +81,7 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
     key: K,
     value: RunSettingsConfig[K]
   ) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    setCurrentChatConfig({ [key]: value });
     
     // Track if value differs from default
     if (JSON.stringify(value) !== JSON.stringify(DEFAULT_RUN_SETTINGS[key])) {
@@ -97,7 +98,7 @@ export const RunSettingsSidebar: FC<RunSettingsSidebarProps> = ({
 
   // Reset to default values
   const handleReset = () => {
-    setSettings(DEFAULT_RUN_SETTINGS);
+    setCurrentChatConfig(DEFAULT_RUN_SETTINGS);
     setChangedSettings({});
     console.log('✅ Settings reset to defaults');
   };

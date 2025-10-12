@@ -20,7 +20,7 @@ const logger = createLogger("AuthMiddleware");
  * Validates JWT tokens and sets user context
  */
 export const authenticateJWT = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
 ): Promise<void> => {

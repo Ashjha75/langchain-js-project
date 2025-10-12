@@ -61,10 +61,27 @@ export interface ConversationSettings {
   model: string;
   temperature: number;
   maxTokens: number;
+  systemInstructions: string;
   systemPrompt?: string;
   enableTools: boolean;
   enableMemory: boolean;
   contextWindow: number;
+  maxCompletionTokens: number;
+  reasoning: 'low' | 'medium' | 'high';
+  stream: boolean;
+  jsonMode: boolean;
+  builtInTools: {
+    browserSearch: boolean;
+    codeInterpreter: boolean;
+  };
+  mcpServers: string[];
+  advanced: {
+    moderation: boolean;
+    topP: number;
+    seed: number | null;
+    stopSequence: string;
+    template: boolean;
+  };
 }
 
 export interface ConversationMetadata {

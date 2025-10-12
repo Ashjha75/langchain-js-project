@@ -281,12 +281,10 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       // onChunk
       (chunk: StreamChunk) => {
         if (chunk.type === 'token' && chunk.content) {
-          streamingMessageRef.current += chunk.content;
-          
           setMessages((prev) =>
             prev.map((msg) =>
               msg._id === assistantMessageId
-                ? { ...msg, content: streamingMessageRef.current }
+                ? { ...msg, content: msg.content + chunk.content }
                 : msg
             )
           );

@@ -6,18 +6,26 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, RefreshCw } from 'lucide-react';
 import { Message } from './types';
 import { cn } from '@/lib/utils';
 import { CodeBlock } from './CodeBlock';
 import { Logo } from '@/components/ui/Logo';
+import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import 'katex/dist/katex.min.css';
 
 interface ChatMessageProps {
   message: Message;
+  onRetry: () => void;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, onRetry }: ChatMessageProps) {
   const { role, content } = message;
   const isUser = role === 'user';
   const [copied, setCopied] = useState(false);
@@ -30,6 +38,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
     } catch (err) {
       console.error('Failed to copy message:', err);
     }
+  };
+
+  const handleRetry = () => {
+    onRetry();
   };
 
   const markdownComponents = {
@@ -210,25 +222,49 @@ export function ChatMessage({ message }: ChatMessageProps) {
             : 'bg-[#1e1e1e] rounded-bl-none border border-[#3c4043]'
         )}
       >
-        {/* Copy Button */}
-        <button
-          onClick={handleCopy}
-          className={cn(
-            'absolute top-2 right-2 p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100',
-            'bg-[#3c4043] hover:bg-[#4c5053] text-[#e8eaed]',
-            copied && 'opacity-100 bg-green-600 hover:bg-green-700'
-          )}
-          aria-label="Copy message"
-          title={copied ? 'Copied!' : 'Copy message'}
-        >
-          {copied ? (
-            <Check size={14} className="text-white" />
-          ) : (
-            <Copy size={14} />
-          )}
-        </button>
+        {/* Action Buttons */}
+        <div className="absolute top-2 right-2 flex items-center space-x-2">
+          <TooltipProvider>
+            {isUser && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRetry}
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                  >
+                    <RefreshCw size={14} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Retry</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCopy}
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                >
+                  {copied ? (
+                    <Check size={14} className="text-green-500" />
+                  ) : (
+                    <Copy size={14} />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{copied ? 'Copied!' : 'Copy'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
 
-        <article className="prose prose-invert prose-sm max-w-none overflow-hidden">
+        <article className="prose prose-invert prose-sm max-w-none overflow-hidden pt-6">
           <ReactMarkdown 
             remarkPlugins={[remarkGfm, remarkMath]} 
             rehypePlugins={[rehypeKatex, rehypeRaw]}
