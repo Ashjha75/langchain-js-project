@@ -39,6 +39,6 @@ router.get("/provider/:provider", modelsController.getProviderModels);
  * @desc    Reload model configuration from file
  * @access  Admin
  */
-router.post("/reload", authenticateJWT, modelsController.reloadConfig);
+router.post("/reload", authenticateJWT as any, modelsController.reloadConfig);
 
 export { router as modelsRoutes };

@@ -125,7 +125,7 @@ router.get("/health", authController.healthCheck);
  * @desc    Logout user
  * @access  Private
  */
-router.post("/logout", authenticateJWT, authController.logout);
+router.post("/logout", authenticateJWT as any, authController.logout);
 
 /**
  * @route   POST /api/auth/change-password
@@ -134,7 +134,7 @@ router.post("/logout", authenticateJWT, authController.logout);
  */
 router.post(
   "/change-password",
-  authenticateJWT,
+  authenticateJWT as any,
   validateBody(changePasswordBodySchema),
   authController.changePassword,
 );
@@ -144,7 +144,7 @@ router.post(
  * @desc    Get user profile
  * @access  Private
  */
-router.get("/profile", authenticateJWT, authController.getProfile);
+router.get("/profile", authenticateJWT as any, authController.getProfile);
 
 /**
  * @route   PUT /api/auth/profile
@@ -153,7 +153,7 @@ router.get("/profile", authenticateJWT, authController.getProfile);
  */
 router.put(
   "/profile",
-  authenticateJWT,
+  authenticateJWT as any,
   validateBody(updateProfileBodySchema),
   authController.updateProfile,
 );

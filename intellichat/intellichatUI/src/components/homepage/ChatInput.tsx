@@ -23,9 +23,10 @@ interface ChatInputProps {
   input: string;
   setInput: (value: string) => void;
   handleSendMessage: () => void;
+  disabled?: boolean;
 }
 
-export function ChatInput({ input, setInput, handleSendMessage }: ChatInputProps) {
+export function ChatInput({ input, setInput, handleSendMessage, disabled }: ChatInputProps) {
   const [showAssetMenu, setShowAssetMenu] = useState(false);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
@@ -359,6 +360,7 @@ export function ChatInput({ input, setInput, handleSendMessage }: ChatInputProps
             placeholder="Ask IntelliChat"
             className="flex-1 bg-transparent text-[#e8eaed] outline-none border-none text-base placeholder:text-[#9aa0a6] resize-none focus:ring-0 focus:border-0 overflow-y-auto py-2"
             rows={1}
+            disabled={disabled}
           />
 
           <div className="flex items-center gap-1 ml-2">
@@ -378,6 +380,7 @@ export function ChatInput({ input, setInput, handleSendMessage }: ChatInputProps
                   <button
                     onClick={() => handleSendMessage()}
                     className="p-2 bg-[#4285f4] rounded-full transition-all duration-300 ease-in-out hover:bg-[#3367d6] animate-fade-in"
+                    disabled={disabled}
                   >
                     <Send size={20} className="text-white" />
                   </button>

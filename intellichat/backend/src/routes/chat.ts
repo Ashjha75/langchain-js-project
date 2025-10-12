@@ -12,7 +12,7 @@ import { z } from "zod";
 const router = Router();
 
 // All chat routes require authentication
-router.use(authenticateJWT);
+router.use(authenticateJWT as any);
 
 // Validation schemas for body data
 const createConversationBodySchema = z.object({

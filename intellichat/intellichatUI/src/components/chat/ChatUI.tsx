@@ -410,6 +410,7 @@ export function ChatUI({
           input={input}
           setInput={setInput}
           handleSendMessage={() => handleSendMessage()}
+          disabled={isSending || isStreaming || isCreatingChat}
         />
         {(isSending || isStreaming || isCreatingChat) && (
           <div className="text-center text-xs text-[#9aa0a6] mt-2">

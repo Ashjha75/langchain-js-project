@@ -81,17 +81,17 @@ export function ChatMessage({ message, onRetry }: ChatMessageProps) {
 
   return (
     <div className={cn('flex items-start gap-4 mb-6 group relative', isUser ? 'justify-end' : 'justify-start')}>
-      {!isUser && (
+      {/* {!isUser && (
         <div className="flex-shrink-0">
           <Logo size="sm" variant="icon" />
         </div>
-      )}
+      )} */}
       <div
         className={cn(
           'relative p-4 rounded-2xl max-w-4xl shadow-lg transition-all duration-200 hover:shadow-xl',
           isUser
-            ? 'bg-[#2d2d2d] rounded-br-none border border-[#3c4043]'
-            : 'bg-[#1e1e1e] rounded-bl-none border border-[#3c4043]'
+            ? 'bg-[#2d2d2d] rounded-br-none'
+            : 'bg-[#1e1e1e] rounded-bl-none'
         )}
       >
         {/* Action Buttons */}
@@ -146,11 +146,11 @@ export function ChatMessage({ message, onRetry }: ChatMessageProps) {
           </ReactMarkdown>
         </article>
       </div>
-      {isUser && (
+      {/* {isUser && (
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4285f4] to-[#db4437] flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 shadow-lg">
           U
         </div>
-      )}
+      )} */}
     </div>
   );
 }
