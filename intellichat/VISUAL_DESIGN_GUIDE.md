@@ -143,7 +143,7 @@ AI is responding...       ← During streaming
 
 ```css
 /* Primary Colors */
-Background:        #1b1c1d  (dark gray)
+Background:        #212121  (dark gray)
 Surface:           #2d2e30  (lighter gray)
 Border:            #333537  (subtle border)
 Hover:             #3d3e40  (hover state)

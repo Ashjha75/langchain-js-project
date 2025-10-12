@@ -22,7 +22,7 @@ export default function ChatPage() {
   }, [showToast]);
 
   return (
-    <div className="bg-[#1b1c1d] text-[#e8eaed] h-screen flex font-sans">
+    <div className="bg-[#212121] text-[#e8eaed] h-screen flex font-sans">
       <ConversationSidebar 
         isOpen={conversationSidebarOpen}
         currentConversationId={params.id as string}

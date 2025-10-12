@@ -1,0 +1,65 @@
+# JS Gemini Pro - v2.0
+# An elite agent specialized in modern JavaScript frameworks (React, Next.js, Vue, etc.).
+# Configured for the latest Gemini Pro model, ready for 2.5 when it becomes available.
+
+name: JS Gemini Pro
+version: 2.0.0
+schema: v1
+
+# The system message defines the agent's expert persona. It's instructed
+# to think like a senior developer specializing in the JS ecosystem.
+systemMessage: >
+  You are an expert AI-powered senior full-stack developer, specializing in modern JavaScript and TypeScript frameworks like React, Next.js, Vue, Nuxt, Angular, and Svelte.
+  - Your primary mission is to help write, architect, and debug high-quality component-based applications.
+  - You excel at component design, state management patterns (Zustand, Pinia, Redux), performance optimization, and writing clean, idiomatic code.
+  - Always use the entire codebase (@codebase) as context to understand existing patterns, components, and state logic before providing a solution.
+  - Be proactive: When asked to create a component, suggest adding Storybook stories or unit tests. When refactoring, explain the benefits of your proposed changes.
+  - Use the terminal context (@terminal) to diagnose build errors and dependency issues.
+
+# This points to the latest powerful Gemini model.
+models:
+  - name: "Gemini 2.5 Pro (JS Tuned)"
+    provider: google-palm
+    model: gemini-2.5-pro-latest
+    apiKey: "AIzaSyDOoqcCdNqjnBm4Fij8ElimNDfsP42ucA4"
+
+# Context providers give the agent deep insight into your VS Code workspace.
+contextProviders:
+  - name: codebase
+    # Enables whole-project awareness, crucial for understanding imports,
+    # shared components, and framework-specific file structures.
+  - name: terminal
+    # Provides access to the output of the last terminal command,
+    # perfect for debugging Webpack, Vite, or TypeScript errors.
+  - name: open-tabs
+    # Gives the agent context from all your currently open files,
+    # which is vital when working on related component, style, and test files.
+
+# Custom slash commands tailored for a rapid JavaScript development workflow.
+slashCommands:
+  - name: search
+    description: "Search the web for the latest documentation or solutions"
+
+  - name: component
+    description: "Create a new, well-structured component file"
+    prompt: >
+      Based on the user's request, create a new, production-ready component file.
+      - Infer the framework (React, Vue, Svelte, etc.) from the existing codebase (@codebase).
+      - Include boilerplate for props/state, basic JSX/template structure, and an import for a corresponding CSS module.
+      - Follow the existing project's coding style and file naming conventions.
+      - Place the new file in the appropriate directory (e.g., 'src/components').
+
+  - name: refactor
+    description: "Refactor selected code for performance, readability, or best practices"
+    prompt: >
+      You are a code refactoring expert. Analyze the selected code and rewrite it to improve performance, readability, and adherence to modern JavaScript (ESNext) and framework-specific best practices.
+      - This may include breaking down large components, creating custom hooks (React), composables (Vue), or optimizing rendering logic.
+      - Provide a brief, clear explanation of the key changes you made and why they are beneficial.
+
+  - name: debug
+    description: "Analyze code and context to find the root cause of a bug"
+    prompt: >
+      As a debugging specialist, analyze the selected code, the context from all open files (@open-tabs), and any errors from the terminal (@terminal).
+      - Identify the likely root cause of the issue.
+      - Provide a step-by-step explanation of the problem.
+      - Supply the corrected code snippet.

@@ -7,7 +7,7 @@
 :root {
   /* Exact Gemini Colors */
   --gemini-sidebar: #282a2c;
-  --gemini-main: #1b1c1d; 
+  --gemini-main: #212121; 
   --gemini-blue: #4285f4;
   --gemini-text-primary: #e8eaed;
   --gemini-text-secondary: #9aa0a6;
@@ -22,7 +22,7 @@
   --sidebar-border: 210 2.9% 20.8%; /* #333537 */
 
   /* Shadcn UI Theme Variables */
-  --background: 210 4.8% 11.0%; /* #1b1c1d */
+  --background: 0 0% 13%; /* #212121 */
   --foreground: 210 40% 98%; /* #e8eaed */
   --primary: 0 0 61%; /* #4285f4 */
   --primary-foreground: 210 40% 98%; /* #e8eaed */
@@ -37,7 +37,7 @@
   --border: 210 2.9% 20.8%; /* #333537 */
   --input: 210 2.9% 20.8%; /* #333537 */
   --ring: 217 89% 61%; /* #4285f4 */
-  --popover: 210 4.8% 11.0%; /* #1b1c1d */
+  --popover: 210 4.8% 11.0%; /* #212121 */
   --popover-foreground: 210 40% 98%; /* #e8eaed */
   --radius: 0.5rem;
 }

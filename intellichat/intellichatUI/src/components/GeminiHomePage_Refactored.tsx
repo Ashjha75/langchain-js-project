@@ -19,7 +19,7 @@ export function GeminiHomePage() {
   }, [showToast]);
 
   return (
-    <div className="bg-[#1b1c1d] text-[#e8eaed] h-screen flex font-sans relative">
+    <div className="bg-[#212121] text-[#e8eaed] h-screen flex font-sans relative">
       <ConversationSidebar isOpen={sidebarOpen} />
       <MainContent
         sidebarOpen={sidebarOpen}

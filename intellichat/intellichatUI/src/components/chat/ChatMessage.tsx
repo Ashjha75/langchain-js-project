@@ -9,7 +9,6 @@ import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy, Check, RefreshCw } from 'lucide-react';
 import { Message } from './types';
 import { cn } from '@/lib/utils';
-import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -21,106 +20,186 @@ import 'katex/dist/katex.min.css';
 
 interface ChatMessageProps {
   message: Message;
-  onRetry: () => void;
+  isLoading: boolean;
+  onRetry?: () => void;
 }
 
-export function ChatMessage({ message, onRetry }: ChatMessageProps) {
+export function ChatMessage({ message, isLoading, onRetry }: ChatMessageProps) {
   const { role, content } = message;
   const isUser = role === 'user';
   const [copied, setCopied] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [codeCopied, setCodeCopied] = useState<{ [key: number]: boolean }>({});
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(content);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 1500);
     } catch (err) {
-      console.error('Failed to copy message:', err);
+      console.error('Copy failed:', err);
     }
   };
 
-  const handleRetry = () => {
-    onRetry();
+  const handleRetry = async () => {
+    if (!onRetry) return;
+    try {
+      setRetrying(true);
+      await onRetry();
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  const handleCodeCopy = async (code: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCodeCopied({ ...codeCopied, [index]: true });
+      setTimeout(() => {
+        const newState = { ...codeCopied };
+        delete newState[index];
+        setCodeCopied(newState);
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to copy code:', err);
+    }
   };
 
   const markdownComponents = {
     code({ node, inline, className, children, ...props }: any) {
       const match = /language-(\w+)/.exec(className || '');
       const codeString = String(children).replace(/\n$/, '');
+      const lang = match ? match[1] : 'text';
+      const codeIndex = node?.position?.start?.line || 0;
+
       return !inline && match ? (
-        <SyntaxHighlighter
-          style={tomorrow}
-          language={match[1]}
-          PreTag="div"
-          {...props}
-        >
-          {codeString}
-        </SyntaxHighlighter>
+        <div className="relative group my-4 rounded-lg bg-[#171717] overflow-hidden">
+          {/* Top Label */}
+          <div className=" bg-[#0d0e0e] height-[1rem]">
+            <div className="absolute  top-2 left-3 text-xs text-gray-400 uppercase tracking-wider  text-blue-300 mb-1 pb-2">
+              {lang}
+            </div>
+
+            {/* Copy Button */}
+            <div className="absolute top-2 right-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleCodeCopy(codeString, codeIndex)}
+                      className="h-7 w-7 bg-transparent hover:bg-[#2d2d2d] opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      {codeCopied[codeIndex] ? (
+                        <Check size={14} className="text-green-500" />
+                      ) : (
+                        <Copy size={14} className="text-gray-300" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{codeCopied[codeIndex] ? 'Copied!' : 'Copy code'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+
+          <SyntaxHighlighter
+            style={tomorrow}
+            language={lang}
+            PreTag="div"
+            wrapLongLines
+            customStyle={{
+              background: '#0d0e0e',
+              padding: '1.25rem',
+              margin: 0,
+              fontSize: '0.9rem',
+              borderRadius: 0,
+              lineHeight: 1.6,
+            }}
+            {...props}
+          >
+            {codeString}
+          </SyntaxHighlighter>
+        </div>
       ) : (
-        <code className="bg-[#2d2d2d] text-[#e8eaed] px-2 py-1 rounded-md text-sm font-mono border border-[#3c4043]">
+        <code className="bg-[#2d2d2d] text-[#e8eaed] px-2 py-1 rounded-md text-sm font-mono">
           {children}
         </code>
       );
     },
-    h1: ({ children }: any) => <h1 className="text-2xl font-bold mb-4 text-[#ececec] border-b border-[#444] pb-2">{children}</h1>,
-    h2: ({ children }: any) => <h2 className="text-xl font-semibold mb-3 text-[#ececec] mt-6">{children}</h2>,
-    h3: ({ children }: any) => <h3 className="text-lg font-semibold mb-2 text-[#e8eaed] mt-4">{children}</h3>,
-    p: ({ children }: any) => <p className="mb-4 leading-7 text-[#e8eaed] last:mb-0">{children}</p>,
-    a: ({ href, children }: any) => <a href={href} className="text-[#8ab4f8] underline" target="_blank" rel="noopener noreferrer">{children}</a>,
-    ul: ({ children }: any) => <ul className="list-disc list-inside mb-4 space-y-2 text-[#e8eaed] ml-4">{children}</ul>,
-    ol: ({ children }: any) => <ol className="list-decimal list-inside mb-4 space-y-2 text-[#e8eaed] ml-4">{children}</ol>,
-    li: ({ children }: any) => <li className="leading-7">{children}</li>,
-    blockquote: ({ children }: any) => <blockquote className="border-l-4 border-[#4285f4] pl-4 my-4 italic text-[#bdc1c6] bg-[#1e1e1e] p-3 rounded-r-lg">{children}</blockquote>,
-    table: ({ children }: any) => <div className="overflow-x-auto my-4"><table className="w-full border-collapse border border-[#3c4043] rounded-lg">{children}</table></div>,
-    th: ({ children }: any) => <th className="border border-[#3c4043] bg-[#2d2d2d] px-4 py-2 text-left font-semibold text-[#e8eaed]">{children}</th>,
-    td: ({ children }: any) => <td className="border border-[#3c4043] px-4 py-2 text-[#e8eaed]">{children}</td>,
-    strong: ({ children }: any) => <strong className="font-semibold text-[#f8f9fa]">{children}</strong>,
-    em: ({ children }: any) => <em className="italic text-[#e8eaed]">{children}</em>,
-    pre: ({ children }: any) => <pre className="bg-[#1e1e1e] border border-[#444] rounded-lg p-4 overflow-x-auto">{children}</pre>,
+
+    table: ({ children }: any) => (
+      <div className="overflow-x-auto my-4">
+        <table className="min-w-full text-sm border-collapse border border-transparent">
+          {children}
+        </table>
+      </div>
+    ),
+    th: ({ children }: any) => (
+      <th className="border border-[#2d2d2d] bg-[#202124] px-4 py-2 text-left font-semibold text-[#e8eaed]">
+        {children}
+      </th>
+    ),
+    td: ({ children }: any) => (
+      <td className="border border-[#2d2d2d] px-4 py-2 text-[#e8eaed]">
+        {children}
+      </td>
+    ),
+    blockquote: ({ children }: any) => (
+      <blockquote className="border-l-4 border-[#4285f4] pl-4 my-4 italic text-[#bdc1c6]">
+        {children}
+      </blockquote>
+    ),
+    p: ({ children }: any) => (
+      <p className="leading-7 text-[#e8eaed] mb-4 last:mb-0">{children}</p>
+    ),
   };
 
   return (
-    <div className={cn('flex items-start gap-4 mb-6 group relative', isUser ? 'justify-end' : 'justify-start')}>
-      {/* {!isUser && (
-        <div className="flex-shrink-0">
-          <Logo size="sm" variant="icon" />
-        </div>
-      )} */}
+    <div
+      className={cn(
+        'flex gap-3 mb-6 transition-all duration-200',
+        isUser ? 'justify-end' : 'justify-start'
+      )}
+    >
       <div
         className={cn(
-          'relative p-4 rounded-2xl max-w-4xl shadow-lg transition-all duration-200 hover:shadow-xl',
+          'max-w-3xl w-full transition-all duration-300 rounded-2xl p-4 relative',
           isUser
-            ? 'bg-[#2d2d2d] rounded-br-none'
-            : 'bg-[#1e1e1e] rounded-bl-none'
+            ? 'bg-[#303030] shadow-sm shadow-black/30 text-left w-[69%]'
+            : 'bg-transparent text-left'
         )}
       >
-        {/* Action Buttons */}
-        <div className="absolute top-2 right-2 flex items-center space-x-2">
+        {/* Markdown Rendering */}
+        <article className="prose prose-invert prose-sm max-w-none leading-relaxed tracking-wide font-[Inter] bg-transparent">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+            components={markdownComponents}
+          >
+            {content}
+          </ReactMarkdown>
+        </article>
+
+        {/* Copy & Retry Buttons */}
+        <div
+          className={cn(
+            'mt-3 flex gap-2 opacity-0 hover:opacity-100 transition-opacity',
+            isUser ? 'justify-end' : 'justify-end'
+          )}
+        >
+          {/* Copy */}
           <TooltipProvider>
-            {isUser && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleRetry}
-                    className="h-8 w-8 opacity-0 group-hover:opacity-100"
-                  >
-                    <RefreshCw size={14} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Retry</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleCopy}
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                  className="h-7 w-7 bg-transparent hover:bg-[#2d2d2d]"
                 >
                   {copied ? (
                     <Check size={14} className="text-green-500" />
@@ -130,27 +209,38 @@ export function ChatMessage({ message, onRetry }: ChatMessageProps) {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{copied ? 'Copied!' : 'Copy'}</p>
+                <p>{copied ? 'Copied!' : 'Copy text'}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        </div>
 
-        <article className="prose prose-invert prose-sm max-w-none overflow-hidden pt-6">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw]}
-            components={markdownComponents}
-          >
-            {content}
-          </ReactMarkdown>
-        </article>
-      </div>
-      {/* {isUser && (
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4285f4] to-[#db4437] flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 shadow-lg">
-          U
+          {/* Retry (AI only) */}
+          {!isUser && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={retrying}
+                    onClick={handleRetry}
+                    className="h-7 w-7 bg-transparent hover:bg-[#2d2d2d]"
+                  >
+                    {retrying ? (
+                      <RefreshCw size={14} className="animate-spin text-blue-400" />
+                    ) : (
+                      <RefreshCw size={14} />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{retrying ? 'Retrying...' : 'Retry response'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
-      )} */}
+      </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ import {
 interface ChatMessageActionsProps {
   isUser: boolean;
   content: string;
-  onRetry: () => void;
+  onRetry: () => void;!
 }
 
 export function ChatMessageActions({ isUser, content, onRetry }: ChatMessageActionsProps) {

@@ -116,7 +116,7 @@ export function ConversationSidebar({ isOpen, currentConversationId }: Conversat
   if (!isOpen) return null;
 
   return (
-    <div className="w-72 bg-[#1b1c1d] border-r border-[#333537] flex flex-col h-screen">
+    <div className="w-72 bg-[#212121] border-r border-[#333537] flex flex-col h-screen">
       {/* Header */}
       <div className="p-3 border-b border-[#333537]">
         <Button
@@ -181,7 +181,7 @@ export function ConversationSidebar({ isOpen, currentConversationId }: Conversat
                       {conv.title}
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-[#9aa0a6]">
-                      <span className="truncate font-mono bg-[#1b1c1d] px-1.5 py-0.5 rounded">
+                      <span className="truncate font-mono bg-[#212121] px-1.5 py-0.5 rounded">
                         {conv.model.split('/').pop()?.split('-').slice(0, 2).join('-') || conv.model}
                       </span>
                       <span className="text-[#5f6368]">•</span>
@@ -208,7 +208,7 @@ export function ConversationSidebar({ isOpen, currentConversationId }: Conversat
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-[#333537] bg-[#1b1c1d]">
+      <div className="p-3 border-t border-[#333537] bg-[#212121]">
         <div className="text-xs text-[#5f6368] text-center font-medium">
           {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
         </div>

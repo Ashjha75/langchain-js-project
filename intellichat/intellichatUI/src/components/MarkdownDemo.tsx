@@ -135,7 +135,7 @@ For more information:
   ]);
 
   return (
-    <div className="min-h-screen bg-[#1b1c1d] p-4">
+    <div className="min-h-screen bg-[#212121] p-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-[#282a2c] rounded-lg p-6 mb-6">
           <h1 className="text-2xl font-bold text-[#e8eaed] mb-2">

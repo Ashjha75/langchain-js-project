@@ -171,7 +171,7 @@ Visit `http://localhost:3000/demo` to see the full markdown rendering showcase.
 ### Professional Color Scheme
 ```css
 /* AI Chat Colors (matching ChatGPT/Gemini) */
-- Background: #1b1c1d (Dark theme)
+- Background: #212121 (Dark theme)
 - Message Bubbles: #282a2c (AI), #2d2d2d (User)
 - Text: #e8eaed (Primary), #9aa0a6 (Secondary)
 - Accents: #4285f4 (Blue), #34a853 (Green)

@@ -12,10 +12,11 @@ interface MessageListProps {
   messages: Message[];
   isLoading?: boolean;
   isStreaming?: boolean;
-  onRetry: () => void;
+  isRetrying?: boolean;
+  onRetry?: (messageContent: string) => void;
 }
 
-export function MessageList({ messages, isLoading = false, isStreaming = false, onRetry }: MessageListProps) {
+export function MessageList({ messages, isLoading = false, isStreaming = false, isRetrying = false, onRetry }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showGoToBottom, setShowGoToBottom] = useState(false);
 
@@ -33,7 +34,7 @@ export function MessageList({ messages, isLoading = false, isStreaming = false, 
     if (scrollRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
       const isAtBottom = scrollHeight - scrollTop <= clientHeight + 1;
-      setShowGoToBottom(!isAtBottom);
+      setShowGoToBottom(!isAtBottom && !isLoading && !isStreaming);
     }
   };
 
@@ -50,15 +51,23 @@ export function MessageList({ messages, isLoading = false, isStreaming = false, 
   const sortedMessages = [...messages].sort((a, b) => a.id.localeCompare(b.id));
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 pb-8 relative">
-      <div className="max-w-3xl mx-auto space-y-6 pb-6">
-        {sortedMessages.map((message) => (
-          <ChatMessage key={message.id} message={message} onRetry={onRetry} />
-        ))}
-        {showTypingIndicator && <TypingIndicator />}
+    <div className="flex-1 relative">
+      <div ref={scrollRef} className="absolute inset-0 overflow-y-auto p-4 pb-8">
+        <div className="max-w-3xl mx-auto space-y-6 pb-6">
+          {sortedMessages.map((message) => (
+            <ChatMessage
+              key={message.id}
+              message={message}
+              {...(onRetry && { onRetry })}
+              isLoading={isLoading || isStreaming}
+              isRetrying={isRetrying}
+            />
+          ))}
+          {showTypingIndicator && <TypingIndicator />}
+        </div>
       </div>
       {showGoToBottom && (
-        <div className="absolute bottom-10 right-10">
+        <div className="absolute bottom-10 right-10 z-10">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>

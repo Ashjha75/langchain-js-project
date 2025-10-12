@@ -32,6 +32,7 @@ export function ChatUI({
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const router = useRouter();
   
   const { currentChatConfig: settings, actions } = useAppStore();
@@ -222,8 +223,19 @@ export function ChatUI({
     }
   };
 
+  const handleRetryMessage = async (messageContent: string) => {
+    if (isRetrying || isSending || isStreaming) return;
+    
+    setIsRetrying(true);
+    try {
+      await handleSendMessage(messageContent);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col bg-[#1b1c1d]">
+    <div className="flex-1 flex flex-col bg-[#212121]">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-[#333537]">
         <div className="flex items-center gap-3">
@@ -315,7 +327,7 @@ export function ChatUI({
                 <Settings size={16} />
                 <span className="text-sm">Settings</span>
                 {hasUnappliedChanges && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-[#1b1c1d]" />
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border-2 border-[#212121]" />
                 )}
               </Button>
             </TooltipTrigger>
@@ -370,29 +382,43 @@ export function ChatUI({
 
       {/* Loading State */}
       {(isLoading || isTransitioning) && messages.length === 0 && (
-        <div className="flex-1 flex flex-col gap-4 p-6 overflow-y-auto">
-          {/* Animated Loading Messages */}
-          {[
-            { delay: '0ms', text: 'Opening conversation...' },
-            { delay: '400ms', text: 'Loading messages...' },
-            { delay: '800ms', text: 'Almost there...' }
-          ].map((item, idx) => (
-            <div 
-              key={idx}
-              className="flex gap-3 animate-in fade-in slide-in-from-bottom-2"
-              style={{ animationDelay: item.delay, animationDuration: '400ms' }}
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex-shrink-0 flex items-center justify-center">
-                <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 animate-pulse" />
-              </div>
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-[#2d2e30] rounded animate-pulse w-32" />
-                <div className="h-3 bg-[#2d2e30] rounded animate-pulse w-48" />
-              </div>
-            </div>
-          ))}
+  <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto px-6 py-10">
+    <div className="w-full max-w-3xl space-y-8">
+      {[
+        { delay: '0ms', text: 'Opening conversation...' },
+        { delay: '400ms', text: 'Loading messages...' },
+        { delay: '800ms', text: 'Almost there...' },
+      ].map((item, idx) => (
+        <div
+          key={idx}
+          className="flex gap-4 items-start animate-in fade-in slide-in-from-bottom-2"
+          style={{ animationDelay: item.delay, animationDuration: '400ms' }}
+        >
+          {/* AI Avatar Pulse (matches AI bubble look) */}
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center shadow-inner">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 animate-pulse" />
+          </div>
+
+          {/* AI Message Placeholder */}
+          <div className="flex flex-col flex-1 space-y-3">
+            <div className="h-4 bg-[#2d2e30] rounded-lg animate-pulse w-3/4" />
+            <div className="h-4 bg-[#2d2e30] rounded-lg animate-pulse w-1/2" />
+            <div className="h-4 bg-[#2d2e30] rounded-lg animate-pulse w-2/3" />
+          </div>
         </div>
-      )}
+      ))}
+
+      {/* Simulated User Bubble */}
+      <div className="flex justify-end">
+        <div className="max-w-lg bg-[#1e1f22] shadow-lg shadow-black/30 rounded-2xl p-4 animate-pulse">
+          <div className="h-4 bg-[#2b2c2f] rounded w-3/4 mb-2" />
+          <div className="h-4 bg-[#2b2c2f] rounded w-1/2" />
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* Message List */}
       {(!isLoading && !isTransitioning) || messages.length > 0 ? (
@@ -400,7 +426,8 @@ export function ChatUI({
           messages={uiMessages} 
           isLoading={isSending}
           isStreaming={isStreaming}
-          onRetry={retryLastMessage}
+          isRetrying={isRetrying}
+          onRetry={handleRetryMessage}
         />
       ) : null}
 

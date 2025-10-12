@@ -179,7 +179,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     // Add user message optimistically
     const userMessage: Message = {
       _id: `temp-${Date.now()}`,
-      conversationId,
+      conversationId: conversationId || '',
       role: 'user',
       content,
       createdAt: new Date().toISOString(),
@@ -239,18 +239,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       updatedAt: new Date().toISOString(),
     };
     
-    // Add assistant placeholder
-    const assistantMessageId = `assistant-${Date.now()}`;
-    const assistantMessage: Message = {
-      _id: assistantMessageId,
-      conversationId,
-      role: 'assistant',
-      content: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, userMessage, assistantMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setIsStreaming(true);
 
     // Close any existing stream
@@ -281,18 +270,31 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       // onChunk
       (chunk: StreamChunk) => {
         if (chunk.type === 'token' && chunk.content) {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg._id === assistantMessageId
-                ? { ...msg, content: msg.content + chunk.content }
-                : msg
-            )
-          );
+          setMessages((prev) => {
+            const lastMessage = prev[prev.length - 1];
+            if (lastMessage && lastMessage.role === 'assistant') {
+              return prev.map((msg, index) =>
+                index === prev.length - 1
+                  ? { ...msg, content: msg.content + chunk.content }
+                  : msg
+              );
+            } else {
+              const newAssistantMessage: Message = {
+                _id: `assistant-${Date.now()}`,
+                conversationId,
+                role: 'assistant',
+                content: chunk.content,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              };
+              return [...prev, newAssistantMessage];
+            }
+          });
         } else if (chunk.type === 'metadata' && chunk.message) {
           // Update with final message data
           setMessages((prev) =>
             prev.map((msg) =>
-              msg._id === assistantMessageId
+              msg._id.startsWith('assistant-')
                 ? { ...msg, ...chunk.message }
                 : msg
             )
@@ -307,16 +309,13 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         setIsStreaming(false);
         
         // Remove incomplete assistant message
-        setMessages((prev) => prev.filter((msg) => msg._id !== assistantMessageId));
+        setMessages((prev) => prev.filter((msg) => msg._id.startsWith('assistant-')));
       },
       
       // onComplete
       () => {
         setIsStreaming(false);
         streamingMessageRef.current = '';
-        
-        // Reload to get final message from database
-        loadMessages();
       }
     );
   }, [conversationId, loadMessages]);

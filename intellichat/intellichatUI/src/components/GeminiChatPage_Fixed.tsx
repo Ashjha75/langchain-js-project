@@ -99,7 +99,7 @@ export function GeminiChatPage() {
   }
 
   return (
-    <div style={{ backgroundColor: '#1b1c1d', color: '#e8eaed', height: '100vh', display: 'flex', fontFamily: 'Google Sans, system-ui, sans-serif' }}>
+    <div style={{ backgroundColor: '#212121', color: '#e8eaed', height: '100vh', display: 'flex', fontFamily: 'Google Sans, system-ui, sans-serif' }}>
       {/* Sidebar */}
       <div 
         style={{
@@ -253,7 +253,7 @@ export function GeminiChatPage() {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#1b1c1d' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#212121' }}>
         {/* Header */}
         <div style={{
           display: 'flex',
