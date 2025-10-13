@@ -66,8 +66,14 @@ ENV PORT=3000
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy public assets (if exists)
-COPY --from=builder --chown=nextjs:nodejs /app/public* ./public 2>/dev/null || true
+# Copy public assets conditionally using RUN command instead of COPY
+RUN --mount=type=bind,from=builder,source=/app/public,target=/tmp/public \
+    if [ -d "/tmp/public" ]; then \
+        cp -r /tmp/public ./public && \
+        chown -R nextjs:nodejs ./public; \
+    else \
+        echo "No public directory found, skipping..."; \
+    fi
 
 # Copy standalone build
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
