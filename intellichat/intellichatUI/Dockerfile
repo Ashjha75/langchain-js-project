@@ -1,74 +1,84 @@
-# ================================================================
-# 1️⃣ BASE IMAGE
-# ================================================================
+# ============================================================
+# 🧱 Dockerfile for Next.js 15 (App Router) — Standalone Build
+# Works on Render, Railway, Vercel, Docker, etc.
+# ============================================================
+
+# 1️⃣ Base Image
 FROM node:20-alpine AS base
 
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
-
-# Add system dependencies for Next.js builds
+# Fix glibc compatibility and set work directory
 RUN apk add --no-cache libc6-compat
-
 WORKDIR /app
 
-# ================================================================
-# 2️⃣ DEPENDENCIES STAGE
-# ================================================================
+# ============================================================
+# 2️⃣ Dependencies Stage
+# ============================================================
 FROM base AS deps
 
-# Copy dependency files
-COPY package*.json ./
+# Copy only dependency files first (better cache)
+COPY package.json package-lock.json* ./
 
-# Install deps (use npm install to ensure lockfile sync)
-RUN npm install --legacy-peer-deps
+# Install dependencies safely
+# --legacy-peer-deps → avoid React 19 peer conflicts (cmdk, Radix, etc.)
+# --force → ensures TypeScript types don’t break builds
+RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps --force
 
-# ================================================================
-# 3️⃣ BUILD STAGE
-# ================================================================
+# ============================================================
+# 3️⃣ Builder Stage
+# ============================================================
 FROM base AS builder
 
 WORKDIR /app
 
-# Copy node_modules from deps
+# Copy installed node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy project files
+# Copy app source files
 COPY . .
 
-# Build Next.js app (standalone output)
+# Set environment variables for production build
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# ✅ Preinstall required TypeScript types to prevent build-time auto-install crash
+RUN npm install --save-dev --legacy-peer-deps --force @types/react @types/react-dom
+
+# Build the Next.js app (creates .next/standalone)
 RUN npm run build
 
-# ================================================================
-# 4️⃣ RUNNER STAGE (FINAL IMAGE)
-# ================================================================
+# ============================================================
+# 4️⃣ Runner Stage (Production Image)
+# ============================================================
 FROM base AS runner
 
 WORKDIR /app
 
-ENV NEXT_TELEMETRY_DISABLED=1
+# Environment setup
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
-# Security: non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+# Create a non-root user
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
 
-# Ensure public dir exists to prevent COPY errors
-RUN mkdir -p /app/public
+# Ensure required directories exist (prevents COPY errors)
+RUN mkdir -p ./public .next
 
-# Copy the standalone build
+# Copy compiled output and assets from builder
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Try to copy public folder if it exists (optional)
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public || true
+# Adjust permissions
+RUN chown -R nextjs:nodejs /app
 
 # Switch to non-root user
 USER nextjs
 
-# Expose port
+# Expose app port
 EXPOSE 3000
 
-# Start the Next.js standalone server
+# Default start command
 CMD ["node", "server.js"]
