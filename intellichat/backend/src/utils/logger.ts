@@ -25,17 +25,21 @@ const devFormat = winston.format.combine(
   winston.format.colorize({ all: true }),
   winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
     let log = `${timestamp} [${level}]: ${message}`;
-    if (stack) log += `\n${stack}`;
-    if (Object.keys(meta).length > 0) log += `\n${JSON.stringify(meta, null, 2)}`;
+    if (stack) {
+      log += `\n${stack}`;
+    }
+    if (Object.keys(meta).length > 0) {
+      log += `\n${JSON.stringify(meta, null, 2)}`;
+    }
     return log;
-  })
+  }),
 );
 
 // Production format
 const prodFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.errors({ stack: true }),
-  winston.format.json()
+  winston.format.json(),
 );
 
 // Transports
@@ -46,7 +50,7 @@ if (CONFIG.logging.console.enabled) {
     new winston.transports.Console({
       format: CONFIG.app.isDevelopment ? devFormat : prodFormat,
       level: CONFIG.logging.level,
-    })
+    }),
   );
 }
 
@@ -65,7 +69,7 @@ if (CONFIG.logging.file.enabled) {
       level: "error",
       maxsize: 10 * 1024 * 1024,
       maxFiles: 5,
-    })
+    }),
   );
 }
 
@@ -79,11 +83,11 @@ export const logger = winston.createLogger({
 
 // Handle exceptions and rejections
 logger.exceptions.handle(
-  new winston.transports.File({ filename: exceptionsLogPath, format: prodFormat })
+  new winston.transports.File({ filename: exceptionsLogPath, format: prodFormat }),
 );
 
 logger.rejections.handle(
-  new winston.transports.File({ filename: rejectionsLogPath, format: prodFormat })
+  new winston.transports.File({ filename: rejectionsLogPath, format: prodFormat }),
 );
 
 /**
@@ -135,7 +139,11 @@ export class RequestLogger extends Logger {
   }
 
   override error(message: string, error?: Error | any, meta: any = {}) {
-    this.logWithRequestId("error", message, { error: error?.message || error, stack: error?.stack, ...meta });
+    this.logWithRequestId("error", message, {
+      error: error?.message || error,
+      stack: error?.stack,
+      ...meta,
+    });
   }
 
   override warn(message: string, meta: any = {}) {
@@ -157,7 +165,10 @@ export class RequestLogger extends Logger {
 export class PerformanceTimer {
   private startTime: number;
 
-  constructor(private logger: Logger, private operation: string) {
+  constructor(
+    private logger: Logger,
+    private operation: string,
+  ) {
     this.startTime = Date.now();
   }
 
@@ -173,6 +184,7 @@ export const createLogger = (context: string): Logger => new Logger(context);
 export const createRequestLogger = (context: string, requestId?: string): RequestLogger =>
   new RequestLogger(context, requestId);
 
-export const createTimer = (logger: Logger, operation: string): PerformanceTimer => new PerformanceTimer(logger, operation);
+export const createTimer = (logger: Logger, operation: string): PerformanceTimer =>
+  new PerformanceTimer(logger, operation);
 
 export default logger;
