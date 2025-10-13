@@ -27,10 +27,12 @@ const developmentFormat = winston.format.combine(
   winston.format.colorize({ all: true }),
   winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
     let log = `${timestamp} [${level}]: ${message}`;
-    if (stack) log += `\n${stack}`;
+    if (stack) {
+      log += `\n${stack}`;
+    }
     const metaStr = Object.keys(meta).length ? `\n${JSON.stringify(meta, null, 2)}` : "";
     return log + metaStr;
-  })
+  }),
 );
 
 // Production log format
@@ -41,9 +43,11 @@ const productionFormat = winston.format.combine(
   winston.format.printf((info) => {
     const { timestamp, level, message, stack, ...meta } = info;
     const logObj: any = { timestamp, level, message, ...meta };
-    if (stack) logObj.stack = stack;
+    if (stack) {
+      logObj.stack = stack;
+    }
     return JSON.stringify(logObj);
-  })
+  }),
 );
 
 // File transport for all logs
@@ -52,7 +56,7 @@ const fileTransport = new winston.transports.File({
   format: productionFormat,
   level: CONFIG.logging.level,
   maxsize: 10 * 1024 * 1024,
-  maxFiles: 5
+  maxFiles: 5,
 });
 
 // File transport for error logs only
@@ -61,13 +65,13 @@ const errorFileTransport = new winston.transports.File({
   format: productionFormat,
   level: "error",
   maxsize: 10 * 1024 * 1024,
-  maxFiles: 5
+  maxFiles: 5,
 });
 
 // Console transport
 const consoleTransport = new winston.transports.Console({
   format: CONFIG.app.isDevelopment ? developmentFormat : productionFormat,
-  level: CONFIG.logging.level
+  level: CONFIG.logging.level,
 });
 
 // Main Winston logger
@@ -75,10 +79,10 @@ export const logger = winston.createLogger({
   level: CONFIG.logging.level,
   defaultMeta: {
     service: CONFIG.app.name,
-    environment: CONFIG.app.env
+    environment: CONFIG.app.env,
   },
   transports: [],
-  exitOnError: false
+  exitOnError: false,
 });
 
 // Add transports based on configuration
@@ -95,15 +99,15 @@ if (CONFIG.logging.file.enabled) {
 logger.exceptions.handle(
   new winston.transports.File({
     filename: path.join(logDir, "exceptions.log"),
-    format: productionFormat
-  })
+    format: productionFormat,
+  }),
 );
 
 logger.rejections.handle(
   new winston.transports.File({
     filename: path.join(logDir, "rejections.log"),
-    format: productionFormat
-  })
+    format: productionFormat,
+  }),
 );
 
 /**
@@ -124,7 +128,7 @@ export class Logger {
     this.log("error", message, {
       error: error?.message || error,
       stack: error?.stack,
-      ...meta
+      ...meta,
     });
   }
 
@@ -159,7 +163,7 @@ export class Logger {
       url: req.url,
       userAgent: req.get("User-Agent"),
       ip: req.ip,
-      ...meta
+      ...meta,
     });
   }
 
@@ -169,7 +173,7 @@ export class Logger {
       url: req.url,
       statusCode: res.statusCode,
       responseTime: `${responseTime}ms`,
-      ...meta
+      ...meta,
     });
   }
 
@@ -185,23 +189,18 @@ export class Logger {
     this.info("Tool Execution", { tool: toolName, success, duration: `${duration}ms`, ...meta });
   }
 
-  securityEvent(
-    event: string,
-    severity: "low" | "medium" | "high" | "critical",
-    meta: any = {}
-  ) {
+  securityEvent(event: string, severity: "low" | "medium" | "high" | "critical", meta: any = {}) {
     const level = severity === "critical" || severity === "high" ? "error" : "warn";
     this.log(level, `Security Event: ${event}`, { security: true, severity, ...meta });
   }
 
   performance(operation: string, duration: number, meta: any = {}) {
-    const level =
-      duration > CONFIG.performance.timeout.slowThreshold ? "warn" : "info";
+    const level = duration > CONFIG.performance.timeout.slowThreshold ? "warn" : "info";
     this.log(level, `Performance: ${operation}`, {
       performance: true,
       duration: `${duration}ms`,
       slow: duration > CONFIG.performance.timeout.slowThreshold,
-      ...meta
+      ...meta,
     });
   }
 
@@ -236,7 +235,11 @@ export class RequestLogger extends Logger {
   }
 
   override error(message: string, error?: Error | any, meta: any = {}) {
-    this.logWithRequestId("error", message, { error: error?.message || error, stack: error?.stack, ...meta });
+    this.logWithRequestId("error", message, {
+      error: error?.message || error,
+      stack: error?.stack,
+      ...meta,
+    });
   }
 
   override warn(message: string, meta: any = {}) {
