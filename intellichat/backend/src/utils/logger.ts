@@ -8,8 +8,8 @@ import { CONFIG } from "@/config";
  * Fully compatible with Docker/Render (writable logs in /tmp)
  */
 
-// Determine log directory: use LOG_DIR env if set, else fallback to config
-const logDir = process.env.LOG_DIR || path.dirname(CONFIG.logging.file.path);
+// Use LOG_DIR env if set, else fallback to /tmp/logs for Docker/Render
+const logDir = process.env.LOG_DIR || "/tmp/logs";
 
 // Ensure the log directory exists
 if (!fs.existsSync(logDir)) {
@@ -89,7 +89,6 @@ export const logger = winston.createLogger({
 if (CONFIG.logging.console.enabled) {
   logger.add(consoleTransport);
 }
-
 if (CONFIG.logging.file.enabled) {
   logger.add(fileTransport);
   logger.add(errorFileTransport);
@@ -102,7 +101,6 @@ logger.exceptions.handle(
     format: productionFormat,
   }),
 );
-
 logger.rejections.handle(
   new winston.transports.File({
     filename: path.join(logDir, "rejections.log"),
@@ -125,11 +123,7 @@ export class Logger {
   }
 
   error(message: string, error?: Error | any, meta: any = {}) {
-    this.log("error", message, {
-      error: error?.message || error,
-      stack: error?.stack,
-      ...meta,
-    });
+    this.log("error", message, { error: error?.message || error, stack: error?.stack, ...meta });
   }
 
   warn(message: string, meta: any = {}) {
@@ -276,14 +270,14 @@ export class PerformanceTimer {
   }
 }
 
-export const createTimer = (logger: Logger, operation: string): PerformanceTimer =>
-  new PerformanceTimer(logger, operation);
-
 /**
  * Factory functions
  */
 export const createLogger = (context: string): Logger => new Logger(context);
 export const createRequestLogger = (context: string, requestId?: string): RequestLogger =>
   new RequestLogger(context, requestId);
+
+export const createTimer = (logger: Logger, operation: string): PerformanceTimer =>
+  new PerformanceTimer(logger, operation);
 
 export default logger;
