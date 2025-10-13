@@ -66,10 +66,7 @@ ENV PORT=3000
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy public assets (since you have a public directory)
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-
-# Copy standalone build
+# Copy standalone build (this includes everything needed for production)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
