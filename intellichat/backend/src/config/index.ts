@@ -155,6 +155,17 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
 
+  // AWS S3
+  S3_REGION: z.string().default("us-east-1"),
+  S3_BUCKET_NAME: z.string(),
+  S3_ACCESS_KEY_ID: z.string(),
+  S3_SECRET_ACCESS_KEY: z.string(),
+
+  // Weaviate
+  WEAVIATE_SCHEME: z.string().default("https"),
+  WEAVIATE_HOST: z.string(),
+  WEAVIATE_API_KEY: z.string(),
+
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "http", "verbose", "debug", "silly"]).default("info"),
   LOG_FILE_ENABLED: z
@@ -452,6 +463,21 @@ export const CONFIG = {
       anthropic: envConfig.ANTHROPIC_API_KEY,
       gemini: envConfig.GEMINI_API_KEY,
     },
+  },
+
+  // S3
+  s3: {
+    region: envConfig.S3_REGION,
+    bucketName: envConfig.S3_BUCKET_NAME,
+    accessKeyId: envConfig.S3_ACCESS_KEY_ID,
+    secretAccessKey: envConfig.S3_SECRET_ACCESS_KEY,
+  },
+
+  // Weaviate
+  weaviate: {
+    scheme: envConfig.WEAVIATE_SCHEME,
+    host: envConfig.WEAVIATE_HOST,
+    apiKey: envConfig.WEAVIATE_API_KEY,
   },
 
   // Logging

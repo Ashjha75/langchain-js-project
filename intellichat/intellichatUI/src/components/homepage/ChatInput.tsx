@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Mic, Plus, X, Paperclip, Code, Bot, SlidersHorizontal, Search, Video, Image, PenSquare, BookOpen } from 'lucide-react';
+import { FileUpload } from '../chat/FileUpload';
 import { toolsOptions } from './data';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
@@ -22,7 +23,7 @@ const iconMap = {
 interface ChatInputProps {
   input: string;
   setInput: (value: string) => void;
-  handleSendMessage: () => void;
+  handleSendMessage: (attachments?: any[]) => void;
   disabled?: boolean;
 }
 
@@ -31,7 +32,7 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [pastedImages, setPastedImages] = useState<Array<{ id: string; url: string; file: File }>>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{ id: string; name: string; url: string; file: File; type: string }>>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const assetMenuRef = useRef<HTMLDivElement>(null);
   const toolsMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -64,7 +65,7 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      onSendMessage();
     }
   };
 
@@ -96,61 +97,19 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
     });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  const onSendMessage = async () => {
+    if (uploadedFiles.length > 0) {
+      const formData = new FormData();
+      uploadedFiles.forEach(file => formData.append('file', file));
 
-    const newFiles: Array<{ id: string; name: string; url: string; file: File; type: string }> = [];
-    
-    for (let i = 0; i < Math.min(files.length, 10 - uploadedFiles.length); i++) {
-      const file = files[i];
-      if (!file) continue;
-      
-      const id = Date.now().toString() + i;
-      const url = URL.createObjectURL(file);
-      const type = file.type.startsWith('image/') ? 'image' : 'file';
-      
-      newFiles.push({ id, name: file.name, url, file, type });
+      // This is a placeholder for the actual API call
+      // You would replace this with a call to your backend
+      const documentId = await new Promise(resolve => setTimeout(() => resolve('mock-document-id'), 1000));
+
+      handleSendMessage([{ type: 'document', content: documentId }]);
+    } else {
+      handleSendMessage();
     }
-
-    setUploadedFiles((prev) => [...prev, ...newFiles].slice(0, 10));
-    setShowAssetMenu(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleCodeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const newFiles: Array<{ id: string; name: string; url: string; file: File; type: string }> = [];
-    
-    for (let i = 0; i < Math.min(files.length, 10 - uploadedFiles.length); i++) {
-      const file = files[i];
-      if (!file) continue;
-      
-      const id = Date.now().toString() + i;
-      const url = URL.createObjectURL(file);
-      
-      newFiles.push({ id, name: file.name, url, file, type: 'code' });
-    }
-
-    setUploadedFiles((prev) => [...prev, ...newFiles].slice(0, 10));
-    setShowAssetMenu(false);
-    if (codeInputRef.current) {
-      codeInputRef.current.value = '';
-    }
-  };
-
-  const removeFile = (id: string) => {
-    setUploadedFiles((prev) => {
-      const file = prev.find((f) => f.id === id);
-      if (file) {
-        URL.revokeObjectURL(file.url);
-      }
-      return prev.filter((f) => f.id !== id);
-    });
   };
 
   const truncateFileName = (name: string, maxLength: number = 14) => {
@@ -183,7 +142,6 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
           type="file"
           accept="image/*,application/pdf,.doc,.docx,.txt"
           multiple
-          onChange={handleFileUpload}
           className="hidden"
         />
         <input
@@ -191,7 +149,6 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
           type="file"
           accept=".js,.jsx,.ts,.tsx,.py,.java,.cpp,.c,.html,.css,.json,.xml"
           multiple
-          onChange={handleCodeUpload}
           className="hidden"
         />
 
@@ -216,41 +173,7 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
           </div>
         )}
 
-        {/* Uploaded Files Preview */}
-        {uploadedFiles.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-2 mb-2">
-            {uploadedFiles.map((file) => (
-              <div key={file.id} className="relative group">
-                {file.type === 'image' ? (
-                  <>
-                    <img
-                      src={file.url}
-                      alt={file.name}
-                      className="w-20 h-20 object-cover rounded-lg border border-[#404040]"
-                    />
-                    <button
-                      onClick={() => removeFile(file.id)}
-                      className="absolute -top-2 -right-2 bg-[#282a2c] border border-[#404040] rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X size={14} className="text-[#e8eaed]" />
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-2 bg-[#404040] text-[#e8eaed] text-sm px-3 py-1.5 rounded-lg pr-8">
-                    <Paperclip size={14} />
-                    <span>{truncateFileName(file.name)}</span>
-                    <button
-                      onClick={() => removeFile(file.id)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2"
-                    >
-                      <X size={14} className="text-[#9aa0a6] hover:text-[#e8eaed]" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <FileUpload onFilesChange={setUploadedFiles} />
 
         {selectedAssets.length > 0 && (
           <div className="flex flex-wrap gap-2 p-2">
@@ -378,7 +301,7 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => handleSendMessage()}
+                    onClick={onSendMessage}
                     className="p-2 bg-[#4285f4] rounded-full transition-all duration-300 ease-in-out hover:bg-[#3367d6] animate-fade-in"
                     disabled={disabled}
                   >

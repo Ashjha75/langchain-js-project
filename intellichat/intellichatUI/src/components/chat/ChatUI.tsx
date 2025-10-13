@@ -139,7 +139,8 @@ export function ChatUI({
     }
   }, [initialMessage, isValidConversationId, initialMessageSent]);
 
-  const handleSendMessage = async (message?: string) => {
+  const handleSendMessage = async (message?: string, attachments?: { type: 'document'; content: string }[]) => {
+    const typedAttachments = attachments as { type: "file" | "image" | "url"; content: string; metadata?: Record<string, any> }[] | undefined;
     const messageToSend = message || input;
     if (!messageToSend.trim() || isCreatingChat) return;
 
@@ -171,6 +172,7 @@ export function ChatUI({
         try {
           const result = await chatAPI.sendNewChat({
             content: messageToSend,
+            ...(typedAttachments && { attachments: typedAttachments }),
             model: settings.model, // ✅ USE MODEL FROM SETTINGS
             systemPrompt: settings.systemInstructions, // ✅ USE SYSTEM INSTRUCTIONS
             config: messageConfig,
@@ -192,8 +194,8 @@ export function ChatUI({
         // Existing conversation: send message with current run settings INCLUDING model and system prompt
         console.log('📤 Sending to existing conversation - Model:', settings.model, 'Browser:', messageConfig.browserSearch);
         await sendMessage(
-          messageToSend, 
-          undefined, 
+          messageToSend,
+          typedAttachments,
           messageConfig,
           settings.model, // ✅ PASS MODEL
           settings.systemInstructions // ✅ PASS SYSTEM INSTRUCTIONS
@@ -446,7 +448,7 @@ export function ChatUI({
         <ChatInput
           input={input}
           setInput={setInput}
-          handleSendMessage={() => handleSendMessage()}
+          handleSendMessage={(attachments) => handleSendMessage(undefined, attachments)}
           disabled={isSending || isStreaming || isCreatingChat}
         />
         {(isSending || isStreaming || isCreatingChat) && (

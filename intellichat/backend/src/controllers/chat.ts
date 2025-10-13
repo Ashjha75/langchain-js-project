@@ -5,6 +5,7 @@
 
 import type { Request, Response, NextFunction } from "express";
 import { chatService } from "@/services/chat";
+import { vectorStore } from "@/services/vectorStore";
 import { createLogger } from "@/utils/logger";
 import { ValidationError, UnauthorizedError } from "@/utils/errorHandler";
 
@@ -192,6 +193,14 @@ export class ChatController {
         throw new ValidationError("Message content is required");
       }
 
+      let augmentedContent = content.trim();
+      if (attachments && attachments.length > 0 && attachments[0].type === 'document') {
+        const documentId = attachments[0].content;
+        const contextChunks = await vectorStore.query(augmentedContent, documentId);
+        const context = contextChunks.map(c => c.content).join('\n\n');
+        augmentedContent = `Context:\n${context}\n\nQuestion: ${augmentedContent}`;
+      }
+
       const conversation = await chatService.createConversation({
         userId,
         title: content.substring(0, 50),
@@ -203,7 +212,7 @@ export class ChatController {
       const message = await chatService.sendMessage({
         conversationId: conversation._id.toString(),
         userId,
-        content: content.trim(),
+        content: augmentedContent,
         attachments,
       });
 
@@ -254,6 +263,14 @@ export class ChatController {
         throw new ValidationError("Message content is required");
       }
 
+      let augmentedContent = content.trim();
+      if (attachments && attachments.length > 0 && attachments[0].type === 'document') {
+        const documentId = attachments[0].content;
+        const contextChunks = await vectorStore.query(augmentedContent, documentId);
+        const context = contextChunks.map(c => c.content).join('\n\n');
+        augmentedContent = `Context:\n${context}\n\nQuestion: ${augmentedContent}`;
+      }
+
       logger.info("Sending message with config", {
         conversationId,
         userId,
@@ -267,7 +284,7 @@ export class ChatController {
       const message = await chatService.sendMessage({
         conversationId,
         userId,
-        content: content.trim(),
+        content: augmentedContent,
         attachments,
         config,
         model,
@@ -334,6 +351,14 @@ export class ChatController {
         throw new ValidationError("Message content is required");
       }
 
+      let augmentedContent = content.trim();
+      if (attachments && attachments.length > 0 && attachments[0].type === 'document') {
+        const documentId = attachments[0].content;
+        const contextChunks = await vectorStore.query(augmentedContent, documentId);
+        const context = contextChunks.map(c => c.content).join('\n\n');
+        augmentedContent = `Context:\n${context}\n\nQuestion: ${augmentedContent}`;
+      }
+
       // Set headers for Server-Sent Events
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
@@ -358,7 +383,7 @@ export class ChatController {
         for await (const chunk of chatService.sendMessageStream({
           conversationId,
           userId,
-          content: content.trim(),
+          content: augmentedContent,
           attachments,
           config,
           model,
