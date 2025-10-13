@@ -5,19 +5,20 @@ import { CONFIG } from "@/config";
 
 /**
  * Professional Logging System for IntelliChat Backend
- * Features:
- * - Multiple log levels with color coding
- * - File and console logging
- * - JSON structured logging for production
- * - Console formatting for development
- * - Error tracking and performance monitoring
+ * Compatible with Render/Docker (writable logs in /tmp)
  */
 
-// Ensure log directory exists
-const logDir = path.dirname(CONFIG.logging.file.path);
+// Determine log directory: use LOG_DIR env if set, else default from config
+const logDir = process.env.LOG_DIR || path.dirname(CONFIG.logging.file.path);
+
+// Ensure the log directory exists
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
+
+// Update file paths for transports
+const logFilePath = path.join(logDir, path.basename(CONFIG.logging.file.path));
+const errorLogFilePath = path.join(logDir, path.basename(CONFIG.logging.file.errorPath));
 
 // Custom log format for development
 const developmentFormat = winston.format.combine(
@@ -26,16 +27,10 @@ const developmentFormat = winston.format.combine(
   winston.format.colorize({ all: true }),
   winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
     let log = `${timestamp} [${level}]: ${message}`;
-
-    // Add stack trace for errors
-    if (stack) {
-      log += `\n${stack}`;
-    }
-
-    // Add metadata if present
+    if (stack) log += `\n${stack}`;
     const metaStr = Object.keys(meta).length > 0 ? `\n${JSON.stringify(meta, null, 2)}` : "";
     return log + metaStr;
-  }),
+  })
 );
 
 // Custom log format for production
@@ -45,34 +40,27 @@ const productionFormat = winston.format.combine(
   winston.format.json(),
   winston.format.printf((info) => {
     const { timestamp, level, message, stack, ...meta } = info;
-    const logObj: any = {
-      timestamp,
-      level,
-      message,
-      ...meta,
-    };
-    if (stack) {
-      logObj.stack = stack;
-    }
+    const logObj: any = { timestamp, level, message, ...meta };
+    if (stack) logObj.stack = stack;
     return JSON.stringify(logObj);
-  }),
+  })
 );
 
-// File transport for application logs
+// File transport for all logs
 const fileTransport = new winston.transports.File({
-  filename: CONFIG.logging.file.path,
+  filename: logFilePath,
   format: productionFormat,
   level: CONFIG.logging.level,
-  maxsize: 10 * 1024 * 1024, // 10MB
+  maxsize: 10 * 1024 * 1024,
   maxFiles: 5,
 });
 
 // File transport for error logs only
 const errorFileTransport = new winston.transports.File({
-  filename: CONFIG.logging.file.errorPath,
+  filename: errorLogFilePath,
   format: productionFormat,
   level: "error",
-  maxsize: 10 * 1024 * 1024, // 10MB
+  maxsize: 10 * 1024 * 1024,
   maxFiles: 5,
 });
 
@@ -82,7 +70,7 @@ const consoleTransport = new winston.transports.Console({
   level: CONFIG.logging.level,
 });
 
-// Create logger instance
+// Create main logger instance
 export const logger = winston.createLogger({
   level: CONFIG.logging.level,
   defaultMeta: {
@@ -93,7 +81,7 @@ export const logger = winston.createLogger({
   exitOnError: false,
 });
 
-// Add transports based on configuration
+// Add transports
 if (CONFIG.logging.console.enabled) {
   logger.add(consoleTransport);
 }
@@ -103,23 +91,24 @@ if (CONFIG.logging.file.enabled) {
   logger.add(errorFileTransport);
 }
 
-// Handle uncaught exceptions and rejections
+// Handle uncaught exceptions
 logger.exceptions.handle(
   new winston.transports.File({
     filename: path.join(logDir, "exceptions.log"),
     format: productionFormat,
-  }),
+  })
 );
 
+// Handle unhandled promise rejections
 logger.rejections.handle(
   new winston.transports.File({
     filename: path.join(logDir, "rejections.log"),
     format: productionFormat,
-  }),
+  })
 );
 
 /**
- * Structured logging interface for different contexts
+ * Logger class with context support
  */
 export class Logger {
   protected context: string;
@@ -129,18 +118,11 @@ export class Logger {
   }
 
   private log(level: string, message: string, meta: any = {}) {
-    logger.log(level, message, {
-      context: this.context,
-      ...meta,
-    });
+    logger.log(level, message, { context: this.context, ...meta });
   }
 
   error(message: string, error?: Error | any, meta: any = {}) {
-    this.log("error", message, {
-      error: error?.message || error,
-      stack: error?.stack,
-      ...meta,
-    });
+    this.log("error", message, { error: error?.message || error, stack: error?.stack, ...meta });
   }
 
   warn(message: string, meta: any = {}) {
@@ -189,56 +171,29 @@ export class Logger {
   }
 
   databaseQuery(operation: string, collection: string, duration: number, meta: any = {}) {
-    this.debug("Database Query", {
-      operation,
-      collection,
-      duration: `${duration}ms`,
-      ...meta,
-    });
+    this.debug("Database Query", { operation, collection, duration: `${duration}ms`, ...meta });
   }
 
   aiRequest(model: string, tokens: number, duration: number, meta: any = {}) {
-    this.info("AI Request", {
-      model,
-      tokens,
-      duration: `${duration}ms`,
-      ...meta,
-    });
+    this.info("AI Request", { model, tokens, duration: `${duration}ms`, ...meta });
   }
 
   toolExecution(toolName: string, success: boolean, duration: number, meta: any = {}) {
-    this.info("Tool Execution", {
-      tool: toolName,
-      success,
-      duration: `${duration}ms`,
-      ...meta,
-    });
+    this.info("Tool Execution", { tool: toolName, success, duration: `${duration}ms`, ...meta });
   }
 
   securityEvent(event: string, severity: "low" | "medium" | "high" | "critical", meta: any = {}) {
     const level = severity === "critical" || severity === "high" ? "error" : "warn";
-    this.log(level, `Security Event: ${event}`, {
-      security: true,
-      severity,
-      ...meta,
-    });
+    this.log(level, `Security Event: ${event}`, { security: true, severity, ...meta });
   }
 
   performance(operation: string, duration: number, meta: any = {}) {
     const level = duration > CONFIG.performance.timeout.slowThreshold ? "warn" : "info";
-    this.log(level, `Performance: ${operation}`, {
-      performance: true,
-      duration: `${duration}ms`,
-      slow: duration > CONFIG.performance.timeout.slowThreshold,
-      ...meta,
-    });
+    this.log(level, `Performance: ${operation}`, { performance: true, duration: `${duration}ms`, slow: duration > CONFIG.performance.timeout.slowThreshold, ...meta });
   }
 
   businessEvent(event: string, meta: any = {}) {
-    this.info(`Business Event: ${event}`, {
-      business: true,
-      ...meta,
-    });
+    this.info(`Business Event: ${event}`, { business: true, ...meta });
   }
 }
 
@@ -261,11 +216,7 @@ export class RequestLogger extends Logger {
   }
 
   private logWithRequestId(level: string, message: string, meta: any = {}) {
-    logger.log(level, message, {
-      context: this.context,
-      requestId: this.requestId,
-      ...meta,
-    });
+    logger.log(level, message, { context: this.context, requestId: this.requestId, ...meta });
   }
 
   getRequestId(): string {
@@ -273,11 +224,7 @@ export class RequestLogger extends Logger {
   }
 
   override error(message: string, error?: Error | any, meta: any = {}) {
-    this.logWithRequestId("error", message, {
-      error: error?.message || error,
-      stack: error?.stack,
-      ...meta,
-    });
+    this.logWithRequestId("error", message, { error: error?.message || error, stack: error?.stack, ...meta });
   }
 
   override warn(message: string, meta: any = {}) {
@@ -294,18 +241,10 @@ export class RequestLogger extends Logger {
 }
 
 /**
- * Factory function to create logger instances
+ * Factory functions
  */
-export const createLogger = (context: string): Logger => {
-  return new Logger(context);
-};
-
-/**
- * Factory function to create request logger instances
- */
-export const createRequestLogger = (context: string, requestId?: string): RequestLogger => {
-  return new RequestLogger(context, requestId);
-};
+export const createLogger = (context: string): Logger => new Logger(context);
+export const createRequestLogger = (context: string, requestId?: string): RequestLogger => new RequestLogger(context, requestId);
 
 /**
  * Performance timing utility
@@ -328,12 +267,6 @@ export class PerformanceTimer {
   }
 }
 
-/**
- * Create performance timer
- */
-export const createTimer = (logger: Logger, operation: string): PerformanceTimer => {
-  return new PerformanceTimer(logger, operation);
-};
+export const createTimer = (logger: Logger, operation: string): PerformanceTimer => new PerformanceTimer(logger, operation);
 
-// Export default logger instance
 export default logger;
