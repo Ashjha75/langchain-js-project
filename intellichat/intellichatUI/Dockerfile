@@ -1,77 +1,74 @@
-# ============================================================
-# 🧱 Dockerfile for Next.js 15 (App Router) — Standalone Build
-# Compatible with Render, Railway, Vercel, or Local Docker Run
-# ============================================================
-
-# 1️⃣ Base Image
+# ================================================================
+# 1️⃣ BASE IMAGE
+# ================================================================
 FROM node:20-alpine AS base
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+# Add system dependencies for Next.js builds
 RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
 
-# ------------------------------------------------------------
-# 2️⃣ Dependencies Stage
-# ------------------------------------------------------------
+# ================================================================
+# 2️⃣ DEPENDENCIES STAGE
+# ================================================================
 FROM base AS deps
 
-# Copy package files
-COPY package.json package-lock.json* ./
+# Copy dependency files
+COPY package*.json ./
 
-# Install dependencies (ignore peer conflicts if needed)
-RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+# Install deps (use npm install to ensure lockfile sync)
+RUN npm install --legacy-peer-deps
 
-# ------------------------------------------------------------
-# 3️⃣ Builder Stage
-# ------------------------------------------------------------
+# ================================================================
+# 3️⃣ BUILD STAGE
+# ================================================================
 FROM base AS builder
+
 WORKDIR /app
 
-# Copy dependencies from deps
+# Copy node_modules from deps
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy all source files
+# Copy project files
 COPY . .
 
-# Build environment setup
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Build Next.js (creates .next/standalone)
+# Build Next.js app (standalone output)
 RUN npm run build
 
-# ------------------------------------------------------------
-# 4️⃣ Runner Stage (Final Production Image)
-# ------------------------------------------------------------
+# ================================================================
+# 4️⃣ RUNNER STAGE (FINAL IMAGE)
+# ================================================================
 FROM base AS runner
+
 WORKDIR /app
 
-ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
-# Create app user (non-root)
-RUN addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 nextjs
+# Security: non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Ensure public directory exists to prevent build-time errors
-RUN mkdir -p ./public
+# Ensure public dir exists to prevent COPY errors
+RUN mkdir -p /app/public
 
-# Copy build output and assets
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Copy the standalone build
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# (Optional) Copy env if needed for runtime (Render ignores local .env by default)
-# COPY .env .env
-
-# Adjust permissions
-RUN mkdir -p .next && chown -R nextjs:nodejs /app
+# Try to copy public folder if it exists (optional)
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public || true
 
 # Switch to non-root user
 USER nextjs
 
-# Expose app port
+# Expose port
 EXPOSE 3000
 
-# Start Next.js standalone server
+# Start the Next.js standalone server
 CMD ["node", "server.js"]
