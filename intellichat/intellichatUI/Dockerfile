@@ -1,53 +1,68 @@
-# Dockerfile for Next.js application
+# Dockerfile for Next.js 15 application with standalone output
 
 # 1. Base Image
-FROM node:20-alpine AS base
+FROM node:18-alpine AS base
 
-# 2. Dependencies Stage
+# Install dependencies only when needed
 FROM base AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package.json and lock file
-COPY package.json package-lock.json ./
+# Copy package files
+COPY package.json package-lock.json* ./
 
-# Install production dependencies
-RUN npm ci --only=production
+# Install dependencies with legacy peer deps to handle conflicts
+RUN npm ci --legacy-peer-deps
 
-# 3. Builder Stage
+# 2. Builder Stage
 FROM base AS builder
 WORKDIR /app
 
-# Copy all files
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy all application files
 COPY . .
 
-# Install all dependencies (including dev dependencies)
-RUN npm install
+# Set environment variables for build
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 
 # Build the application
+# Next.js will create .next/standalone automatically with output: 'standalone'
 RUN npm run build
 
-# 4. Runner Stage (Final Image)
+# 3. Runner Stage (Final Image)
 FROM base AS runner
 WORKDIR /app
 
-# Set environment to production
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME="0.0.0.0"
 
 # Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built application from builder stage
+# Copy necessary files from builder
+# For Next.js 15 standalone mode, we need the standalone folder
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
 
-# Set the user
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Copy the standalone output (includes node_modules and server)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Switch to non-root user
 USER nextjs
 
 # Expose the port
 EXPOSE 3000
 
-# Set the command to start the server
-CMD ["npm", "start"]
+ENV PORT=3000
+
+# Start the server using the standalone server.js
+CMD ["node", "server.js"]
