@@ -3,7 +3,7 @@
 # Optimized for Render, Railway, Vercel, and local Docker
 # ============================================================
 
-# 1️⃣ Base Image (Node 18 LTS for Next.js 15)
+# 1️⃣ Base Image (Node 18 LTS)
 FROM node:18-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -17,7 +17,7 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies with proper error handling
+# Install dependencies (handle legacy peer deps)
 RUN if [ -f package-lock.json ]; then \
       npm ci --legacy-peer-deps; \
     else \
@@ -30,10 +30,10 @@ RUN if [ -f package-lock.json ]; then \
 FROM base AS builder
 WORKDIR /app
 
-# Copy dependencies
+# Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy source code
+# Copy all source code
 COPY . .
 
 # Build environment
@@ -57,6 +57,7 @@ RUN if [ ! -d ".next/standalone" ]; then \
 FROM node:18-alpine AS runner
 WORKDIR /app
 
+# Set runtime environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME="0.0.0.0"
@@ -66,15 +67,18 @@ ENV PORT=3000
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy standalone build (this includes everything needed for production)
+# Copy standalone build (includes everything needed for production)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Set proper permissions
 RUN chown -R nextjs:nodejs /app
 
+# Switch to non-root user
 USER nextjs
 
+# Expose port
 EXPOSE 3000
 
 # Health check
