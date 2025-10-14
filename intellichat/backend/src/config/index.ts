@@ -157,14 +157,14 @@ const envSchema = z.object({
 
   // AWS S3
   S3_REGION: z.string().default("us-east-1"),
-  S3_BUCKET_NAME: z.string(),
-  S3_ACCESS_KEY_ID: z.string(),
-  S3_SECRET_ACCESS_KEY: z.string(),
+  S3_BUCKET_NAME: z.string().default("intellichat-documents"),
+  S3_ACCESS_KEY_ID: z.string().default(""),
+  S3_SECRET_ACCESS_KEY: z.string().default(""),
 
   // Weaviate
   WEAVIATE_SCHEME: z.string().default("https"),
-  WEAVIATE_HOST: z.string(),
-  WEAVIATE_API_KEY: z.string(),
+  WEAVIATE_HOST: z.string().default(""),
+  WEAVIATE_API_KEY: z.string().default(""),
 
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "http", "verbose", "debug", "silly"]).default("info"),

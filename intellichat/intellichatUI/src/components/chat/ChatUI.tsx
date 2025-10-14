@@ -139,10 +139,12 @@ export function ChatUI({
     }
   }, [initialMessage, isValidConversationId, initialMessageSent]);
 
-  const handleSendMessage = async (message?: string, attachments?: { type: 'document'; content: string }[]) => {
-    const typedAttachments = attachments as { type: "file" | "image" | "url"; content: string; metadata?: Record<string, any> }[] | undefined;
+  const handleSendMessage = async (message?: string, attachments?: any[]) => {
     const messageToSend = message || input;
-    if (!messageToSend.trim() || isCreatingChat) return;
+    if (!messageToSend.trim() && (!attachments || attachments.length === 0)) {
+      return; // Don't send empty messages without attachments
+    }
+    if (isCreatingChat) return;
 
     setInput('');
 
@@ -161,6 +163,7 @@ export function ChatUI({
       systemInstructions: settings.systemInstructions,
       messageConfig: messageConfig,
       browserSearch: settings.builtInTools.browserSearch,
+      attachments: attachments,
       fullSettings: settings,
     });
 
@@ -172,7 +175,7 @@ export function ChatUI({
         try {
           const result = await chatAPI.sendNewChat({
             content: messageToSend,
-            ...(typedAttachments && { attachments: typedAttachments }),
+            ...(attachments && attachments.length > 0 && { attachments }),
             model: settings.model, // ✅ USE MODEL FROM SETTINGS
             systemPrompt: settings.systemInstructions, // ✅ USE SYSTEM INSTRUCTIONS
             config: messageConfig,
@@ -192,10 +195,10 @@ export function ChatUI({
         setIsCreatingChat(false);
       } else {
         // Existing conversation: send message with current run settings INCLUDING model and system prompt
-        console.log('📤 Sending to existing conversation - Model:', settings.model, 'Browser:', messageConfig.browserSearch);
+        console.log('📤 Sending to existing conversation - Model:', settings.model, 'Browser:', messageConfig.browserSearch, 'Attachments:', attachments);
         await sendMessage(
           messageToSend,
-          typedAttachments,
+          attachments,
           messageConfig,
           settings.model, // ✅ PASS MODEL
           settings.systemInstructions // ✅ PASS SYSTEM INSTRUCTIONS

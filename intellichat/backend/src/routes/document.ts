@@ -3,10 +3,14 @@
  * Defines API endpoints for file uploads, processing, and management.
  */
 
+console.log("🟣 DOCUMENT_ROUTES.TS: Starting to load");
 import { Router } from 'express';
 import { authenticateJWT } from '@/middleware/auth';
+console.log("🟣 DOCUMENT_ROUTES.TS: About to import documentController");
 import { documentController } from '@/controllers/document';
+console.log("🟣 DOCUMENT_ROUTES.TS: documentController imported");
 import { upload } from '@/middleware/upload';
+console.log("🟣 DOCUMENT_ROUTES.TS: All imports loaded");
 
 const router = Router();
 
@@ -35,4 +39,6 @@ router.get(
   documentController.getDocumentStatus,
 );
 
+console.log("🟣 DOCUMENT_ROUTES.TS: Exporting documentRoutes");
 export { router as documentRoutes };
+console.log("🟣 DOCUMENT_ROUTES.TS: Module fully loaded");

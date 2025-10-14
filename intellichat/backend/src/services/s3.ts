@@ -3,9 +3,12 @@
  * Handles all interactions with AWS S3 for file storage.
  */
 
+console.log("🔵 S3.TS: Starting to load");
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { CONFIG } from '@/config';
 import { v4 as uuidv4 } from 'uuid';
+
+console.log("🔵 S3.TS: Imports loaded, creating S3Client...");
 
 const s3Client = new S3Client({
   region: CONFIG.s3.region,
@@ -14,6 +17,8 @@ const s3Client = new S3Client({
     secretAccessKey: CONFIG.s3.secretAccessKey,
   },
 });
+
+console.log("🔵 S3.TS: S3Client created successfully");
 
 class S3Service {
   public async uploadFile(file: Express.Multer.File): Promise<string> {
@@ -32,4 +37,6 @@ class S3Service {
   }
 }
 
+console.log("🔵 S3.TS: Exporting s3Service singleton");
 export const s3Service = new S3Service();
+console.log("🔵 S3.TS: Module fully loaded");

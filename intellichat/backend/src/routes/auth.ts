@@ -3,11 +3,14 @@
  * Defines all authentication-related API endpoints
  */
 
+console.log("🟡 AUTH.TS: Starting to load");
 import { Router } from "express";
 import { authController } from "@/controllers/auth";
 import { authenticateJWT } from "@/middleware/auth";
 import { validateBody } from "@/middleware/validation";
 import { z } from "zod";
+
+console.log("🟡 AUTH.TS: All imports loaded");
 
 const router = Router();
 

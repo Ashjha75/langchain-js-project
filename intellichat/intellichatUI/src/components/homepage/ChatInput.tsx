@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Mic, Plus, X, Paperclip, Code, Bot, SlidersHorizontal, Search, Video, Image, PenSquare, BookOpen } from 'lucide-react';
-import { FileUpload } from '../chat/FileUpload';
+import { Send, Mic, Plus, X, Paperclip, Code, Bot, Loader2, FileText, FileImage } from 'lucide-react';
 import { toolsOptions } from './data';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { ConfirmModal } from '../ui/confirm-modal';
 
 const assetOptions = [
   { id: 'upload', icon: Paperclip, label: 'Upload files' },
@@ -12,13 +12,13 @@ const assetOptions = [
   { id: 'code', icon: Code, label: 'Import code' },
 ];
 
-const iconMap = {
-  search: Search,
-  video: Video,
-  image: Image,
-  'pen-square': PenSquare,
-  'book-open': BookOpen,
-};
+interface UploadedFile {
+  file: File;
+  preview?: string | undefined;
+  documentId?: string | undefined;
+  uploading: boolean;
+  error?: string | undefined;
+}
 
 interface ChatInputProps {
   input: string;
@@ -29,12 +29,12 @@ interface ChatInputProps {
 
 export function ChatInput({ input, setInput, handleSendMessage, disabled }: ChatInputProps) {
   const [showAssetMenu, setShowAssetMenu] = useState(false);
-  const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
   const [pastedImages, setPastedImages] = useState<Array<{ id: string; url: string; file: File }>>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; message: string }>({ isOpen: false, message: '' });
   const assetMenuRef = useRef<HTMLDivElement>(null);
-  const toolsMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const codeInputRef = useRef<HTMLInputElement>(null);
@@ -44,26 +44,23 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
       if (assetMenuRef.current && !assetMenuRef.current.contains(event.target as Node)) {
         setShowAssetMenu(false);
       }
-      if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target as Node)) {
-        setShowToolsMenu(false);
-      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Auto-resize textarea based on content
+  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = '40px'; // Reset to min height
+      textareaRef.current.style.height = '40px';
       const scrollHeight = textareaRef.current.scrollHeight;
-      const maxHeight = 200; // max height in pixels
+      const maxHeight = 200;
       textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
     }
   }, [input]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isUploading) {
       e.preventDefault();
       onSendMessage();
     }
@@ -97,27 +94,154 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
     });
   };
 
-  const onSendMessage = async () => {
-    if (uploadedFiles.length > 0) {
-      const formData = new FormData();
-      uploadedFiles.forEach(file => formData.append('file', file));
-
-      // This is a placeholder for the actual API call
-      // You would replace this with a call to your backend
-      const documentId = await new Promise(resolve => setTimeout(() => resolve('mock-document-id'), 1000));
-
-      handleSendMessage([{ type: 'document', content: documentId }]);
-    } else {
-      handleSendMessage();
-    }
+  const removeUploadedFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const truncateFileName = (name: string, maxLength: number = 14) => {
-    if (name.length <= maxLength) return name;
-    const ext = name.split('.').pop();
-    const nameWithoutExt = name.substring(0, name.lastIndexOf('.'));
-    const truncated = nameWithoutExt.substring(0, maxLength - (ext ? ext.length + 4 : 3));
-    return `${truncated}...${ext ? '.' + ext : ''}`;
+  // Upload file immediately when selected
+  const uploadFileToBackend = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('token');
+    // Use base URL without /api suffix, as we'll add the full path
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+    // Remove trailing /api if present to avoid double /api/api/
+    const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '');
+    
+    const response = await fetch(`${baseUrl}/api/documents/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+      throw new Error(errorData.message || `Failed to upload ${file.name}`);
+    }
+
+    const data = await response.json();
+    return data.documentId;
+  };
+
+  const handleFileSelect = async (files: File[]) => {
+    if (files.length === 0) return;
+
+    // Add files to state with uploading status
+    const newFiles: UploadedFile[] = files.map(file => ({
+      file,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
+      uploading: true,
+      documentId: undefined,
+      error: undefined,
+    }));
+
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+    setIsUploading(true);
+
+    // Upload each file
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file) continue;
+      
+      const fileIndex = uploadedFiles.length + i;
+
+      try {
+        const documentId = await uploadFileToBackend(file);
+        
+        // Update file with documentId and mark as uploaded
+        setUploadedFiles(prev => prev.map((f, idx) => 
+          idx === fileIndex 
+            ? { ...f, documentId, uploading: false }
+            : f
+        ));
+      } catch (error: any) {
+        console.error(`Error uploading ${file.name}:`, error);
+        
+        // Mark file with error
+        setUploadedFiles(prev => prev.map((f, idx) => 
+          idx === fileIndex 
+            ? { ...f, uploading: false, error: error.message }
+            : f
+        ));
+        
+        // Show error modal immediately
+        setErrorModal({
+          isOpen: true,
+          message: `Failed to upload "${file.name}". ${error.message || 'Please try again.'}`
+        });
+      }
+    }
+
+    setIsUploading(false);
+  };
+
+  const onSendMessage = async () => {
+    if (!input.trim() && uploadedFiles.length === 0 && pastedImages.length === 0) {
+      return;
+    }
+
+    if (isUploading) {
+      setErrorModal({ 
+        isOpen: true, 
+        message: 'Please wait for files to finish uploading before sending the message.' 
+      });
+      return;
+    }
+
+    // Check if any files have errors
+    const filesWithErrors = uploadedFiles.filter(f => f.error);
+    if (filesWithErrors.length > 0) {
+      setErrorModal({ 
+        isOpen: true, 
+        message: 'Some files failed to upload. Please remove them and try again.' 
+      });
+      return;
+    }
+
+    try {
+      let attachments: any[] = [];
+
+      // Add uploaded documents
+      if (uploadedFiles.length > 0) {
+        const documentAttachments = uploadedFiles.map(f => ({
+          type: 'document',
+          documentId: f.documentId,
+          fileName: f.file.name,
+        }));
+        attachments = [...attachments, ...documentAttachments];
+      }
+
+      // Add pasted images
+      if (pastedImages.length > 0) {
+        const imageAttachments = pastedImages.map(img => ({
+          type: 'image',
+          url: img.url,
+        }));
+        attachments = [...attachments, ...imageAttachments];
+      }
+
+      // Send message
+      handleSendMessage(attachments.length > 0 ? attachments : undefined);
+      
+      // Clear all files
+      uploadedFiles.forEach(f => {
+        if (f.preview) URL.revokeObjectURL(f.preview);
+      });
+      setUploadedFiles([]);
+      
+      pastedImages.forEach(img => URL.revokeObjectURL(img.url));
+      setPastedImages([]);
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setErrorModal({ 
+        isOpen: true, 
+        message: 'Failed to send message. Please try again.' 
+      });
+    }
   };
 
   const toggleAsset = (assetId: string) => {
@@ -133,6 +257,8 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
     setShowAssetMenu(false);
   };
 
+  const isDisabled = disabled || isUploading;
+
   return (
     <div className="w-full">
       <div className="relative bg-[#333537] rounded-3xl p-2 transition-colors focus-within:ring-2 focus-within:ring-[#4285f4]">
@@ -143,6 +269,11 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
           accept="image/*,application/pdf,.doc,.docx,.txt"
           multiple
           className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            handleFileSelect(files);
+            if (e.target) e.target.value = '';
+          }}
         />
         <input
           ref={codeInputRef}
@@ -150,6 +281,11 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
           accept=".js,.jsx,.ts,.tsx,.py,.java,.cpp,.c,.html,.css,.json,.xml"
           multiple
           className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            handleFileSelect(files);
+            if (e.target) e.target.value = '';
+          }}
         />
 
         {/* Pasted Images Preview */}
@@ -173,7 +309,109 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
           </div>
         )}
 
-        <FileUpload onFilesChange={setUploadedFiles} />
+        {/* Uploaded Files Preview */}
+        {uploadedFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2 p-2 mb-2 border-t border-[#404040]">
+            {uploadedFiles.map((fileObj, index) => {
+              const isImage = fileObj.file.type.startsWith('image/');
+              
+              // For images, show larger preview
+              if (isImage && fileObj.preview && !fileObj.uploading) {
+                return (
+                  <div key={index} className="relative group">
+                    <img
+                      src={fileObj.preview}
+                      alt={fileObj.file.name}
+                      className="w-20 h-20 object-cover rounded-lg border border-[#404040]"
+                    />
+                    {fileObj.error && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-lg">
+                        <X size={24} className="text-red-400" />
+                      </div>
+                    )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => removeUploadedFile(index)}
+                          className="absolute -top-2 -right-2 bg-[#282a2c] border border-[#404040] rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={14} className="text-[#e8eaed]" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Remove file</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    {fileObj.error && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="absolute bottom-1 right-1 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center text-xs text-white font-bold cursor-help">
+                            !
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{fileObj.error}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                );
+              }
+              
+              // For documents or uploading images, show compact view
+              return (
+                <div
+                  key={index}
+                  className="relative group flex items-center gap-2 bg-[#404040] text-[#e8eaed] text-sm px-3 py-2 rounded-lg max-w-[200px]"
+                >
+                  {/* Loading Spinner or File Icon */}
+                  {fileObj.uploading ? (
+                    <Loader2 size={16} className="animate-spin text-blue-400" />
+                  ) : fileObj.error ? (
+                    <X size={16} className="text-red-400" />
+                  ) : isImage ? (
+                    <FileImage size={16} className="text-blue-400" />
+                  ) : (
+                    <FileText size={16} className="text-green-400" />
+                  )}
+                  
+                  <span className="truncate flex-1" title={fileObj.file.name}>
+                    {fileObj.file.name.length > 20 
+                      ? `${fileObj.file.name.substring(0, 20)}...` 
+                      : fileObj.file.name}
+                  </span>
+                  
+                  {!fileObj.uploading && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => removeUploadedFile(index)}
+                          className="ml-1 hover:text-red-400 transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Remove file</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  
+                  {fileObj.error && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-xs text-red-400 cursor-help">!</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{fileObj.error}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {selectedAssets.length > 0 && (
           <div className="flex flex-wrap gap-2 p-2">
@@ -196,6 +434,7 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
             })}
           </div>
         )}
+        
         <div className="flex items-end">
           <div className="relative" ref={assetMenuRef}>
             <Tooltip>
@@ -203,6 +442,7 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
                 <button
                   onClick={() => setShowAssetMenu(!showAssetMenu)}
                   className="p-2 hover:bg-[#404040] rounded-full transition-colors mx-1"
+                  disabled={isDisabled}
                 >
                   <Plus size={20} className="text-[#9aa0a6]" />
                 </button>
@@ -232,64 +472,25 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
             )}
           </div>
 
-          {/* <div className="relative" ref={toolsMenuRef}>
-            <button
-              onClick={() => setShowToolsMenu(!showToolsMenu)}
-              className="p-2 hover:bg-[#404040] rounded-full transition-colors mx-1"
-            >
-              <SlidersHorizontal size={20} className="text-[#9aa0a6]" />
-            </button>
-            {showToolsMenu && (
-              <div className="absolute bottom-full left-0 mb-3 w-80 bg-[#282a2c] border border-[#333537] rounded-xl p-2 z-50 shadow-lg animate-fade-in">
-                <div className="p-3 border-b border-[#333537] mb-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#e8eaed] text-base font-medium">Tools</span>
-                    <div className="bg-[#333537] text-[#9aa0a6] text-xs px-1.5 py-0.5 rounded">
-                      {toolsOptions.length}
-                    </div>
-                  </div>
-                </div>
-                <div className="max-h-72 overflow-y-auto">
-                  {toolsOptions.map((tool, index) => {
-                    const Icon = iconMap[tool.icon as keyof typeof iconMap];
-                    return (
-                      <button
-                        key={index}
-                        className="w-full flex items-center gap-3 p-3 hover:bg-[#333537] rounded-lg transition-colors text-left"
-                      >
-                        <Icon size={20} className="text-[#9aa0a6]" />
-                        <div className="flex-1">
-                          <div className="text-[#e8eaed] text-sm font-medium mb-0.5">
-                            {tool.title}
-                          </div>
-                          <div className="text-[#9aa0a6] text-xs leading-snug">
-                            {tool.description}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div> */}
-
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             onPaste={handlePaste}
-            placeholder="Ask IntelliChat"
+            placeholder={isUploading ? "Uploading files..." : "Ask IntelliChat"}
             className="flex-1 bg-transparent text-[#e8eaed] outline-none border-none text-base placeholder:text-[#9aa0a6] resize-none focus:ring-0 focus:border-0 overflow-y-auto py-2"
             rows={1}
-            disabled={disabled}
+            disabled={isDisabled}
           />
 
           <div className="flex items-center gap-1 ml-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="p-2 hover:bg-[#404040] rounded-full transition-colors">
+                <button 
+                  className="p-2 hover:bg-[#404040] rounded-full transition-colors"
+                  disabled={isDisabled}
+                >
                   <Mic size={20} className="text-[#9aa0a6]" />
                 </button>
               </TooltipTrigger>
@@ -302,20 +503,36 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
                 <TooltipTrigger asChild>
                   <button
                     onClick={onSendMessage}
-                    className="p-2 bg-[#4285f4] rounded-full transition-all duration-300 ease-in-out hover:bg-[#3367d6] animate-fade-in"
-                    disabled={disabled}
+                    className="p-2 bg-[#4285f4] rounded-full transition-all duration-300 ease-in-out hover:bg-[#3367d6] animate-fade-in disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isDisabled}
                   >
-                    <Send size={20} className="text-white" />
+                    {isUploading ? (
+                      <Loader2 size={20} className="text-white animate-spin" />
+                    ) : (
+                      <Send size={20} className="text-white" />
+                    )}
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  <p>Send message</p>
+                  <p>{isUploading ? 'Uploading...' : 'Send message'}</p>
                 </TooltipContent>
               </Tooltip>
             )}
           </div>
         </div>
       </div>
+
+      {/* Error Modal */}
+      <ConfirmModal
+        isOpen={errorModal.isOpen}
+        onClose={() => setErrorModal({ isOpen: false, message: '' })}
+        onConfirm={() => setErrorModal({ isOpen: false, message: '' })}
+        title="Upload Error"
+        message={errorModal.message}
+        confirmText="OK"
+        cancelText=""
+        variant="warning"
+      />
     </div>
   );
 }

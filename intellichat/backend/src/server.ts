@@ -1,8 +1,10 @@
-// src/server.ts
+// src/server.ts - Debugging server startup issue
+console.log("🔴 SERVER.TS: File loading started");
 import app from "./app";
 import { CONFIG } from "./config";
 import dbConnect from "./database";
 import { logger } from "./utils/logger";
+console.log("🔴 SERVER.TS: All imports loaded");
 
 const PORT = CONFIG.app.port || 3001;
 
@@ -66,7 +68,9 @@ async function startServer() {
 }
 
 // Start the server
+console.log("🔵 SERVER.TS: About to call startServer()");
 startServer().catch((error) => {
   logger.error("💥 Server startup failed:", error);
   process.exit(1);
 });
+console.log("🔵 SERVER.TS: startServer() called");
