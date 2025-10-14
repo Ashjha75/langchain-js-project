@@ -21,8 +21,8 @@ import { chatRoutes } from "@/routes/chat";
 console.log("🟢 APP.TS: Chat routes loaded");
 import { modelsRoutes } from "@/routes/models";
 console.log("🟢 APP.TS: Models routes loaded");
-// import { documentRoutes } from "@/routes/document";
-// console.log("🟢 APP.TS: Document routes loaded");
+import { documentRoutes } from "@/routes/document";
+console.log("🟢 APP.TS: Document routes loaded");
 
 console.log("🟢 APP.TS: All imports loaded");
 
@@ -70,7 +70,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/models", modelsRoutes);
-// app.use("/api/documents", documentRoutes);
+app.use("/api/documents", documentRoutes);
 
 // 404 handler
 app.use("*", (req, res) => {

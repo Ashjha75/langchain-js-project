@@ -1,16 +1,50 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Mic, Plus, X, Paperclip, Code, Bot, Loader2, FileText, FileImage } from 'lucide-react';
+import { Send, Mic, Plus, X, Paperclip, Code, Bot, Loader2, FileText, FileImage, FileCode, FileJson, FileSpreadsheet } from 'lucide-react';
 import { toolsOptions } from './data';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { ConfirmModal } from '../ui/confirm-modal';
 
 const assetOptions = [
   { id: 'upload', icon: Paperclip, label: 'Upload files' },
-  { id: 'drive', icon: Bot, label: 'Add from Drive' },
+  // { id: 'drive', icon: Bot, label: 'Add from Drive' },
   { id: 'code', icon: Code, label: 'Import code' },
 ];
+
+// Helper function to get file icon and color based on file type
+const getFileIcon = (fileName: string, mimeType: string) => {
+  const ext = fileName.toLowerCase().split('.').pop() || '';
+  
+  // Code files
+  const codeExtensions = ['js', 'jsx', 'ts', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'go', 'rs', 'rb', 'php', 'swift', 'kt'];
+  if (codeExtensions.includes(ext)) {
+    return { Icon: FileCode, color: 'text-purple-400' };
+  }
+  
+  // JSON files
+  if (ext === 'json') {
+    return { Icon: FileJson, color: 'text-yellow-400' };
+  }
+  
+  // Spreadsheets
+  if (['xlsx', 'xls', 'csv'].includes(ext)) {
+    return { Icon: FileSpreadsheet, color: 'text-green-500' };
+  }
+  
+  // Markdown and text
+  if (['md', 'txt', 'yaml', 'yml', 'toml', 'ini', 'conf', 'config', 'env'].includes(ext)) {
+    return { Icon: FileText, color: 'text-gray-400' };
+  }
+  
+  // Images
+  if (mimeType.startsWith('image/')) {
+    return { Icon: FileImage, color: 'text-blue-400' };
+  }
+  
+  // Default document icon
+  return { Icon: FileText, color: 'text-green-400' };
+};
 
 interface UploadedFile {
   file: File;
@@ -100,10 +134,26 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
 
   // Upload file immediately when selected
   const uploadFileToBackend = async (file: File): Promise<string> => {
+    // Get auth token from user object (same pattern as api.ts and chat-api.ts)
+    let token = '';
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        token = user?.tokens?.accessToken || '';
+      } catch (e) {
+        console.error('Error parsing user from localStorage:', e);
+        throw new Error('Authentication error. Please log in again.');
+      }
+    }
+
+    if (!token) {
+      throw new Error('Please log in to upload files.');
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = localStorage.getItem('token');
     // Use base URL without /api suffix, as we'll add the full path
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
     // Remove trailing /api if present to avoid double /api/api/
@@ -119,6 +169,12 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Upload failed' }));
+      
+      // Handle authentication errors specifically
+      if (response.status === 401) {
+        throw new Error('Session expired. Please log in again.');
+      }
+      
       throw new Error(errorData.message || `Failed to upload ${file.name}`);
     }
 
@@ -266,7 +322,7 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,application/pdf,.doc,.docx,.txt"
+          accept="image/*,application/pdf,.doc,.docx,.txt,.md,.csv,.xls,.xlsx"
           multiple
           className="hidden"
           onChange={(e) => {
@@ -278,7 +334,7 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
         <input
           ref={codeInputRef}
           type="file"
-          accept=".js,.jsx,.ts,.tsx,.py,.java,.cpp,.c,.html,.css,.json,.xml"
+          accept=".js,.jsx,.ts,.tsx,.py,.java,.cpp,.c,.cs,.go,.rs,.html,.css,.json,.xml,.md,.txt,.sql,.yaml,.yml,.sh,.bash,.env,.config,.conf,.ini,.toml"
           multiple
           className="hidden"
           onChange={(e) => {
@@ -359,6 +415,8 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
               }
               
               // For documents or uploading images, show compact view
+              const { Icon: FileIcon, color: iconColor } = getFileIcon(fileObj.file.name, fileObj.file.type);
+              
               return (
                 <div
                   key={index}
@@ -369,10 +427,8 @@ export function ChatInput({ input, setInput, handleSendMessage, disabled }: Chat
                     <Loader2 size={16} className="animate-spin text-blue-400" />
                   ) : fileObj.error ? (
                     <X size={16} className="text-red-400" />
-                  ) : isImage ? (
-                    <FileImage size={16} className="text-blue-400" />
                   ) : (
-                    <FileText size={16} className="text-green-400" />
+                    <FileIcon size={16} className={iconColor} />
                   )}
                   
                   <span className="truncate flex-1" title={fileObj.file.name}>
