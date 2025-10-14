@@ -23,14 +23,27 @@ export function MainContent({ sidebarOpen, setSidebarOpen, setRunSettingsOpen }:
   const handleSuggestionClick = (suggestion: { title: string; subtitle: string }) => {
     const query = `${suggestion.title} ${suggestion.subtitle}`;
     setInput(query);
-    handleSendMessage(query);
+    handleSendMessage([]);
   };
 
-  const handleSendMessage = (message?: string) => {
-    const messageToSend = message || input;
-    if (messageToSend.trim()) {
+  const handleSendMessage = (attachments?: any[]) => {
+    // If attachments is provided (could be empty array or array with items), use input text
+    // Otherwise, for backwards compatibility, treat first param as message string
+    const messageToSend = input;
+    
+    if (messageToSend.trim() || (attachments && attachments.length > 0)) {
       const chatId = Date.now().toString();
-      router.push(`/chat/${chatId}?message=${encodeURIComponent(messageToSend)}`);
+      const params = new URLSearchParams();
+      
+      if (messageToSend.trim()) {
+        params.set('message', messageToSend);
+      }
+      
+      if (attachments && attachments.length > 0) {
+        params.set('attachments', JSON.stringify(attachments));
+      }
+      
+      router.push(`/chat/${chatId}?${params.toString()}`);
     }
   };
 

@@ -1,127 +1,196 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import Link from 'next/link';
 import { register } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
+
+const registerSchema = z.object({
+  firstName: z.string().min(2, { message: 'First name must be at least 2 characters.' }),
+  lastName: z.string().min(2, { message: 'Last name must be at least 2 characters.' }),
+  username: z.string().min(3, { message: 'Username must be at least 3 characters.' }),
+  email: z.string().email({ message: 'Invalid email address.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  acceptTerms: z.boolean().refine((val) => val === true, { message: 'You must accept the terms and conditions.' }),
+});
 
 const RegisterPage = () => {
-  const [username, setUsername] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<z.infer<typeof registerSchema>>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      username: '',
+      email: '',
+      password: '',
+      acceptTerms: false,
+    },
+  });
+
+  const handleSubmit = async (values: z.infer<typeof registerSchema>) => {
+    setIsLoading(true);
     try {
-      await register({ username, firstName, lastName, email, password, acceptTerms });
+      await register(values);
       toast.success('Registration successful!');
       router.push('/chat');
     } catch (error) {
       console.error('Registration failed:', error);
       toast.error('Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen">
-      <div className="flex flex-col justify-center w-full md:w-1/2 p-8 bg-background">
-        <div className="w-full max-w-md mx-auto">
-          <h1 className="text-3xl font-bold mb-2">Create an account</h1>
-          <p className="text-muted-foreground mb-8">
-            Already have an account?{' '}
-            <Link href="/login" className="text-primary underline">
-              Login
-            </Link>
-          </p>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                />
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
+      <div className="flex items-center justify-center py-12">
+        <div className="mx-auto grid w-[400px] gap-6">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-2xl">Sign Up</CardTitle>
+              <CardDescription>
+                Enter your information to create an account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Max" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Robinson" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <Input placeholder="maxrobinson" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="m@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-2 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="acceptTerms"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            I accept the <Link href="#" className="underline">terms and conditions</Link>
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Create an account
+                  </Button>
+                </form>
+              </Form>
+              <div className="mt-4 text-center text-sm">
+                Already have an account?{' '}
+                <Link href="/login" className="underline">
+                  Sign in
+                </Link>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  required
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2 relative">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-8"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </Button>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="acceptTerms"
-                checked={acceptTerms}
-                onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
-              />
-              <Label htmlFor="acceptTerms">I accept the terms and conditions</Label>
-            </div>
-            <Button type="submit" className="w-full" disabled={!acceptTerms}>
-              Register
-            </Button>
-          </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
-      <div className="hidden md:flex w-[90%] auth-bg items-center justify-center p-8">
-        <div className="text-white text-center">
-            <h2 className="text-4xl font-bold mb-4">Welcome to IntelliChat</h2>
-            <p className="mb-6">The AI-powered chat interface with advanced features and an intuitive design.</p>
+      <div className="hidden lg:flex auth-bg items-center justify-center p-8 relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-black/60 to-black/20" />
+        <div className="text-white text-center z-10 animate-fade-in">
+            <h2 className="text-5xl font-bold mb-4">Welcome to IntelliChat</h2>
+            <p className="text-lg mb-6">The AI-powered chat interface with advanced features and an intuitive design.</p>
         </div>
       </div>
     </div>
