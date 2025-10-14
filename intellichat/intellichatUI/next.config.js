@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Trigger rebuild to resolve module alias cache
 const nextConfig = {
   // Server external packages (moved from experimental)
   serverExternalPackages: ['sharp'],
